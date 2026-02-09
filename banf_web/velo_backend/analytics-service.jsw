@@ -1,0 +1,780 @@
+/**
+ * BANF Advanced Analytics Service
+ * =================================
+ * Wix Velo Backend Module for comprehensive event and organization analytics
+ * 
+ * Features:
+ * - Real-time event dashboards
+ * - Predictive analytics for planning
+ * - Historical trend analysis
+ * - Food/catering optimization
+ * - Member engagement scoring
+ * - Financial projections
+ * 
+ * @module backend/analytics-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// REAL-TIME EVENT ANALYTICS
+// =====================================================
+
+/**
+ * Get comprehensive real-time event dashboard data
+ * @param {string} eventId
+ */
+export async function getEventDashboard(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .find();
+        
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('eventId', eventId)
+            .find();
+        
+        const qrCodes = await wixData.query('QRCodes')
+            .eq('eventId', eventId)
+            .eq('qrType', 'FOOD_SERVICE')
+            .find();
+        
+        // Calculate metrics
+        const attending = rsvps.items.filter(r => r.rsvpStatus === 'attending');
+        const totalHeadcount = attending.reduce((sum, r) => sum + r.totalAttendees, 0);
+        const checkedIn = qrCodes.items.filter(q => q.status === 'used').length;
+        
+        // Age demographics
+        const ageDemographics = {
+            adults: attending.reduce((sum, r) => sum + (r.adultCount || 0), 0),
+            teens: attending.reduce((sum, r) => sum + (r.teenCount || 0), 0),
+            children: attending.reduce((sum, r) => sum + (r.childCount || 0), 0),
+            toddlers: attending.reduce((sum, r) => sum + (r.toddlerCount || 0), 0),
+            infants: attending.reduce((sum, r) => sum + (r.infantCount || 0), 0)
+        };
+        
+        // Dietary breakdown
+        const dietary = {
+            vegetarian: attending.reduce((sum, r) => sum + (r.vegetarianCount || 0), 0),
+            nonVegetarian: attending.reduce((sum, r) => sum + (r.nonVegCount || 0), 0),
+            vegan: attending.reduce((sum, r) => sum + (r.veganCount || 0), 0),
+            glutenFree: attending.reduce((sum, r) => sum + (r.glutenFreeCount || 0), 0),
+            other: attending.reduce((sum, r) => sum + (r.otherDietaryCount || 0), 0)
+        };
+        
+        return {
+            success: true,
+            dashboard: {
+                event: {
+                    title: event.title,
+                    date: event.eventDate,
+                    status: event.status
+                },
+                
+                // Attendance Overview
+                attendance: {
+                    invited: invitations.items.length,
+                    responded: rsvps.items.length,
+                    attending: attending.length,
+                    notAttending: rsvps.items.filter(r => r.rsvpStatus === 'not_attending').length,
+                    pending: invitations.items.filter(i => !i.responded).length,
+                    totalHeadcount: totalHeadcount,
+                    checkedIn: checkedIn,
+                    checkInRate: totalHeadcount > 0 ? Math.round((checkedIn / totalHeadcount) * 100) : 0
+                },
+                
+                // Demographics
+                demographics: {
+                    byAge: ageDemographics,
+                    ageChart: [
+                        { label: 'Adults', value: ageDemographics.adults, color: '#ff6b35' },
+                        { label: 'Teens', value: ageDemographics.teens, color: '#f7931e' },
+                        { label: 'Children', value: ageDemographics.children, color: '#006A4E' },
+                        { label: 'Toddlers', value: ageDemographics.toddlers, color: '#722f37' },
+                        { label: 'Infants', value: ageDemographics.infants, color: '#daa520' }
+                    ]
+                },
+                
+                // Food Planning
+                foodPlanning: {
+                    byDietary: dietary,
+                    totalMealsNeeded: totalHeadcount,
+                    mealBreakdown: {
+                        vegMeals: dietary.vegetarian + dietary.vegan,
+                        nonVegMeals: dietary.nonVegetarian,
+                        specialMeals: dietary.glutenFree + dietary.other
+                    },
+                    recommendedQuantities: calculateFoodQuantities(totalHeadcount, dietary, ageDemographics)
+                },
+                
+                // Response Rate
+                responseMetrics: {
+                    responseRate: invitations.items.length > 0 
+                        ? Math.round((rsvps.items.length / invitations.items.length) * 100) 
+                        : 0,
+                    viewRate: invitations.items.length > 0
+                        ? Math.round((invitations.items.filter(i => i.viewed).length / invitations.items.length) * 100)
+                        : 0
+                },
+                
+                // Last Updated
+                lastUpdated: new Date().toISOString()
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting dashboard:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Calculate recommended food quantities based on attendance
+ */
+function calculateFoodQuantities(totalHeadcount, dietary, ageDemographics) {
+    // Adult portions
+    const adultPortionFactor = 1;
+    // Teen portions (slightly less than adult)
+    const teenPortionFactor = 0.9;
+    // Child portions (about 60% of adult)
+    const childPortionFactor = 0.6;
+    // Toddler portions (about 30% of adult)
+    const toddlerPortionFactor = 0.3;
+    // Infants don't need meals
+    const infantPortionFactor = 0;
+    
+    const totalPortions = 
+        (ageDemographics.adults * adultPortionFactor) +
+        (ageDemographics.teens * teenPortionFactor) +
+        (ageDemographics.children * childPortionFactor) +
+        (ageDemographics.toddlers * toddlerPortionFactor) +
+        (ageDemographics.infants * infantPortionFactor);
+    
+    // Add 10% buffer for unexpected guests and second servings
+    const bufferMultiplier = 1.1;
+    const adjustedPortions = Math.ceil(totalPortions * bufferMultiplier);
+    
+    // Calculate veg vs non-veg ratio
+    const totalWithDietary = dietary.vegetarian + dietary.nonVegetarian + dietary.vegan;
+    const vegRatio = totalWithDietary > 0 
+        ? (dietary.vegetarian + dietary.vegan) / totalWithDietary 
+        : 0.5; // Default to 50-50 if no data
+    
+    return {
+        totalPortions: adjustedPortions,
+        vegetarianPortions: Math.ceil(adjustedPortions * vegRatio),
+        nonVegPortions: Math.ceil(adjustedPortions * (1 - vegRatio)),
+        
+        // Specific recommendations
+        recommendations: {
+            rice: `${Math.ceil(adjustedPortions * 0.25)} kg (approx 1/4 kg per portion)`,
+            dal: `${Math.ceil(adjustedPortions * 0.1)} kg`,
+            vegetables: `${Math.ceil(adjustedPortions * 0.15)} kg mixed vegetables`,
+            meatDish: `${Math.ceil(adjustedPortions * (1 - vegRatio) * 0.15)} kg chicken/mutton`,
+            sweets: `${Math.ceil(adjustedPortions * 2)} pieces (2 per person)`,
+            water: `${Math.ceil(adjustedPortions * 0.5)} liters (half liter per person)`,
+            plates: adjustedPortions,
+            napkins: adjustedPortions * 2
+        },
+        
+        kidsSpecial: {
+            required: (ageDemographics.children + ageDemographics.toddlers) > 5,
+            count: ageDemographics.children + ageDemographics.toddlers,
+            suggestion: 'Consider kid-friendly options like plain rice, mild curry, juice boxes'
+        },
+        
+        specialDiet: {
+            glutenFree: dietary.glutenFree > 0,
+            vegan: dietary.vegan > 0,
+            count: dietary.glutenFree + dietary.other,
+            suggestion: 'Prepare labeled separate containers for special dietary needs'
+        }
+    };
+}
+
+// =====================================================
+// PREDICTIVE ANALYTICS
+// =====================================================
+
+/**
+ * Predict attendance based on historical data
+ * @param {string} eventId
+ */
+export async function predictAttendance(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('eventId', eventId)
+            .find();
+        
+        // Get historical data from similar events
+        const historicalEvents = await wixData.query('Events')
+            .eq('eventType', event.eventType)
+            .ne('_id', eventId)
+            .descending('eventDate')
+            .limit(10)
+            .find();
+        
+        // Calculate historical response rates
+        let avgResponseRate = 0.65; // Default
+        let avgAttendanceRate = 0.55; // Default
+        let avgGuestsPerRSVP = 2.5; // Default
+        
+        if (historicalEvents.items.length > 0) {
+            const historicalStats = await Promise.all(
+                historicalEvents.items.map(async (e) => {
+                    const rsvps = await wixData.query('EviteRSVPs')
+                        .eq('eventId', e._id)
+                        .find();
+                    const invites = await wixData.query('EviteInvitations')
+                        .eq('eventId', e._id)
+                        .find();
+                    
+                    return {
+                        responseRate: invites.items.length > 0 
+                            ? rsvps.items.length / invites.items.length 
+                            : 0,
+                        attendanceRate: rsvps.items.length > 0
+                            ? rsvps.items.filter(r => r.rsvpStatus === 'attending').length / rsvps.items.length
+                            : 0,
+                        avgGuests: rsvps.items.length > 0
+                            ? rsvps.items.reduce((sum, r) => sum + r.totalAttendees, 0) / rsvps.items.length
+                            : 0
+                    };
+                })
+            );
+            
+            avgResponseRate = historicalStats.reduce((sum, s) => sum + s.responseRate, 0) / historicalStats.length;
+            avgAttendanceRate = historicalStats.reduce((sum, s) => sum + s.attendanceRate, 0) / historicalStats.length;
+            avgGuestsPerRSVP = historicalStats.reduce((sum, s) => sum + s.avgGuests, 0) / historicalStats.length;
+        }
+        
+        // Current stats
+        const currentRSVPs = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .find();
+        
+        const currentAttending = currentRSVPs.items.filter(r => r.rsvpStatus === 'attending');
+        const currentHeadcount = currentAttending.reduce((sum, r) => sum + r.totalAttendees, 0);
+        
+        // Pending invitations
+        const pendingInvites = invitations.items.filter(i => !i.responded);
+        
+        // Predictions
+        const expectedAdditionalResponses = Math.round(pendingInvites.length * avgResponseRate);
+        const expectedAdditionalAttending = Math.round(expectedAdditionalResponses * avgAttendanceRate);
+        const expectedAdditionalHeadcount = Math.round(expectedAdditionalAttending * avgGuestsPerRSVP);
+        
+        const predictedTotalHeadcount = currentHeadcount + expectedAdditionalHeadcount;
+        
+        // Confidence calculation
+        const daysUntilEvent = Math.ceil((new Date(event.eventDate) - new Date()) / (1000 * 60 * 60 * 24));
+        const confidence = calculatePredictionConfidence(
+            currentRSVPs.items.length,
+            invitations.items.length,
+            daysUntilEvent,
+            historicalEvents.items.length
+        );
+        
+        return {
+            success: true,
+            prediction: {
+                current: {
+                    responded: currentRSVPs.items.length,
+                    attending: currentAttending.length,
+                    headcount: currentHeadcount,
+                    pending: pendingInvites.length
+                },
+                
+                predicted: {
+                    finalResponseRate: Math.round(avgResponseRate * 100),
+                    finalAttendingCount: currentAttending.length + expectedAdditionalAttending,
+                    finalHeadcount: predictedTotalHeadcount,
+                    
+                    range: {
+                        low: Math.round(predictedTotalHeadcount * 0.85),
+                        mid: predictedTotalHeadcount,
+                        high: Math.round(predictedTotalHeadcount * 1.15)
+                    }
+                },
+                
+                confidence: {
+                    level: confidence.level,
+                    score: confidence.score,
+                    factors: confidence.factors
+                },
+                
+                recommendations: generatePredictionRecommendations(
+                    predictedTotalHeadcount,
+                    daysUntilEvent,
+                    pendingInvites.length
+                ),
+                
+                basedOn: {
+                    historicalEvents: historicalEvents.items.length,
+                    avgResponseRate: Math.round(avgResponseRate * 100),
+                    avgAttendanceRate: Math.round(avgAttendanceRate * 100),
+                    avgGuestsPerRSVP: avgGuestsPerRSVP.toFixed(1)
+                }
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error predicting attendance:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+function calculatePredictionConfidence(respondedCount, totalInvited, daysUntilEvent, historicalDataPoints) {
+    let score = 50; // Base score
+    const factors = [];
+    
+    // Factor 1: Response rate so far
+    const currentResponseRate = totalInvited > 0 ? respondedCount / totalInvited : 0;
+    if (currentResponseRate > 0.7) {
+        score += 20;
+        factors.push('High current response rate (+20)');
+    } else if (currentResponseRate > 0.5) {
+        score += 10;
+        factors.push('Moderate response rate (+10)');
+    } else {
+        factors.push('Low response rate so far');
+    }
+    
+    // Factor 2: Historical data
+    if (historicalDataPoints >= 5) {
+        score += 15;
+        factors.push('Good historical data (+15)');
+    } else if (historicalDataPoints >= 2) {
+        score += 5;
+        factors.push('Limited historical data (+5)');
+    } else {
+        score -= 10;
+        factors.push('Insufficient historical data (-10)');
+    }
+    
+    // Factor 3: Time until event
+    if (daysUntilEvent <= 3) {
+        score += 15;
+        factors.push('Event imminent, stable numbers (+15)');
+    } else if (daysUntilEvent <= 7) {
+        score += 5;
+        factors.push('Event within a week (+5)');
+    } else if (daysUntilEvent > 14) {
+        score -= 15;
+        factors.push('Event far away, numbers may change (-15)');
+    }
+    
+    // Cap score
+    score = Math.max(20, Math.min(95, score));
+    
+    let level = 'Low';
+    if (score >= 80) level = 'High';
+    else if (score >= 60) level = 'Medium';
+    
+    return { score, level, factors };
+}
+
+function generatePredictionRecommendations(predictedHeadcount, daysUntilEvent, pendingInvites) {
+    const recommendations = [];
+    
+    if (pendingInvites > 20 && daysUntilEvent <= 7) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Send RSVP reminders',
+            reason: `${pendingInvites} invites still pending with event in ${daysUntilEvent} days`
+        });
+    }
+    
+    if (predictedHeadcount > 200) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Confirm venue capacity',
+            reason: `Expected ${predictedHeadcount} attendees - verify venue can accommodate`
+        });
+    }
+    
+    if (daysUntilEvent <= 3) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Finalize catering orders',
+            reason: 'Event is in 3 days or less - finalize food quantities'
+        });
+    }
+    
+    if (daysUntilEvent <= 5 && daysUntilEvent > 2) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Generate and send QR codes',
+            reason: 'Good time to send QR codes to confirmed attendees'
+        });
+    }
+    
+    return recommendations;
+}
+
+// =====================================================
+// HISTORICAL TRENDS
+// =====================================================
+
+/**
+ * Get organization-wide analytics and trends
+ */
+export async function getOrganizationAnalytics() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        // Get all events from past year
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        
+        const events = await wixData.query('Events')
+            .ge('eventDate', oneYearAgo)
+            .find();
+        
+        // Get all members
+        const members = await wixData.query('MemberProfiles')
+            .find();
+        
+        // Calculate metrics
+        const eventsByMonth = {};
+        const attendanceByEvent = {};
+        
+        for (const event of events.items) {
+            const month = new Date(event.eventDate).toLocaleString('default', { month: 'short', year: 'numeric' });
+            eventsByMonth[month] = (eventsByMonth[month] || 0) + 1;
+            
+            const rsvps = await wixData.query('EviteRSVPs')
+                .eq('eventId', event._id)
+                .eq('rsvpStatus', 'attending')
+                .find();
+            
+            attendanceByEvent[event._id] = {
+                title: event.title,
+                date: event.eventDate,
+                type: event.eventType,
+                attendance: rsvps.items.reduce((sum, r) => sum + r.totalAttendees, 0)
+            };
+        }
+        
+        // Member engagement
+        const memberEngagement = await calculateMemberEngagement(members.items);
+        
+        // Financial overview
+        const financialSummary = await getFinancialSummary();
+        
+        return {
+            success: true,
+            analytics: {
+                overview: {
+                    totalMembers: members.items.length,
+                    activeMembers: members.items.filter(m => m.membershipStatus === 'active').length,
+                    totalEvents: events.items.length,
+                    avgAttendance: Object.values(attendanceByEvent).length > 0
+                        ? Math.round(
+                            Object.values(attendanceByEvent).reduce((sum, e) => sum + e.attendance, 0) /
+                            Object.values(attendanceByEvent).length
+                        )
+                        : 0
+                },
+                
+                eventTrends: {
+                    byMonth: eventsByMonth,
+                    byType: events.items.reduce((acc, e) => {
+                        acc[e.eventType] = (acc[e.eventType] || 0) + 1;
+                        return acc;
+                    }, {}),
+                    popularEvents: Object.values(attendanceByEvent)
+                        .sort((a, b) => b.attendance - a.attendance)
+                        .slice(0, 5)
+                },
+                
+                memberEngagement: memberEngagement,
+                
+                financialSummary: financialSummary
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting org analytics:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function calculateMemberEngagement(members) {
+    const engagement = {
+        highEngagement: 0,
+        mediumEngagement: 0,
+        lowEngagement: 0,
+        noEngagement: 0
+    };
+    
+    const engagementDetails = [];
+    
+    for (const memberProfile of members.slice(0, 100)) { // Limit for performance
+        // Count event attendance
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('memberId', memberProfile._id)
+            .eq('rsvpStatus', 'attending')
+            .find();
+        
+        const attendanceCount = rsvps.items.length;
+        let level = 'none';
+        
+        if (attendanceCount >= 5) {
+            engagement.highEngagement++;
+            level = 'high';
+        } else if (attendanceCount >= 3) {
+            engagement.mediumEngagement++;
+            level = 'medium';
+        } else if (attendanceCount >= 1) {
+            engagement.lowEngagement++;
+            level = 'low';
+        } else {
+            engagement.noEngagement++;
+        }
+        
+        engagementDetails.push({
+            memberId: memberProfile._id,
+            name: `${memberProfile.firstName} ${memberProfile.lastName}`,
+            eventsAttended: attendanceCount,
+            level: level
+        });
+    }
+    
+    return {
+        breakdown: engagement,
+        topEngaged: engagementDetails
+            .sort((a, b) => b.eventsAttended - a.eventsAttended)
+            .slice(0, 10)
+    };
+}
+
+async function getFinancialSummary() {
+    try {
+        // Get membership payments
+        const membershipPayments = await wixData.query('MembershipPayments')
+            .ge('createdAt', new Date(new Date().getFullYear(), 0, 1)) // Current year
+            .find();
+        
+        // Get event payments
+        const eventPayments = await wixData.query('EventPayments')
+            .ge('createdAt', new Date(new Date().getFullYear(), 0, 1))
+            .find();
+        
+        // Get sponsorships
+        const sponsorships = await wixData.query('SponsorPayments')
+            .ge('createdAt', new Date(new Date().getFullYear(), 0, 1))
+            .find();
+        
+        const membershipTotal = membershipPayments.items
+            .filter(p => p.status === 'completed')
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+        
+        const eventTotal = eventPayments.items
+            .filter(p => p.status === 'completed')
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+        
+        const sponsorTotal = sponsorships.items
+            .filter(p => p.status === 'completed')
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+        
+        return {
+            membershipRevenue: membershipTotal,
+            eventRevenue: eventTotal,
+            sponsorshipRevenue: sponsorTotal,
+            totalRevenue: membershipTotal + eventTotal + sponsorTotal,
+            transactionCount: membershipPayments.items.length + eventPayments.items.length + sponsorships.items.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting financial summary:', error);
+        return {
+            membershipRevenue: 0,
+            eventRevenue: 0,
+            sponsorshipRevenue: 0,
+            totalRevenue: 0,
+            transactionCount: 0
+        };
+    }
+}
+
+// =====================================================
+// CATERING OPTIMIZATION
+// =====================================================
+
+/**
+ * Generate optimized catering report
+ * @param {string} eventId
+ */
+export async function getCateringReport(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .eq('rsvpStatus', 'attending')
+            .find();
+        
+        // Aggregate data
+        let totalAttendees = 0;
+        const dietaryBreakdown = {};
+        const ageBreakdown = {};
+        const specialRequirements = [];
+        const attendeeDetails = [];
+        
+        for (const rsvp of rsvps.items) {
+            // Main attendee
+            totalAttendees += rsvp.totalAttendees;
+            
+            // Dietary
+            const mainDiet = rsvp.mainAttendee.dietary || 'no_restriction';
+            dietaryBreakdown[mainDiet] = (dietaryBreakdown[mainDiet] || 0) + 1;
+            
+            // Age
+            const mainAge = rsvp.mainAttendee.ageCategory || 'adult';
+            ageBreakdown[mainAge] = (ageBreakdown[mainAge] || 0) + 1;
+            
+            // Special requirements
+            if (rsvp.mainAttendee.dietaryNotes) {
+                specialRequirements.push({
+                    name: rsvp.mainAttendee.name,
+                    requirement: rsvp.mainAttendee.dietaryNotes
+                });
+            }
+            
+            // Details
+            attendeeDetails.push({
+                name: rsvp.mainAttendee.name,
+                dietary: mainDiet,
+                ageCategory: mainAge,
+                notes: rsvp.mainAttendee.dietaryNotes || ''
+            });
+            
+            // Guests
+            for (const guest of (rsvp.guests || [])) {
+                const guestDiet = guest.dietary || 'no_restriction';
+                dietaryBreakdown[guestDiet] = (dietaryBreakdown[guestDiet] || 0) + 1;
+                
+                const guestAge = guest.ageCategory || 'adult';
+                ageBreakdown[guestAge] = (ageBreakdown[guestAge] || 0) + 1;
+                
+                if (guest.dietaryNotes) {
+                    specialRequirements.push({
+                        name: guest.name,
+                        requirement: guest.dietaryNotes
+                    });
+                }
+                
+                attendeeDetails.push({
+                    name: guest.name,
+                    dietary: guestDiet,
+                    ageCategory: guestAge,
+                    notes: guest.dietaryNotes || ''
+                });
+            }
+        }
+        
+        // Generate portions
+        const vegCount = (dietaryBreakdown['vegetarian'] || 0) + (dietaryBreakdown['vegan'] || 0);
+        const nonVegCount = dietaryBreakdown['non_vegetarian'] || 0;
+        const noRestCount = dietaryBreakdown['no_restriction'] || 0;
+        
+        // Assume no-restriction splits 50-50
+        const estimatedVegTotal = vegCount + Math.ceil(noRestCount * 0.5);
+        const estimatedNonVegTotal = nonVegCount + Math.floor(noRestCount * 0.5);
+        
+        // Add buffer
+        const buffer = 1.15; // 15% buffer
+        
+        return {
+            success: true,
+            report: {
+                event: {
+                    title: event.title,
+                    date: event.eventDate,
+                    location: event.venueName
+                },
+                
+                headcount: {
+                    confirmed: totalAttendees,
+                    withBuffer: Math.ceil(totalAttendees * buffer),
+                    rsvpCount: rsvps.items.length
+                },
+                
+                dietary: {
+                    breakdown: dietaryBreakdown,
+                    recommendations: {
+                        vegetarianMeals: Math.ceil(estimatedVegTotal * buffer),
+                        nonVegMeals: Math.ceil(estimatedNonVegTotal * buffer),
+                        veganMeals: Math.ceil((dietaryBreakdown['vegan'] || 0) * buffer),
+                        glutenFreeMeals: Math.ceil((dietaryBreakdown['gluten_free'] || 0) * buffer)
+                    }
+                },
+                
+                age: {
+                    breakdown: ageBreakdown,
+                    childrenCount: (ageBreakdown['child'] || 0) + (ageBreakdown['toddler'] || 0),
+                    kidsPlates: Math.ceil(((ageBreakdown['child'] || 0) + (ageBreakdown['toddler'] || 0)) * buffer),
+                    highChairsNeeded: (ageBreakdown['toddler'] || 0) + (ageBreakdown['infant'] || 0)
+                },
+                
+                specialRequirements: {
+                    count: specialRequirements.length,
+                    details: specialRequirements
+                },
+                
+                printableList: {
+                    total: attendeeDetails.length,
+                    sortedByDietary: attendeeDetails.sort((a, b) => a.dietary.localeCompare(b.dietary))
+                }
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error generating catering report:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}

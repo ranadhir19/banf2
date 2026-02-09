@@ -1,0 +1,823 @@
+/**
+ * BANF Radio Scheduler Backend Module
+ * ====================================
+ * Wix Velo Backend Module for managing Bengali music radio programming
+ * 
+ * Features:
+ * - Weekly schedule management with Bengali programs
+ * - Playlist management by genre
+ * - Special event scheduling (Mahalaya, Puja celebrations)
+ * - Real-time now playing tracking
+ * - Listener analytics
+ * 
+ * @module backend/radio-scheduler.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// CONSTANTS - Bengali Program Categories
+// =====================================================
+
+export const PROGRAM_CATEGORIES = {
+    SOKALER_SUR: {
+        id: 'bengali_morning',
+        name_bn: 'সকালের সুর',
+        name_en: 'Morning Melodies',
+        description: 'Traditional Bengali morning songs and bhajans',
+        color: '#fff3cd'
+    },
+    RABINDRA_SANGEET: {
+        id: 'rabindra',
+        name_bn: 'রবীন্দ্র সঙ্গীত',
+        name_en: 'Rabindra Sangeet',
+        description: 'Songs composed by Rabindranath Tagore',
+        color: '#d4edda'
+    },
+    ADHUNIK_BANGLA: {
+        id: 'modern',
+        name_bn: 'আধুনিক বাংলা',
+        name_en: 'Modern Bengali',
+        description: 'Contemporary Bengali music',
+        color: '#d1ecf1'
+    },
+    CHALACHITRER_GAAN: {
+        id: 'film',
+        name_bn: 'চলচ্চিত্রের গান',
+        name_en: 'Film Songs',
+        description: 'Bengali film songs from golden era to modern',
+        color: '#e2d5f3'
+    },
+    SHASTRIYA_SANGEET: {
+        id: 'classical',
+        name_bn: 'শাস্ত্রীয় সঙ্গীত',
+        name_en: 'Classical Music',
+        description: 'Hindustani and Carnatic classical music',
+        color: '#f8d7da'
+    },
+    NAZRUL_GEETI: {
+        id: 'nazrul',
+        name_bn: 'নজরুল গীতি',
+        name_en: 'Nazrul Geeti',
+        description: 'Songs composed by Kazi Nazrul Islam',
+        color: '#ffeeba'
+    },
+    FOLK_SONGS: {
+        id: 'folk',
+        name_bn: 'লোকসঙ্গীত',
+        name_en: 'Folk Songs',
+        description: 'Baul, Bhatiyali, Jhumur and other folk genres',
+        color: '#c3e6cb'
+    },
+    SPECIAL_PROGRAM: {
+        id: 'special',
+        name_bn: 'বিশেষ অনুষ্ঠান',
+        name_en: 'Special Program',
+        description: 'Special event programming',
+        color: '#ffeaa7'
+    }
+};
+
+// Default Weekly Schedule Template
+const DEFAULT_SCHEDULE = {
+    sunday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'modern' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    monday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'modern' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    tuesday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'nazrul' },
+        { startHour: 14, endHour: 18, category: 'modern' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    wednesday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'folk' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    thursday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'modern' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    friday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'modern' },
+        { startHour: 19, endHour: 21, category: 'special' }, // Community Hour
+        { startHour: 21, endHour: 24, category: 'classical' }
+    ],
+    saturday: [
+        { startHour: 6, endHour: 10, category: 'bengali_morning' },
+        { startHour: 10, endHour: 14, category: 'rabindra' },
+        { startHour: 14, endHour: 18, category: 'nazrul' },
+        { startHour: 18, endHour: 21, category: 'film' },
+        { startHour: 21, endHour: 24, category: 'folk' }
+    ]
+};
+
+// =====================================================
+// SCHEDULE MANAGEMENT FUNCTIONS
+// =====================================================
+
+/**
+ * Get current program based on time
+ * @returns {Object} Current program details
+ */
+export async function getCurrentProgram() {
+    try {
+        const now = new Date();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDay = dayNames[now.getDay()];
+        const currentHour = now.getHours();
+        
+        // Check for special programs first
+        const specialProgram = await getActiveSpecialProgram(now);
+        if (specialProgram) {
+            return {
+                success: true,
+                program: specialProgram,
+                isSpecial: true
+            };
+        }
+        
+        // Get schedule from database
+        const scheduleResult = await wixData.query('RadioSchedule')
+            .eq('dayOfWeek', currentDay)
+            .eq('isActive', true)
+            .find();
+        
+        let schedule = scheduleResult.items.length > 0 
+            ? scheduleResult.items[0].timeSlots 
+            : DEFAULT_SCHEDULE[currentDay];
+        
+        // Find current time slot
+        const currentSlot = schedule.find(slot => 
+            currentHour >= slot.startHour && currentHour < slot.endHour
+        );
+        
+        if (currentSlot) {
+            const category = Object.values(PROGRAM_CATEGORIES).find(
+                cat => cat.id === currentSlot.category
+            );
+            
+            // Get current playlist for this category
+            const playlist = await getCurrentPlaylist(currentSlot.category);
+            
+            return {
+                success: true,
+                program: {
+                    ...currentSlot,
+                    categoryInfo: category,
+                    playlist: playlist,
+                    startTime: `${currentSlot.startHour}:00`,
+                    endTime: `${currentSlot.endHour}:00`
+                },
+                isSpecial: false
+            };
+        }
+        
+        return {
+            success: false,
+            message: 'No program scheduled for current time'
+        };
+        
+    } catch (error) {
+        console.error('Error getting current program:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get active special program if any
+ * @param {Date} currentTime 
+ * @returns {Object|null}
+ */
+async function getActiveSpecialProgram(currentTime) {
+    try {
+        const specialPrograms = await wixData.query('SpecialPrograms')
+            .le('startDateTime', currentTime)
+            .ge('endDateTime', currentTime)
+            .eq('isActive', true)
+            .find();
+        
+        if (specialPrograms.items.length > 0) {
+            return specialPrograms.items[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error checking special programs:', error);
+        return null;
+    }
+}
+
+/**
+ * Get current playlist for a category
+ * @param {string} categoryId 
+ * @returns {Object} Playlist details
+ */
+export async function getCurrentPlaylist(categoryId) {
+    try {
+        const playlistResult = await wixData.query('RadioPlaylists')
+            .eq('category', categoryId)
+            .eq('isActive', true)
+            .find();
+        
+        if (playlistResult.items.length > 0) {
+            const playlist = playlistResult.items[0];
+            
+            // Get tracks for this playlist
+            const tracks = await wixData.query('RadioTracks')
+                .eq('playlistId', playlist._id)
+                .ascending('trackOrder')
+                .find();
+            
+            return {
+                ...playlist,
+                tracks: tracks.items
+            };
+        }
+        
+        return {
+            name: 'Auto-generated Playlist',
+            category: categoryId,
+            tracks: []
+        };
+        
+    } catch (error) {
+        console.error('Error getting playlist:', error);
+        return null;
+    }
+}
+
+/**
+ * Get full weekly schedule
+ * @returns {Object} Complete weekly schedule
+ */
+export async function getWeeklySchedule() {
+    try {
+        const scheduleResult = await wixData.query('RadioSchedule')
+            .eq('isActive', true)
+            .find();
+        
+        if (scheduleResult.items.length > 0) {
+            // Convert to schedule object
+            const schedule = {};
+            scheduleResult.items.forEach(item => {
+                schedule[item.dayOfWeek] = item.timeSlots;
+            });
+            return {
+                success: true,
+                schedule: schedule
+            };
+        }
+        
+        // Return default schedule
+        return {
+            success: true,
+            schedule: DEFAULT_SCHEDULE
+        };
+        
+    } catch (error) {
+        console.error('Error getting weekly schedule:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Update schedule slot
+ * @param {string} dayOfWeek 
+ * @param {number} slotIndex 
+ * @param {Object} newSlotData 
+ */
+export async function updateScheduleSlot(dayOfWeek, slotIndex, newSlotData) {
+    // Verify admin permissions
+    const member = await currentMember.getMember();
+    if (!member || !member.loginEmail.includes('@jaxbengali.org')) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        // Get existing schedule for this day
+        const existingSchedule = await wixData.query('RadioSchedule')
+            .eq('dayOfWeek', dayOfWeek)
+            .find();
+        
+        let scheduleDoc;
+        if (existingSchedule.items.length > 0) {
+            scheduleDoc = existingSchedule.items[0];
+        } else {
+            // Create new schedule document with defaults
+            scheduleDoc = {
+                dayOfWeek: dayOfWeek,
+                timeSlots: DEFAULT_SCHEDULE[dayOfWeek],
+                isActive: true
+            };
+        }
+        
+        // Update the specific slot
+        scheduleDoc.timeSlots[slotIndex] = {
+            ...scheduleDoc.timeSlots[slotIndex],
+            ...newSlotData
+        };
+        
+        scheduleDoc.lastModified = new Date();
+        
+        // Save
+        if (scheduleDoc._id) {
+            await wixData.update('RadioSchedule', scheduleDoc);
+        } else {
+            await wixData.insert('RadioSchedule', scheduleDoc);
+        }
+        
+        return {
+            success: true,
+            message: 'Schedule updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error updating schedule:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// SPECIAL PROGRAM MANAGEMENT
+// =====================================================
+
+/**
+ * Add special program (overrides regular schedule)
+ * @param {Object} programData 
+ */
+export async function addSpecialProgram(programData) {
+    // Verify admin
+    const member = await currentMember.getMember();
+    if (!member || !member.loginEmail.includes('@jaxbengali.org')) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const specialProgram = {
+            title: programData.title,
+            title_bn: programData.title_bn || programData.title,
+            description: programData.description,
+            category: 'special',
+            startDateTime: new Date(programData.startDateTime),
+            endDateTime: new Date(programData.endDateTime),
+            streamUrl: programData.streamUrl || null,
+            thumbnailUrl: programData.thumbnailUrl || null,
+            isLive: programData.isLive || false,
+            isActive: true,
+            createdAt: new Date(),
+            createdBy: member._id
+        };
+        
+        const result = await wixData.insert('SpecialPrograms', specialProgram);
+        
+        return {
+            success: true,
+            programId: result._id,
+            message: 'Special program added successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error adding special program:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get upcoming special programs
+ * @param {number} days Number of days to look ahead
+ */
+export async function getUpcomingSpecialPrograms(days = 30) {
+    try {
+        const now = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + days);
+        
+        const programs = await wixData.query('SpecialPrograms')
+            .ge('startDateTime', now)
+            .le('startDateTime', futureDate)
+            .eq('isActive', true)
+            .ascending('startDateTime')
+            .find();
+        
+        return {
+            success: true,
+            programs: programs.items
+        };
+        
+    } catch (error) {
+        console.error('Error getting special programs:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// PLAYLIST MANAGEMENT
+// =====================================================
+
+/**
+ * Create new playlist
+ * @param {Object} playlistData 
+ */
+export async function createPlaylist(playlistData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const playlist = {
+            name: playlistData.name,
+            name_bn: playlistData.name_bn || playlistData.name,
+            category: playlistData.category,
+            description: playlistData.description || '',
+            isActive: true,
+            trackCount: 0,
+            totalDuration: 0,
+            createdAt: new Date(),
+            createdBy: member._id
+        };
+        
+        const result = await wixData.insert('RadioPlaylists', playlist);
+        
+        return {
+            success: true,
+            playlistId: result._id
+        };
+        
+    } catch (error) {
+        console.error('Error creating playlist:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Add track to playlist
+ * @param {string} playlistId 
+ * @param {Object} trackData 
+ */
+export async function addTrackToPlaylist(playlistId, trackData) {
+    try {
+        // Get current track count for ordering
+        const existingTracks = await wixData.query('RadioTracks')
+            .eq('playlistId', playlistId)
+            .count();
+        
+        const track = {
+            playlistId: playlistId,
+            title: trackData.title,
+            title_bn: trackData.title_bn || trackData.title,
+            artist: trackData.artist,
+            artist_bn: trackData.artist_bn || trackData.artist,
+            album: trackData.album || '',
+            duration: trackData.duration || 0, // in seconds
+            fileUrl: trackData.fileUrl,
+            trackOrder: existingTracks + 1,
+            isActive: true,
+            addedAt: new Date()
+        };
+        
+        const result = await wixData.insert('RadioTracks', track);
+        
+        // Update playlist stats
+        await updatePlaylistStats(playlistId);
+        
+        return {
+            success: true,
+            trackId: result._id
+        };
+        
+    } catch (error) {
+        console.error('Error adding track:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Update playlist statistics
+ * @param {string} playlistId 
+ */
+async function updatePlaylistStats(playlistId) {
+    try {
+        const tracks = await wixData.query('RadioTracks')
+            .eq('playlistId', playlistId)
+            .eq('isActive', true)
+            .find();
+        
+        const totalDuration = tracks.items.reduce((sum, track) => sum + (track.duration || 0), 0);
+        
+        const playlist = await wixData.get('RadioPlaylists', playlistId);
+        playlist.trackCount = tracks.items.length;
+        playlist.totalDuration = totalDuration;
+        
+        await wixData.update('RadioPlaylists', playlist);
+        
+    } catch (error) {
+        console.error('Error updating playlist stats:', error);
+    }
+}
+
+/**
+ * Get all playlists by category
+ * @param {string} category 
+ */
+export async function getPlaylistsByCategory(category) {
+    try {
+        const query = wixData.query('RadioPlaylists')
+            .eq('isActive', true);
+        
+        if (category && category !== 'all') {
+            query.eq('category', category);
+        }
+        
+        const playlists = await query.descending('createdAt').find();
+        
+        return {
+            success: true,
+            playlists: playlists.items
+        };
+        
+    } catch (error) {
+        console.error('Error getting playlists:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// LISTENER ANALYTICS
+// =====================================================
+
+/**
+ * Log listener session
+ * @param {Object} sessionData 
+ */
+export async function logListenerSession(sessionData) {
+    try {
+        const session = {
+            memberId: sessionData.memberId || 'anonymous',
+            startTime: new Date(),
+            category: sessionData.category,
+            program: sessionData.program,
+            platform: sessionData.platform || 'web',
+            userAgent: sessionData.userAgent,
+            isActive: true
+        };
+        
+        const result = await wixData.insert('RadioListenerSessions', session);
+        
+        return {
+            success: true,
+            sessionId: result._id
+        };
+        
+    } catch (error) {
+        console.error('Error logging session:', error);
+        return { success: false };
+    }
+}
+
+/**
+ * End listener session
+ * @param {string} sessionId 
+ */
+export async function endListenerSession(sessionId) {
+    try {
+        const session = await wixData.get('RadioListenerSessions', sessionId);
+        session.endTime = new Date();
+        session.duration = (session.endTime - session.startTime) / 1000; // seconds
+        session.isActive = false;
+        
+        await wixData.update('RadioListenerSessions', session);
+        
+        return { success: true };
+        
+    } catch (error) {
+        console.error('Error ending session:', error);
+        return { success: false };
+    }
+}
+
+/**
+ * Get listener analytics
+ * @param {string} period - 'day', 'week', 'month'
+ */
+export async function getListenerAnalytics(period = 'week') {
+    try {
+        const now = new Date();
+        let startDate = new Date();
+        
+        switch (period) {
+            case 'day':
+                startDate.setDate(now.getDate() - 1);
+                break;
+            case 'week':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setMonth(now.getMonth() - 1);
+                break;
+        }
+        
+        const sessions = await wixData.query('RadioListenerSessions')
+            .ge('startTime', startDate)
+            .find();
+        
+        // Calculate analytics
+        const uniqueListeners = new Set(sessions.items.map(s => s.memberId)).size;
+        const totalSessions = sessions.items.length;
+        const totalDuration = sessions.items.reduce((sum, s) => sum + (s.duration || 0), 0);
+        const avgSessionDuration = totalSessions > 0 ? totalDuration / totalSessions : 0;
+        
+        // Category breakdown
+        const categoryBreakdown = {};
+        sessions.items.forEach(session => {
+            const cat = session.category || 'unknown';
+            categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + 1;
+        });
+        
+        return {
+            success: true,
+            analytics: {
+                period,
+                uniqueListeners,
+                totalSessions,
+                totalListeningMinutes: Math.round(totalDuration / 60),
+                averageSessionMinutes: Math.round(avgSessionDuration / 60),
+                categoryBreakdown
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting analytics:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get current active listeners count
+ */
+export async function getActiveListenersCount() {
+    try {
+        const count = await wixData.query('RadioListenerSessions')
+            .eq('isActive', true)
+            .count();
+        
+        return {
+            success: true,
+            count: count
+        };
+        
+    } catch (error) {
+        return {
+            success: false,
+            count: 0
+        };
+    }
+}
+
+// =====================================================
+// MAHALAYA SPECIAL SCHEDULING
+// =====================================================
+
+/**
+ * Schedule Mahalaya broadcast (annual special)
+ * Mahalaya is traditionally broadcast at 4 AM on the day before Durga Puja
+ * @param {number} year 
+ */
+export async function scheduleMahalaya(year) {
+    // Mahalaya dates vary based on Bengali calendar
+    // This would need to be set manually or via API
+    const mahalayaProgram = {
+        title: 'মহালয়া - মহিষাসুরমর্দিনী',
+        title_bn: 'মহালয়া - মহিষাসুরমর্দিনী',
+        description: 'Traditional Mahalaya broadcast - Mahishasuramardini by Birendra Krishna Bhadra',
+        category: 'special',
+        startDateTime: null, // To be set based on year
+        endDateTime: null,
+        streamUrl: 'mahalaya-special-stream',
+        isLive: true,
+        isActive: false, // Activate when date is confirmed
+        isAnnual: true,
+        createdAt: new Date()
+    };
+    
+    return addSpecialProgram(mahalayaProgram);
+}
+
+// =====================================================
+// STREAM HEALTH & MONITORING
+// =====================================================
+
+/**
+ * Report stream status
+ * @param {Object} statusData 
+ */
+export async function reportStreamStatus(statusData) {
+    try {
+        const status = {
+            timestamp: new Date(),
+            isOnline: statusData.isOnline,
+            bitrate: statusData.bitrate,
+            bufferHealth: statusData.bufferHealth,
+            errorCount: statusData.errorCount || 0,
+            currentTrack: statusData.currentTrack
+        };
+        
+        await wixData.insert('RadioStreamStatus', status);
+        
+        // Keep only last 100 status records
+        const oldRecords = await wixData.query('RadioStreamStatus')
+            .descending('timestamp')
+            .skip(100)
+            .find();
+        
+        for (const record of oldRecords.items) {
+            await wixData.remove('RadioStreamStatus', record._id);
+        }
+        
+        return { success: true };
+        
+    } catch (error) {
+        console.error('Error reporting stream status:', error);
+        return { success: false };
+    }
+}
+
+/**
+ * Get stream health status
+ */
+export async function getStreamHealth() {
+    try {
+        const latestStatus = await wixData.query('RadioStreamStatus')
+            .descending('timestamp')
+            .limit(1)
+            .find();
+        
+        if (latestStatus.items.length > 0) {
+            return {
+                success: true,
+                status: latestStatus.items[0]
+            };
+        }
+        
+        return {
+            success: true,
+            status: {
+                isOnline: false,
+                lastChecked: null
+            }
+        };
+        
+    } catch (error) {
+        return {
+            success: false,
+            status: { isOnline: false }
+        };
+    }
+}

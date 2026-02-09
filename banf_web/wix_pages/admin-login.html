@@ -1,0 +1,372 @@
+<!-- 
+BANF Admin Login Page - Wix Page
+Page Name: admin-login
+URL: /admin/login
+
+Instructions to implement in Wix:
+1. Create a separate admin login page
+2. This uses custom authentication (not Wix Members)
+3. Connect to admin-auth.jsw backend functions
+4. Implement session management for admin users
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - BANF</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --banf-green: #006A4E;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .admin-login-card {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+        
+        .admin-header .shield-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .admin-form {
+            padding: 40px;
+        }
+        
+        .form-control {
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: #1a1a2e;
+            box-shadow: 0 0 0 3px rgba(26,26,46,0.15);
+        }
+        
+        .input-group-text {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .btn-admin-login {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: none;
+            color: white;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-admin-login:hover {
+            background: linear-gradient(135deg, #0f0f1a 0%, #0f1a2e 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        
+        .security-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .security-notice i {
+            color: #856404;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .role-super { background: #f8d7da; color: #721c24; }
+        .role-president { background: #d4edda; color: #155724; }
+        .role-treasurer { background: #cce5ff; color: #004085; }
+        .role-ec { background: #e2e3e5; color: #383d41; }
+        
+        .login-help {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+        
+        .login-help a {
+            color: #1a1a2e;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-help a:hover {
+            text-decoration: underline;
+        }
+        
+        .attempt-warning {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-card">
+        <div class="admin-header">
+            <div class="shield-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="mb-2">Admin Portal</h3>
+            <p class="mb-0 opacity-75">Bengal Association of North Florida</p>
+        </div>
+        
+        <div class="admin-form">
+            <div class="security-notice">
+                <i class="fas fa-info-circle me-2"></i>
+                This area is restricted to authorized administrators only. All login attempts are logged.
+            </div>
+            
+            <form id="adminLoginForm">
+                <div class="mb-3">
+                    <label class="form-label">Admin Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-user-shield"></i>
+                        </span>
+                        <input type="email" class="form-control" id="adminEmail" required placeholder="admin@jaxbengali.org">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" class="form-control" id="adminPassword" required placeholder="Enter your password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Verification Code (2FA)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-key"></i>
+                        </span>
+                        <input type="text" class="form-control" id="verificationCode" placeholder="6-digit code (if enabled)">
+                    </div>
+                    <small class="text-muted">Leave blank if 2FA is not enabled for your account</small>
+                </div>
+                
+                <button type="submit" class="btn btn-admin-login" onclick="handleAdminLogin(event)">
+                    <i class="fas fa-sign-in-alt me-2"></i>Secure Login
+                </button>
+                
+                <div class="attempt-warning" id="attemptWarning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="warningMessage"></span>
+                </div>
+            </form>
+            
+            <div class="login-help">
+                <p class="text-muted mb-2">Having trouble logging in?</p>
+                <a href="mailto:president@jaxbengali.org">
+                    <i class="fas fa-envelope me-1"></i>Contact President
+                </a>
+                <span class="mx-2">|</span>
+                <a href="/" class="text-secondary">
+                    <i class="fas fa-home me-1"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let loginAttempts = 0;
+        const MAX_ATTEMPTS = 5;
+        
+        function togglePassword() {
+            const input = document.getElementById('adminPassword');
+            const icon = document.getElementById('eyeIcon');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+        
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            
+            if (loginAttempts >= MAX_ATTEMPTS) {
+                showWarning('Account locked. Please contact the President to unlock your account.');
+                return;
+            }
+            
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            const twoFactorCode = document.getElementById('verificationCode').value;
+            
+            // Validate email domain (optional - for demo)
+            const validDomains = ['jaxbengali.org', 'gmail.com'];
+            const emailDomain = email.split('@')[1];
+            
+            /* Actual Wix Velo code:
+            import { loginAdmin } from 'backend/admin-auth.jsw';
+            import { session } from 'wix-storage';
+            import wixLocation from 'wix-location';
+            
+            const result = await loginAdmin(email, password, twoFactorCode || null);
+            
+            if (result.success) {
+                // Store admin session
+                session.setItem('adminSession', JSON.stringify({
+                    adminId: result.admin._id,
+                    role: result.admin.role,
+                    permissions: result.admin.permissions,
+                    sessionToken: result.sessionToken,
+                    loginTime: new Date().toISOString()
+                }));
+                
+                // Redirect to admin dashboard
+                wixLocation.to('/admin/dashboard');
+            } else {
+                loginAttempts++;
+                showWarning(result.message + ' (' + (MAX_ATTEMPTS - loginAttempts) + ' attempts remaining)');
+                
+                if (result.locked) {
+                    // Account is locked
+                    showWarning('Account locked due to too many failed attempts. Contact President.');
+                }
+            }
+            */
+            
+            // Demo - simulate login
+            console.log('Admin login attempt:', { email, hasPassword: !!password, has2FA: !!twoFactorCode });
+            
+            // Simulate success for demo
+            if (email && password) {
+                alert('Admin login successful!\n\nIn Wix, this would:\n1. Validate against Admins collection\n2. Check permissions\n3. Create secure session\n4. Redirect to /admin/dashboard');
+                
+                // Store demo session
+                sessionStorage.setItem('adminDemo', JSON.stringify({
+                    email: email,
+                    role: 'ec_member',
+                    loginTime: new Date().toISOString()
+                }));
+            } else {
+                loginAttempts++;
+                const form = document.getElementById('adminLoginForm');
+                form.classList.add('shake');
+                setTimeout(() => form.classList.remove('shake'), 500);
+                
+                showWarning('Invalid credentials. ' + (MAX_ATTEMPTS - loginAttempts) + ' attempts remaining.');
+            }
+        }
+        
+        function showWarning(message) {
+            const warning = document.getElementById('attemptWarning');
+            const warningMessage = document.getElementById('warningMessage');
+            warningMessage.textContent = message;
+            warning.style.display = 'block';
+        }
+        
+        // Check for existing session on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            /* Actual Wix Velo code:
+            import { session } from 'wix-storage';
+            import wixLocation from 'wix-location';
+            
+            const adminSession = session.getItem('adminSession');
+            if (adminSession) {
+                const sessionData = JSON.parse(adminSession);
+                // Validate session is still valid
+                // If valid, redirect to dashboard
+                wixLocation.to('/admin/dashboard');
+            }
+            */
+            
+            // Demo session check
+            const demoSession = sessionStorage.getItem('adminDemo');
+            if (demoSession) {
+                console.log('Existing admin session found:', JSON.parse(demoSession));
+            }
+        });
+    </script>
+</body>
+</html>

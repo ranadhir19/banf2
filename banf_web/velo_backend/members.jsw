@@ -1,0 +1,268 @@
+// backend/members.jsw
+// BANF Member Management - Wix Velo Backend
+
+import wixData from 'wix-data';
+import wixMembers from 'wix-members-backend';
+import { currentMember } from 'wix-members-backend';
+import { sendEmail } from 'backend/email.jsw';
+
+const COLLECTION = 'Members';
+
+/**
+ * Register a new BANF member
+ * @param {Object} memberData - Member registration data
+ * @param {Object} paymentInfo - Payment verification info
+ */
+export async function registerMember(memberData, paymentInfo) {
+    try {
+        // 1. Check if member already exists
+        const existing = await wixData.query(COLLECTION)
+            .eq('email', memberData.email)
+            .or(wixData.query(COLLECTION).eq('phoneNumber', memberData.phone))
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Member with this email or phone already exists' };
+        }
+        
+        // 2. Create member record
+        const memberRecord = {
+            fullName: memberData.fullName,
+            email: memberData.email,
+            phoneNumber: memberData.phone,
+            address: memberData.address || '',
+            membershipType: memberData.membershipType || 'individual',
+            membershipStatus: 'pending',
+            membershipStartDate: new Date(),
+            membershipEndDate: getEndDate(memberData.membershipType),
+            familyMembers: JSON.stringify(memberData.familyMembers || []),
+            feesDue: 0,
+            totalPaid: paymentInfo.amount || 0,
+            isVerified: false,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert(COLLECTION, memberRecord);
+        
+        // 3. Record payment
+        if (paymentInfo && paymentInfo.zelleCode) {
+            await recordZellePayment({
+                memberId: result._id,
+                zelleCode: paymentInfo.zelleCode,
+                amount: paymentInfo.amount,
+                paymentType: 'membership',
+                senderName: memberData.fullName
+            });
+        }
+        
+        // 4. Send welcome email
+        await sendEmail(memberData.email, 'welcome', {
+            name: memberData.fullName,
+            membershipType: memberData.membershipType
+        });
+        
+        return { success: true, memberId: result._id };
+        
+    } catch (error) {
+        console.error('Registration error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member by ID (for current user or admin)
+ */
+export async function getMemberById(memberId) {
+    try {
+        const member = await wixData.get(COLLECTION, memberId);
+        if (member) {
+            member.familyMembers = JSON.parse(member.familyMembers || '[]');
+        }
+        return member;
+    } catch (error) {
+        console.error('Error getting member:', error);
+        return null;
+    }
+}
+
+/**
+ * Get current logged-in member's profile
+ */
+export async function getCurrentMemberProfile() {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) return null;
+        
+        const profile = await wixData.query(COLLECTION)
+            .eq('email', member.loginEmail)
+            .find();
+        
+        if (profile.items.length > 0) {
+            const memberData = profile.items[0];
+            memberData.familyMembers = JSON.parse(memberData.familyMembers || '[]');
+            return memberData;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting current member:', error);
+        return null;
+    }
+}
+
+/**
+ * Update member profile
+ */
+export async function updateMemberProfile(memberId, updateData) {
+    try {
+        const existing = await wixData.get(COLLECTION, memberId);
+        if (!existing) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        // Prevent changing certain fields
+        delete updateData._id;
+        delete updateData._createdDate;
+        delete updateData.membershipStatus; // Only admin can change
+        
+        if (updateData.familyMembers) {
+            updateData.familyMembers = JSON.stringify(updateData.familyMembers);
+        }
+        
+        updateData._updatedDate = new Date();
+        
+        const updated = { ...existing, ...updateData };
+        const result = await wixData.update(COLLECTION, updated);
+        
+        return { success: true, member: result };
+    } catch (error) {
+        console.error('Error updating member:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all members (admin only)
+ */
+export async function getAllMembers(filters = {}, options = { limit: 100, skip: 0 }) {
+    try {
+        let query = wixData.query(COLLECTION);
+        
+        if (filters.membershipStatus) {
+            query = query.eq('membershipStatus', filters.membershipStatus);
+        }
+        if (filters.membershipType) {
+            query = query.eq('membershipType', filters.membershipType);
+        }
+        if (filters.isVerified !== undefined) {
+            query = query.eq('isVerified', filters.isVerified);
+        }
+        
+        query = query.limit(options.limit).skip(options.skip);
+        
+        const result = await query.find();
+        
+        // Parse family members JSON
+        result.items.forEach(member => {
+            member.familyMembers = JSON.parse(member.familyMembers || '[]');
+        });
+        
+        return {
+            items: result.items,
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting members:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Search members by name, email, or phone
+ */
+export async function searchMembers(searchTerm) {
+    try {
+        const results = await wixData.query(COLLECTION)
+            .contains('fullName', searchTerm)
+            .or(wixData.query(COLLECTION).contains('email', searchTerm))
+            .or(wixData.query(COLLECTION).contains('phoneNumber', searchTerm))
+            .find();
+        
+        return results.items;
+    } catch (error) {
+        console.error('Error searching members:', error);
+        return [];
+    }
+}
+
+/**
+ * Verify member (admin action)
+ */
+export async function verifyMember(memberId, adminId) {
+    try {
+        const member = await wixData.get(COLLECTION, memberId);
+        if (!member) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        member.isVerified = true;
+        member.membershipStatus = 'active';
+        member.verifiedBy = adminId;
+        member.verifiedAt = new Date();
+        member._updatedDate = new Date();
+        
+        await wixData.update(COLLECTION, member);
+        
+        // Send verification email
+        await sendEmail(member.email, 'verified', { name: member.fullName });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error verifying member:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get membership statistics
+ */
+export async function getMembershipStats() {
+    try {
+        const [total, active, pending, individual, family, senior] = await Promise.all([
+            wixData.query(COLLECTION).count(),
+            wixData.query(COLLECTION).eq('membershipStatus', 'active').count(),
+            wixData.query(COLLECTION).eq('membershipStatus', 'pending').count(),
+            wixData.query(COLLECTION).eq('membershipType', 'individual').count(),
+            wixData.query(COLLECTION).eq('membershipType', 'family').count(),
+            wixData.query(COLLECTION).eq('membershipType', 'senior').count()
+        ]);
+        
+        return {
+            total,
+            active,
+            pending,
+            byType: { individual, family, senior }
+        };
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        return null;
+    }
+}
+
+// Helper function
+function getEndDate(membershipType) {
+    const today = new Date();
+    return new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+}
+
+// Import helper
+async function recordZellePayment(paymentData) {
+    return wixData.insert('ZellePayments', {
+        ...paymentData,
+        isVerified: false,
+        status: 'pending',
+        paymentDate: new Date(),
+        _createdDate: new Date()
+    });
+}

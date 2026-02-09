@@ -1,0 +1,601 @@
+<!-- 
+BANF Member Login/Registration Page - Wix Page
+Page Name: member-login
+URL: /login
+
+Instructions to implement in Wix:
+1. This uses Wix's built-in Members area
+2. Customize the login/signup lightbox with this design
+3. Connect to member-auth.jsw backend functions
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Login - BANF</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --banf-green: #006A4E;
+            --banf-orange: #F42A41;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #006A4E 0%, #004d38 50%, #1a1a2e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        
+        .login-banner {
+            background: linear-gradient(135deg, var(--banf-green) 0%, #008B5C 100%);
+            padding: 40px;
+            color: white;
+            text-align: center;
+        }
+        
+        .login-banner .logo {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: var(--banf-green);
+        }
+        
+        .login-form-section {
+            padding: 40px;
+        }
+        
+        .nav-tabs-login {
+            border: none;
+            margin-bottom: 30px;
+        }
+        
+        .nav-tabs-login .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 600;
+            padding: 12px 30px;
+            border-radius: 25px;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tabs-login .nav-link.active {
+            background: var(--banf-green);
+            color: white;
+        }
+        
+        .nav-tabs-login .nav-link:hover:not(.active) {
+            background: #f0f0f0;
+        }
+        
+        .form-control {
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: var(--banf-green);
+            box-shadow: 0 0 0 3px rgba(0,106,78,0.15);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, var(--banf-green) 0%, #008B5C 100%);
+            border: none;
+            color: white;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login:hover {
+            background: linear-gradient(135deg, #005540 0%, #006A4E 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,106,78,0.3);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .divider span {
+            padding: 0 15px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        
+        .social-login {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .btn-social {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-google {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-google:hover {
+            background: #f8f8f8;
+            border-color: #4285f4;
+        }
+        
+        .btn-facebook {
+            background: #1877f2;
+            border: none;
+            color: white;
+        }
+        
+        .btn-facebook:hover {
+            background: #166fe5;
+            color: white;
+        }
+        
+        .forgot-password {
+            color: var(--banf-green);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .forgot-password:hover {
+            text-decoration: underline;
+            color: #005540;
+        }
+        
+        .member-benefits {
+            background: linear-gradient(135deg, rgba(0,106,78,0.05) 0%, rgba(0,139,92,0.05) 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        
+        .benefit-item i {
+            color: var(--banf-green);
+            width: 24px;
+        }
+        
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            background: #e0e0e0;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+        }
+        
+        .strength-weak { background: #dc3545; width: 33%; }
+        .strength-medium { background: #ffc107; width: 66%; }
+        .strength-strong { background: #28a745; width: 100%; }
+        
+        .membership-type-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .membership-option {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .membership-option:hover {
+            border-color: var(--banf-green);
+        }
+        
+        .membership-option.selected {
+            border-color: var(--banf-green);
+            background: rgba(0,106,78,0.05);
+        }
+        
+        .membership-option input {
+            display: none;
+        }
+        
+        .membership-option .price {
+            font-weight: 700;
+            color: var(--banf-green);
+        }
+        
+        @media (max-width: 768px) {
+            .login-card {
+                flex-direction: column;
+            }
+            
+            .membership-type-select {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="row g-0">
+                <!-- Banner Section -->
+                <div class="col-lg-5 login-banner d-none d-lg-block">
+                    <div class="logo">
+                        <i class="fas fa-om"></i>
+                    </div>
+                    <h2>Welcome to BANF</h2>
+                    <p class="opacity-75 mb-4">Bengal Association of North Florida</p>
+                    
+                    <div class="member-benefits text-start">
+                        <h6 class="mb-3">Member Benefits</h6>
+                        <div class="benefit-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Free entry to cultural events</span>
+                        </div>
+                        <div class="benefit-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Access to BANF Radio & E-Magazine</span>
+                        </div>
+                        <div class="benefit-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Exclusive member discounts</span>
+                        </div>
+                        <div class="benefit-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Community networking opportunities</span>
+                        </div>
+                        <div class="benefit-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Vote in annual elections</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Section -->
+                <div class="col-lg-7 login-form-section">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs-login" id="authTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab" type="button">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#registerTab" type="button">
+                                <i class="fas fa-user-plus me-1"></i>Join BANF
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="authTabContent">
+                        <!-- Login Form -->
+                        <div class="tab-pane fade show active" id="loginTab" role="tabpanel">
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="loginEmail" required placeholder="your@email.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="loginPassword" required placeholder="Enter your password">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('loginPassword')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                                    </div>
+                                    <a href="#" class="forgot-password" onclick="showForgotPassword()">Forgot Password?</a>
+                                </div>
+                                <button type="submit" class="btn btn-login" onclick="handleLogin(event)">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                                </button>
+                            </form>
+                            
+                            <div class="divider">
+                                <span>or continue with</span>
+                            </div>
+                            
+                            <div class="social-login">
+                                <button class="btn btn-social btn-google" onclick="socialLogin('google')">
+                                    <i class="fab fa-google"></i> Google
+                                </button>
+                                <button class="btn btn-social btn-facebook" onclick="socialLogin('facebook')">
+                                    <i class="fab fa-facebook-f"></i> Facebook
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Registration Form -->
+                        <div class="tab-pane fade" id="registerTab" role="tabpanel">
+                            <form id="registerForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="firstName" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="lastName" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="regEmail" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone Number *</label>
+                                    <input type="tel" class="form-control" id="phone" required placeholder="(904) 555-1234">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="regPassword" required onkeyup="checkPasswordStrength(this.value)">
+                                    <div class="password-strength">
+                                        <div class="password-strength-bar" id="strengthBar"></div>
+                                    </div>
+                                    <small class="text-muted">Min 8 characters with uppercase, lowercase, and number</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Confirm Password *</label>
+                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Select Membership Type</label>
+                                    <div class="membership-type-select">
+                                        <label class="membership-option" onclick="selectMembership(this)">
+                                            <input type="radio" name="membershipType" value="Reg-Family">
+                                            <div>Family</div>
+                                            <div class="price">$215/year</div>
+                                        </label>
+                                        <label class="membership-option" onclick="selectMembership(this)">
+                                            <input type="radio" name="membershipType" value="Reg-Couple">
+                                            <div>Couple</div>
+                                            <div class="price">$200/year</div>
+                                        </label>
+                                        <label class="membership-option" onclick="selectMembership(this)">
+                                            <input type="radio" name="membershipType" value="Reg-Individual">
+                                            <div>Individual</div>
+                                            <div class="price">$150/year</div>
+                                        </label>
+                                        <label class="membership-option" onclick="selectMembership(this)">
+                                            <input type="radio" name="membershipType" value="Reg-Student">
+                                            <div>Student</div>
+                                            <div class="price">$100/year</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check mb-4">
+                                    <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+                                    <label class="form-check-label" for="agreeTerms">
+                                        I agree to the <a href="/terms" class="text-decoration-none">Terms of Service</a> and <a href="/privacy" class="text-decoration-none">Privacy Policy</a>
+                                    </label>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-login" onclick="handleRegister(event)">
+                                    <i class="fas fa-user-plus me-2"></i>Create Account & Pay
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="/" class="text-white text-decoration-none opacity-75">
+                <i class="fas fa-home me-1"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = event.currentTarget.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+        
+        function checkPasswordStrength(password) {
+            const bar = document.getElementById('strengthBar');
+            bar.className = 'password-strength-bar';
+            
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            if (strength <= 1) {
+                bar.classList.add('strength-weak');
+            } else if (strength <= 2) {
+                bar.classList.add('strength-medium');
+            } else {
+                bar.classList.add('strength-strong');
+            }
+        }
+        
+        function selectMembership(element) {
+            document.querySelectorAll('.membership-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+        }
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            /* Actual Wix Velo code:
+            import { loginMember } from 'backend/member-auth.jsw';
+            import wixUsers from 'wix-users';
+            import wixLocation from 'wix-location';
+            
+            // Use Wix's built-in authentication
+            wixUsers.login(email, password)
+                .then(() => {
+                    wixLocation.to('/members');
+                })
+                .catch((error) => {
+                    console.error('Login failed:', error);
+                    // Show error to user
+                });
+            */
+            
+            alert('Login would be processed via Wix Members.\nEmail: ' + email);
+        }
+        
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            const membershipType = document.querySelector('input[name="membershipType"]:checked');
+            if (!membershipType) {
+                alert('Please select a membership type');
+                return;
+            }
+            
+            const userData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('regEmail').value,
+                phone: document.getElementById('phone').value,
+                membershipType: membershipType.value
+            };
+            
+            /* Actual Wix Velo code:
+            import { registerMember } from 'backend/member-auth.jsw';
+            import wixUsers from 'wix-users';
+            import wixLocation from 'wix-location';
+            
+            // First register the user
+            const result = await registerMember({
+                email: userData.email,
+                password: password,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                phone: userData.phone,
+                membershipType: userData.membershipType
+            });
+            
+            if (result.success) {
+                // Login and redirect to payment
+                await wixUsers.login(userData.email, password);
+                wixLocation.to('/member-payment?type=' + userData.membershipType);
+            }
+            */
+            
+            alert('Registration successful! Redirecting to payment...\n\nMember: ' + userData.firstName + ' ' + userData.lastName + '\nType: ' + userData.membershipType);
+        }
+        
+        function socialLogin(provider) {
+            /* Actual Wix Velo code:
+            import wixUsers from 'wix-users';
+            
+            wixUsers.promptLogin({ mode: 'login', modal: true })
+                .then(() => {
+                    // User logged in successfully
+                });
+            */
+            
+            alert('Social login via ' + provider + ' would use Wix SSO');
+        }
+        
+        function showForgotPassword() {
+            /* Actual Wix Velo code:
+            import wixUsers from 'wix-users';
+            
+            wixUsers.promptForgotPassword();
+            */
+            
+            alert('Password reset email would be sent via Wix Members');
+        }
+    </script>
+</body>
+</html>

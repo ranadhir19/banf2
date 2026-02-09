@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF Member Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* BANF Kolkata Theme Colors */
+            --banf-saffron: #ff6b35;
+            --banf-orange: #f7931e;
+            --banf-yellow: #f5af19;
+            --banf-deep-red: #8B0000;
+            --banf-burgundy: #722f37;
+            --banf-green: #006A4E;
+            --banf-gold: #daa520;
+            --banf-cream: #fff8f0;
+            --banf-dark: #1a1a2e;
+            
+            /* Member Dashboard Colors */
+            --gradient-warm: linear-gradient(135deg, var(--banf-saffron) 0%, var(--banf-deep-red) 100%);
+            --gradient-cool: linear-gradient(135deg, var(--banf-green) 0%, #00a86b 100%);
+            --shadow-soft: 0 5px 20px rgba(0,0,0,0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #faf9f7 0%, #f5f3f0 100%);
+            min-height: 100vh;
+        }
+        
+        /* ================== HEADER ================== */
+        .header {
+            background: var(--gradient-warm);
+            color: white;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .brand-icon {
+            font-size: 32px;
+        }
+        
+        .brand-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .brand-text span {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            opacity: 0.9;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-links a:hover {
+            opacity: 1;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .notification-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: var(--transition);
+        }
+        
+        .notification-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 18px;
+            height: 18px;
+            background: var(--banf-gold);
+            color: var(--banf-dark);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 5px 15px 5px 5px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.1);
+            transition: var(--transition);
+        }
+        
+        .user-menu:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            color: var(--banf-saffron);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* ================== MAIN CONTAINER ================== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        /* ================== WELCOME SECTION ================== */
+        .welcome-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .welcome-greeting {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--banf-dark);
+            margin-bottom: 5px;
+        }
+        
+        .welcome-message {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-stats {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .welcome-stat {
+            text-align: center;
+        }
+        
+        .welcome-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--banf-saffron);
+        }
+        
+        .welcome-stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Membership Card */
+        .membership-card {
+            background: var(--gradient-warm);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .membership-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        }
+        
+        .membership-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+        
+        .membership-type {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+        
+        .membership-badge {
+            background: var(--banf-gold);
+            color: var(--banf-dark);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .membership-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .membership-validity {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .validity-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+        
+        .validity-date {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .renew-btn {
+            background: white;
+            color: var(--banf-saffron);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .renew-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* ================== SERVICE CATEGORIES ================== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--banf-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .view-all {
+            color: var(--banf-saffron);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .view-all:hover {
+            text-decoration: underline;
+        }
+        
+        /* Services Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition);
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            border-color: var(--banf-saffron);
+        }
+        
+        .service-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .service-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .service-icon.profile { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .service-icon.events { background: linear-gradient(135deg, var(--banf-saffron), var(--banf-orange)); color: white; }
+        .service-icon.membership { background: linear-gradient(135deg, var(--banf-gold), #f5af19); color: white; }
+        .service-icon.directory { background: linear-gradient(135deg, #11998e, #38ef7d); color: white; }
+        .service-icon.photos { background: linear-gradient(135deg, #ee0979, #ff6a00); color: white; }
+        .service-icon.carpool { background: linear-gradient(135deg, #4776e6, #8e54e9); color: white; }
+        .service-icon.volunteer { background: linear-gradient(135deg, #f093fb, #f5576c); color: white; }
+        .service-icon.feedback { background: linear-gradient(135deg, #43e97b, #38f9d7); color: white; }
+        
+        .service-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--banf-dark);
+        }
+        
+        .service-description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .service-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .service-action {
+            padding: 6px 14px;
+            background: var(--banf-cream);
+            color: var(--banf-dark);
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+        
+        .service-action:hover {
+            background: var(--banf-saffron);
+            color: white;
+        }
+        
+        .service-action.primary {
+            background: var(--banf-saffron);
+            color: white;
+        }
+        
+        .service-action.primary:hover {
+            background: var(--banf-deep-red);
+        }
+        
+        /* ================== UPCOMING EVENTS ================== */
+        .events-section {
+            margin-bottom: 40px;
+        }
+        
+        .events-scroll {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scroll-snap-type: x mandatory;
+        }
+        
+        .event-card {
+            min-width: 320px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            scroll-snap-align: start;
+            transition: var(--transition);
+        }
+        
+        .event-card:hover {
+            transform: scale(1.02);
+        }
+        
+        .event-image {
+            height: 150px;
+            background: var(--gradient-warm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 60px;
+        }
+        
+        .event-content {
+            padding: 20px;
+        }
+        
+        .event-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--banf-saffron);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .event-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--banf-dark);
+            margin-bottom: 8px;
+        }
+        
+        .event-location {
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .event-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .event-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .event-btn.primary {
+            background: var(--banf-saffron);
+            color: white;
+            border: none;
+        }
+        
+        .event-btn.primary:hover {
+            background: var(--banf-deep-red);
+        }
+        
+        .event-btn.secondary {
+            background: var(--banf-cream);
+            color: var(--banf-dark);
+            border: none;
+        }
+        
+        /* ================== TWO COLUMN LAYOUT ================== */
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        /* Photo Gallery Preview */
+        .gallery-preview {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .gallery-item {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+        
+        .gallery-item.more {
+            background: var(--banf-cream);
+            color: var(--banf-saffron);
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Quick Actions Panel */
+        .quick-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .quick-list {
+            list-style: none;
+        }
+        
+        .quick-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .quick-item:last-child {
+            border-bottom: none;
+        }
+        
+        .quick-item:hover {
+            padding-left: 10px;
+        }
+        
+        .quick-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--banf-cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 18px;
+        }
+        
+        .quick-text {
+            flex: 1;
+        }
+        
+        .quick-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--banf-dark);
+        }
+        
+        .quick-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .quick-badge {
+            background: var(--banf-deep-red);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* ================== FOOTER ================== */
+        .footer {
+            background: var(--banf-dark);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .footer-text {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        
+        /* ================== RESPONSIVE ================== */
+        @media (max-width: 992px) {
+            .welcome-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header-container {
+                padding: 0 15px;
+            }
+            
+            .main-container {
+                padding: 15px;
+            }
+            
+            .welcome-stats {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-icon">🏛️</span>
+                <div class="brand-text">
+                    <h1>BANF</h1>
+                    <span>Bengali Association of North Florida</span>
+                </div>
+            </div>
+            
+            <nav class="header-nav">
+                <div class="nav-links">
+                    <a href="#"><i class="fas fa-home"></i> Home</a>
+                    <a href="#"><i class="fas fa-calendar"></i> Events</a>
+                    <a href="#"><i class="fas fa-images"></i> Gallery</a>
+                    <a href="#"><i class="fas fa-users"></i> Community</a>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-avatar" id="user-avatar">SC</div>
+                        <span class="user-name" id="user-name">Sayan</span>
+                        <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <div class="welcome-card">
+                <h2 class="welcome-greeting">নমস্কার, <span id="greeting-name">Sayan</span>! 👋</h2>
+                <p class="welcome-message">Welcome back to your BANF community dashboard</p>
+                
+                <div class="welcome-stats">
+                    <div class="welcome-stat">
+                        <div class="welcome-stat-value" id="stat-events">5</div>
+                        <div class="welcome-stat-label">Events Attended</div>
+                    </div>
+                    <div class="welcome-stat">
+                        <div class="welcome-stat-value" id="stat-hours">12</div>
+                        <div class="welcome-stat-label">Volunteer Hours</div>
+                    </div>
+                    <div class="welcome-stat">
+                        <div class="welcome-stat-value" id="stat-connections">28</div>
+                        <div class="welcome-stat-label">Connections</div>
+                    </div>
+                    <div class="welcome-stat">
+                        <div class="welcome-stat-value" id="stat-photos">47</div>
+                        <div class="welcome-stat-label">Photos Tagged</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Membership Card -->
+            <div class="membership-card">
+                <div class="membership-header">
+                    <div>
+                        <div class="membership-type">Family Membership</div>
+                    </div>
+                    <span class="membership-badge">Active</span>
+                </div>
+                
+                <div class="membership-name" id="membership-name">Sayan Chakraborty</div>
+                
+                <div class="membership-validity">
+                    <div>
+                        <div class="validity-label">Valid Until</div>
+                        <div class="validity-date" id="validity-date">December 31, 2026</div>
+                    </div>
+                    <button class="renew-btn" id="renew-btn" style="display: none;">Renew Now</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Member Services -->
+        <section class="services-section">
+            <div class="section-header">
+                <h2 class="section-title">🎯 Your Services</h2>
+            </div>
+            
+            <div class="services-grid">
+                <!-- My Profile -->
+                <div class="service-card" data-service="my-profile">
+                    <div class="service-header">
+                        <div class="service-icon profile"><i class="fas fa-user"></i></div>
+                        <div class="service-name">My Profile</div>
+                    </div>
+                    <div class="service-description">Update your profile, privacy settings, and family information</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="editProfile">Edit Profile</button>
+                        <button class="service-action" data-action="privacySettings">Privacy</button>
+                        <button class="service-action" data-action="myFamily">My Family</button>
+                    </div>
+                </div>
+                
+                <!-- My Events -->
+                <div class="service-card" data-service="my-events">
+                    <div class="service-header">
+                        <div class="service-icon events"><i class="fas fa-calendar-check"></i></div>
+                        <div class="service-name">My Events</div>
+                    </div>
+                    <div class="service-description">View upcoming events, manage RSVPs, and check tickets</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="upcomingEvents">Upcoming</button>
+                        <button class="service-action" data-action="myRSVPs">My RSVPs</button>
+                        <button class="service-action" data-action="pastEvents">Past Events</button>
+                    </div>
+                </div>
+                
+                <!-- Membership -->
+                <div class="service-card" data-service="my-membership">
+                    <div class="service-header">
+                        <div class="service-icon membership"><i class="fas fa-id-card"></i></div>
+                        <div class="service-name">My Membership</div>
+                    </div>
+                    <div class="service-description">Check status, renew membership, view benefits</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="membershipStatus">View Status</button>
+                        <button class="service-action" data-action="paymentHistory">Payments</button>
+                    </div>
+                </div>
+                
+                <!-- Member Directory -->
+                <div class="service-card" data-service="member-directory">
+                    <div class="service-header">
+                        <div class="service-icon directory"><i class="fas fa-address-book"></i></div>
+                        <div class="service-name">Member Directory</div>
+                    </div>
+                    <div class="service-description">Find and connect with other BANF members</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="searchMembers">Search</button>
+                        <button class="service-action" data-action="myConnections">Connections</button>
+                        <button class="service-action" data-action="pendingRequests">Pending (2)</button>
+                    </div>
+                </div>
+                
+                <!-- Photo Gallery -->
+                <div class="service-card" data-service="photo-gallery">
+                    <div class="service-header">
+                        <div class="service-icon photos"><i class="fas fa-camera"></i></div>
+                        <div class="service-name">Photo Gallery</div>
+                    </div>
+                    <div class="service-description">Browse event albums and upload your photos</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="browseAlbums">Browse</button>
+                        <button class="service-action" data-action="uploadPhotos">Upload</button>
+                        <button class="service-action" data-action="myUploads">My Photos</button>
+                    </div>
+                </div>
+                
+                <!-- Carpool -->
+                <div class="service-card" data-service="carpool">
+                    <div class="service-header">
+                        <div class="service-icon carpool"><i class="fas fa-car"></i></div>
+                        <div class="service-name">Carpool</div>
+                    </div>
+                    <div class="service-description">Offer or find rides to events</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="offerRide">Offer Ride</button>
+                        <button class="service-action" data-action="findRide">Find Ride</button>
+                        <button class="service-action" data-action="myCarpools">My Rides</button>
+                    </div>
+                </div>
+                
+                <!-- Volunteer -->
+                <div class="service-card" data-service="volunteer">
+                    <div class="service-header">
+                        <div class="service-icon volunteer"><i class="fas fa-hands-helping"></i></div>
+                        <div class="service-name">Volunteer</div>
+                    </div>
+                    <div class="service-description">Sign up for tasks and track your hours</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="availableTasks">Available Tasks</button>
+                        <button class="service-action" data-action="myTasks">My Tasks</button>
+                        <button class="service-action" data-action="myHours">Hours: 12</button>
+                    </div>
+                </div>
+                
+                <!-- Feedback -->
+                <div class="service-card" data-service="feedback">
+                    <div class="service-header">
+                        <div class="service-icon feedback"><i class="fas fa-comment-dots"></i></div>
+                        <div class="service-name">Feedback</div>
+                    </div>
+                    <div class="service-description">Share your feedback and complete surveys</div>
+                    <div class="service-actions">
+                        <button class="service-action primary" data-action="pendingSurveys">Surveys (1)</button>
+                        <button class="service-action" data-action="submitFeedback">Submit Feedback</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Upcoming Events -->
+        <section class="events-section">
+            <div class="section-header">
+                <h2 class="section-title">📅 Upcoming Events</h2>
+                <a href="#" class="view-all">View All Events →</a>
+            </div>
+            
+            <div class="events-scroll" id="events-scroll">
+                <!-- Saraswati Puja -->
+                <div class="event-card">
+                    <div class="event-image">🪷</div>
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="fas fa-calendar"></i>
+                            February 12, 2026
+                        </div>
+                        <h3 class="event-title">Saraswati Puja 2026</h3>
+                        <div class="event-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Jacksonville Hindu Temple
+                        </div>
+                        <div class="event-actions">
+                            <button class="event-btn primary">RSVP Now</button>
+                            <button class="event-btn secondary">Details</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Holi -->
+                <div class="event-card">
+                    <div class="event-image">🎨</div>
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="fas fa-calendar"></i>
+                            March 14, 2026
+                        </div>
+                        <h3 class="event-title">Holi Celebration</h3>
+                        <div class="event-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Riverside Park
+                        </div>
+                        <div class="event-actions">
+                            <button class="event-btn primary">RSVP Now</button>
+                            <button class="event-btn secondary">Details</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bengali New Year -->
+                <div class="event-card">
+                    <div class="event-image">🎊</div>
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="fas fa-calendar"></i>
+                            April 15, 2026
+                        </div>
+                        <h3 class="event-title">Poila Boishakh</h3>
+                        <div class="event-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Community Center
+                        </div>
+                        <div class="event-actions">
+                            <button class="event-btn primary">RSVP Now</button>
+                            <button class="event-btn secondary">Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Two Column Layout -->
+        <section class="two-column-layout">
+            <!-- Recent Photos -->
+            <div class="gallery-preview">
+                <div class="section-header" style="margin-bottom: 15px;">
+                    <h3 class="section-title" style="font-size: 16px;">📸 Recent Event Photos</h3>
+                    <a href="#" class="view-all">View All →</a>
+                </div>
+                
+                <div class="gallery-grid" id="gallery-grid">
+                    <div class="gallery-item">🎭</div>
+                    <div class="gallery-item">🎉</div>
+                    <div class="gallery-item">🎊</div>
+                    <div class="gallery-item">👨‍👩‍👧‍👦</div>
+                    <div class="gallery-item">🎵</div>
+                    <div class="gallery-item more">+42</div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-panel">
+                <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">⚡ Quick Actions</h3>
+                
+                <ul class="quick-list">
+                    <li class="quick-item" data-action="pendingSurveys">
+                        <div class="quick-icon">📝</div>
+                        <div class="quick-text">
+                            <div class="quick-title">Pending Surveys</div>
+                            <div class="quick-subtitle">Share your feedback</div>
+                        </div>
+                        <span class="quick-badge">1</span>
+                    </li>
+                    <li class="quick-item" data-action="connectionRequests">
+                        <div class="quick-icon">🤝</div>
+                        <div class="quick-text">
+                            <div class="quick-title">Connection Requests</div>
+                            <div class="quick-subtitle">New requests to connect</div>
+                        </div>
+                        <span class="quick-badge">2</span>
+                    </li>
+                    <li class="quick-item" data-action="volunteerTasks">
+                        <div class="quick-icon">🙋</div>
+                        <div class="quick-text">
+                            <div class="quick-title">Volunteer Opportunities</div>
+                            <div class="quick-subtitle">Help your community</div>
+                        </div>
+                    </li>
+                    <li class="quick-item" data-action="carpoolMatches">
+                        <div class="quick-icon">🚗</div>
+                        <div class="quick-text">
+                            <div class="quick-title">Find a Carpool</div>
+                            <div class="quick-subtitle">Rides for upcoming events</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-text">© 2026 Bengali Association of North Florida (BANF). All rights reserved.</p>
+    </footer>
+    
+    <script>
+        // Service card click handlers
+        document.querySelectorAll('.service-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('service-action')) {
+                    const service = this.dataset.service;
+                    navigateToService(service);
+                }
+            });
+        });
+        
+        // Service action button handlers
+        document.querySelectorAll('.service-action').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const action = this.dataset.action;
+                handleAction(action);
+            });
+        });
+        
+        // Quick action handlers
+        document.querySelectorAll('.quick-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const action = this.dataset.action;
+                handleAction(action);
+            });
+        });
+        
+        // Event button handlers
+        document.querySelectorAll('.event-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const eventCard = this.closest('.event-card');
+                const eventTitle = eventCard.querySelector('.event-title').textContent;
+                
+                if (this.classList.contains('primary')) {
+                    showNotification(`Opening RSVP for ${eventTitle}...`);
+                } else {
+                    showNotification(`Opening details for ${eventTitle}...`);
+                }
+            });
+        });
+        
+        function navigateToService(service) {
+            console.log('Navigate to service:', service);
+            showNotification(`Opening ${service.replace('-', ' ')}...`);
+        }
+        
+        function handleAction(action) {
+            console.log('Action:', action);
+            
+            switch(action) {
+                case 'editProfile':
+                    showNotification('Opening profile editor...');
+                    break;
+                case 'searchMembers':
+                    showNotification('Opening member directory...');
+                    break;
+                case 'offerRide':
+                    showNotification('Creating ride offer...');
+                    break;
+                case 'pendingSurveys':
+                    showNotification('Loading pending surveys...');
+                    break;
+                case 'uploadPhotos':
+                    showNotification('Opening photo uploader...');
+                    break;
+                default:
+                    showNotification(`Action: ${action}`);
+            }
+        }
+        
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #333, #444);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                z-index: 10000;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+                animation: slideIn 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            notification.innerHTML = `<span>✨</span> ${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+        
+        // Load member dashboard data
+        async function loadMemberDashboard() {
+            try {
+                // In Wix, this would call getMemberDashboard()
+                console.log('Member dashboard loaded');
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        // Check membership expiry
+        function checkMembershipExpiry() {
+            const expiryDate = new Date('2026-12-31');
+            const today = new Date();
+            const daysRemaining = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysRemaining <= 30) {
+                document.getElementById('renew-btn').style.display = 'block';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMemberDashboard();
+            checkMembershipExpiry();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1083 @@
+/**
+ * BANF Vendor Management Service
+ * ================================
+ * Wix Velo Backend Module for automated vendor management
+ * 
+ * Features:
+ * - Vendor registration and approval workflow
+ * - Booth assignment management
+ * - Payment tracking
+ * - Contract management
+ * - Performance ratings
+ * 
+ * @module backend/vendor-management.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+// =====================================================
+// VENDOR TYPES & CONFIGURATION
+// =====================================================
+
+const VENDOR_TYPES = {
+    FOOD: {
+        name: 'Food Vendor',
+        icon: '🍲',
+        requiresHealthPermit: true,
+        baseFee: 200,
+        description: 'Food service vendors'
+    },
+    RETAIL: {
+        name: 'Retail Vendor',
+        icon: '🛍️',
+        requiresHealthPermit: false,
+        baseFee: 150,
+        description: 'Merchandise and retail vendors'
+    },
+    JEWELRY: {
+        name: 'Jewelry Vendor',
+        icon: '💎',
+        requiresHealthPermit: false,
+        baseFee: 150,
+        description: 'Jewelry and accessories'
+    },
+    CLOTHING: {
+        name: 'Clothing Vendor',
+        icon: '👔',
+        requiresHealthPermit: false,
+        baseFee: 150,
+        description: 'Traditional clothing and apparel'
+    },
+    HANDICRAFT: {
+        name: 'Handicraft Vendor',
+        icon: '🎨',
+        requiresHealthPermit: false,
+        baseFee: 100,
+        description: 'Handmade crafts and art'
+    },
+    SERVICES: {
+        name: 'Service Provider',
+        icon: '💼',
+        requiresHealthPermit: false,
+        baseFee: 175,
+        description: 'Professional services (photography, beauty, etc.)'
+    },
+    NONPROFIT: {
+        name: 'Non-Profit Organization',
+        icon: '🤝',
+        requiresHealthPermit: false,
+        baseFee: 0,
+        description: 'Community organizations'
+    }
+};
+
+const VENDOR_STATUS = {
+    PENDING: 'pending',
+    UNDER_REVIEW: 'under_review',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+    ACTIVE: 'active',
+    SUSPENDED: 'suspended',
+    BLACKLISTED: 'blacklisted'
+};
+
+const BOOTH_STATUS = {
+    AVAILABLE: 'available',
+    RESERVED: 'reserved',
+    ASSIGNED: 'assigned',
+    OCCUPIED: 'occupied'
+};
+
+// =====================================================
+// VENDOR REGISTRATION
+// =====================================================
+
+/**
+ * Register new vendor application
+ * @param {Object} vendorData 
+ */
+export async function registerVendor(vendorData) {
+    try {
+        const member = await currentMember.getMember().catch(() => null);
+        
+        // Check for existing application
+        const existing = await wixData.query('Vendors')
+            .eq('email', vendorData.email)
+            .eq('status', VENDOR_STATUS.PENDING)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { 
+                success: false, 
+                error: 'You already have a pending application' 
+            };
+        }
+        
+        const vendorType = VENDOR_TYPES[vendorData.vendorType] || VENDOR_TYPES.RETAIL;
+        
+        const vendor = await wixData.insert('Vendors', {
+            // Basic Info
+            businessName: vendorData.businessName,
+            vendorType: vendorData.vendorType,
+            vendorTypeName: vendorType.name,
+            description: vendorData.description || '',
+            
+            // Contact
+            contactName: vendorData.contactName,
+            email: vendorData.email,
+            phone: vendorData.phone,
+            alternatePhone: vendorData.alternatePhone || '',
+            
+            // Address
+            address: vendorData.address || '',
+            city: vendorData.city || '',
+            state: vendorData.state || 'FL',
+            zip: vendorData.zip || '',
+            
+            // Business Details
+            yearsInBusiness: vendorData.yearsInBusiness || 0,
+            taxId: vendorData.taxId || '',
+            businessLicense: vendorData.businessLicense || '',
+            
+            // For Food Vendors
+            healthPermit: vendorData.healthPermit || '',
+            healthPermitExpiry: vendorData.healthPermitExpiry || null,
+            foodCategories: vendorData.foodCategories || [],
+            servesAlcohol: vendorData.servesAlcohol || false,
+            
+            // Products/Services
+            productCategories: vendorData.productCategories || [],
+            productDescription: vendorData.productDescription || '',
+            priceRange: vendorData.priceRange || '',
+            
+            // Booth Requirements
+            preferredBoothSize: vendorData.preferredBoothSize || 'standard', // standard, large, premium
+            requiresElectricity: vendorData.requiresElectricity || false,
+            electricalNeeds: vendorData.electricalNeeds || '',
+            requiresWater: vendorData.requiresWater || false,
+            
+            // Documents
+            documents: vendorData.documents || [],
+            insuranceCertificate: vendorData.insuranceCertificate || '',
+            
+            // Social/Website
+            website: vendorData.website || '',
+            facebookPage: vendorData.facebookPage || '',
+            instagramHandle: vendorData.instagramHandle || '',
+            
+            // Previous Experience
+            previousBANFVendor: vendorData.previousBANFVendor || false,
+            previousEventYears: vendorData.previousEventYears || [],
+            otherEventsAttended: vendorData.otherEventsAttended || '',
+            
+            // References
+            references: vendorData.references || [],
+            
+            // Status
+            status: VENDOR_STATUS.PENDING,
+            
+            // Financial
+            baseFee: vendorType.baseFee,
+            totalFeeDue: 0,
+            totalPaid: 0,
+            balance: 0,
+            
+            // Ratings (populated after events)
+            averageRating: 0,
+            totalRatings: 0,
+            
+            // Metadata
+            memberId: member?._id || null,
+            applicationNumber: generateApplicationNumber(),
+            applicationDate: new Date(),
+            createdAt: new Date(),
+            lastModified: new Date(),
+            
+            // Admin Notes
+            adminNotes: ''
+        });
+        
+        // Send confirmation email
+        await triggeredEmails.emailContact(
+            'vendor_application_received',
+            vendorData.email,
+            {
+                variables: {
+                    contactName: vendorData.contactName,
+                    businessName: vendorData.businessName,
+                    applicationNumber: vendor.applicationNumber,
+                    vendorType: vendorType.name
+                }
+            }
+        );
+        
+        // Create admin task for review
+        await createAdminTask({
+            type: 'VENDOR_APPLICATION_REVIEW',
+            title: `Review vendor application: ${vendorData.businessName}`,
+            vendorId: vendor._id,
+            priority: 'medium'
+        });
+        
+        await logVendorActivity(vendor._id, 'APPLICATION_SUBMITTED', 
+            `New vendor application from ${vendorData.businessName}`);
+        
+        return {
+            success: true,
+            vendorId: vendor._id,
+            applicationNumber: vendor.applicationNumber,
+            message: 'Application submitted successfully. You will receive an email confirmation.'
+        };
+        
+    } catch (error) {
+        console.error('Error registering vendor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// VENDOR APPROVAL WORKFLOW
+// =====================================================
+
+/**
+ * Review vendor application
+ * @param {string} vendorId 
+ * @param {string} decision - 'approve' or 'reject'
+ * @param {string} notes 
+ */
+export async function reviewVendorApplication(vendorId, decision, notes = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const vendor = await wixData.get('Vendors', vendorId);
+        
+        if (!vendor) {
+            return { success: false, error: 'Vendor not found' };
+        }
+        
+        if (vendor.status !== VENDOR_STATUS.PENDING && 
+            vendor.status !== VENDOR_STATUS.UNDER_REVIEW) {
+            return { success: false, error: 'Application already processed' };
+        }
+        
+        const previousStatus = vendor.status;
+        
+        if (decision === 'approve') {
+            vendor.status = VENDOR_STATUS.APPROVED;
+            vendor.approvedAt = new Date();
+            vendor.approvedBy = member._id;
+            vendor.approvalNotes = notes;
+            
+            // Send approval email
+            await triggeredEmails.emailContact(
+                'vendor_application_approved',
+                vendor.email,
+                {
+                    variables: {
+                        contactName: vendor.contactName,
+                        businessName: vendor.businessName,
+                        applicationNumber: vendor.applicationNumber,
+                        vendorType: vendor.vendorTypeName,
+                        notes: notes
+                    }
+                }
+            );
+            
+        } else if (decision === 'reject') {
+            vendor.status = VENDOR_STATUS.REJECTED;
+            vendor.rejectedAt = new Date();
+            vendor.rejectedBy = member._id;
+            vendor.rejectionReason = notes;
+            
+            // Send rejection email
+            await triggeredEmails.emailContact(
+                'vendor_application_rejected',
+                vendor.email,
+                {
+                    variables: {
+                        contactName: vendor.contactName,
+                        businessName: vendor.businessName,
+                        applicationNumber: vendor.applicationNumber,
+                        reason: notes || 'Your application did not meet our current requirements.'
+                    }
+                }
+            );
+        }
+        
+        vendor.adminNotes = (vendor.adminNotes || '') + 
+            `\n[${new Date().toISOString()}] ${decision.toUpperCase()}: ${notes}`;
+        vendor.lastModified = new Date();
+        
+        await wixData.update('Vendors', vendor);
+        
+        await logVendorActivity(vendorId, `APPLICATION_${decision.toUpperCase()}`, 
+            `Application ${decision}ed by admin: ${notes}`);
+        
+        return {
+            success: true,
+            message: `Vendor application ${decision}ed successfully`
+        };
+        
+    } catch (error) {
+        console.error('Error reviewing vendor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Request additional information from vendor
+ * @param {string} vendorId 
+ * @param {string} requestMessage 
+ */
+export async function requestVendorInfo(vendorId, requestMessage) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const vendor = await wixData.get('Vendors', vendorId);
+        
+        vendor.status = VENDOR_STATUS.UNDER_REVIEW;
+        vendor.infoRequestedAt = new Date();
+        vendor.infoRequestedBy = member._id;
+        vendor.infoRequestMessage = requestMessage;
+        vendor.lastModified = new Date();
+        
+        await wixData.update('Vendors', vendor);
+        
+        // Send info request email
+        await triggeredEmails.emailContact(
+            'vendor_info_request',
+            vendor.email,
+            {
+                variables: {
+                    contactName: vendor.contactName,
+                    businessName: vendor.businessName,
+                    applicationNumber: vendor.applicationNumber,
+                    requestMessage: requestMessage
+                }
+            }
+        );
+        
+        await logVendorActivity(vendorId, 'INFO_REQUESTED', requestMessage);
+        
+        return {
+            success: true,
+            message: 'Information request sent to vendor'
+        };
+        
+    } catch (error) {
+        console.error('Error requesting vendor info:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// BOOTH MANAGEMENT
+// =====================================================
+
+/**
+ * Create booth inventory for an event
+ * @param {string} eventId 
+ * @param {Array} booths 
+ */
+export async function createBoothInventory(eventId, booths) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const createdBooths = [];
+        
+        for (const booth of booths) {
+            const newBooth = await wixData.insert('EventBooths', {
+                eventId: eventId,
+                boothNumber: booth.boothNumber,
+                boothType: booth.boothType || 'standard', // standard, large, premium, food_court
+                location: booth.location || '',
+                size: booth.size || '10x10',
+                
+                // Amenities
+                hasElectricity: booth.hasElectricity || false,
+                electricalAmps: booth.electricalAmps || 0,
+                hasWater: booth.hasWater || false,
+                hasShelter: booth.hasShelter || false,
+                
+                // Pricing
+                price: booth.price || 150,
+                
+                // Status
+                status: BOOTH_STATUS.AVAILABLE,
+                
+                // Assignment
+                vendorId: null,
+                reservedAt: null,
+                assignedAt: null,
+                
+                // Metadata
+                notes: booth.notes || '',
+                createdAt: new Date()
+            });
+            
+            createdBooths.push(newBooth);
+        }
+        
+        return {
+            success: true,
+            boothsCreated: createdBooths.length,
+            message: `${createdBooths.length} booths created for event`
+        };
+        
+    } catch (error) {
+        console.error('Error creating booth inventory:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Assign booth to vendor
+ * @param {string} boothId 
+ * @param {string} vendorId 
+ * @param {string} eventId 
+ */
+export async function assignBoothToVendor(boothId, vendorId, eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const booth = await wixData.get('EventBooths', boothId);
+        const vendor = await wixData.get('Vendors', vendorId);
+        
+        if (!booth || !vendor) {
+            return { success: false, error: 'Booth or vendor not found' };
+        }
+        
+        if (booth.status !== BOOTH_STATUS.AVAILABLE && 
+            booth.status !== BOOTH_STATUS.RESERVED) {
+            return { success: false, error: 'Booth is not available' };
+        }
+        
+        if (vendor.status !== VENDOR_STATUS.APPROVED && 
+            vendor.status !== VENDOR_STATUS.ACTIVE) {
+            return { success: false, error: 'Vendor is not approved' };
+        }
+        
+        // Update booth
+        booth.vendorId = vendorId;
+        booth.status = BOOTH_STATUS.ASSIGNED;
+        booth.assignedAt = new Date();
+        booth.assignedBy = member._id;
+        
+        await wixData.update('EventBooths', booth);
+        
+        // Create vendor event assignment
+        await wixData.insert('VendorEventAssignments', {
+            vendorId: vendorId,
+            eventId: eventId,
+            boothId: boothId,
+            boothNumber: booth.boothNumber,
+            boothType: booth.boothType,
+            
+            // Fees
+            boothFee: booth.price,
+            additionalFees: 0,
+            totalFee: booth.price,
+            paidAmount: 0,
+            balance: booth.price,
+            
+            // Payment Status
+            paymentStatus: 'pending',
+            paymentDueDate: null,
+            
+            // Status
+            status: 'assigned',
+            
+            // Check-in
+            checkedIn: false,
+            checkInTime: null,
+            
+            // Metadata
+            assignedAt: new Date(),
+            assignedBy: member._id,
+            notes: ''
+        });
+        
+        // Update vendor total fees
+        vendor.totalFeeDue = (vendor.totalFeeDue || 0) + booth.price;
+        vendor.balance = (vendor.balance || 0) + booth.price;
+        vendor.status = VENDOR_STATUS.ACTIVE;
+        await wixData.update('Vendors', vendor);
+        
+        // Send assignment email
+        const event = await wixData.get('Events', eventId);
+        
+        await triggeredEmails.emailContact(
+            'vendor_booth_assigned',
+            vendor.email,
+            {
+                variables: {
+                    contactName: vendor.contactName,
+                    businessName: vendor.businessName,
+                    eventName: event.title,
+                    eventDate: formatDate(event.eventDate),
+                    boothNumber: booth.boothNumber,
+                    boothLocation: booth.location,
+                    boothFee: booth.price
+                }
+            }
+        );
+        
+        await logVendorActivity(vendorId, 'BOOTH_ASSIGNED', 
+            `Assigned booth ${booth.boothNumber} for ${event.title}`);
+        
+        return {
+            success: true,
+            message: `Booth ${booth.boothNumber} assigned to ${vendor.businessName}`
+        };
+        
+    } catch (error) {
+        console.error('Error assigning booth:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get available booths for event
+ * @param {string} eventId 
+ */
+export async function getAvailableBooths(eventId) {
+    try {
+        const booths = await wixData.query('EventBooths')
+            .eq('eventId', eventId)
+            .eq('status', BOOTH_STATUS.AVAILABLE)
+            .ascending('boothNumber')
+            .find();
+        
+        return {
+            success: true,
+            booths: booths.items,
+            total: booths.items.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting available booths:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// VENDOR PAYMENT PROCESSING
+// =====================================================
+
+/**
+ * Process vendor payment
+ * @param {string} vendorId 
+ * @param {string} eventId 
+ * @param {Object} paymentInfo 
+ */
+export async function processVendorPayment(vendorId, eventId, paymentInfo) {
+    try {
+        const vendor = await wixData.get('Vendors', vendorId);
+        
+        // Find assignment
+        const assignments = await wixData.query('VendorEventAssignments')
+            .eq('vendorId', vendorId)
+            .eq('eventId', eventId)
+            .find();
+        
+        if (assignments.items.length === 0) {
+            return { success: false, error: 'No booth assignment found' };
+        }
+        
+        const assignment = assignments.items[0];
+        
+        // Create payment record
+        const payment = await wixData.insert('VendorPayments', {
+            vendorId: vendorId,
+            eventId: eventId,
+            assignmentId: assignment._id,
+            
+            // Payment Details
+            amount: paymentInfo.amount,
+            paymentMethod: paymentInfo.method, // cash, check, card, zelle
+            transactionId: paymentInfo.transactionId || '',
+            
+            // Check Details (if applicable)
+            checkNumber: paymentInfo.checkNumber || '',
+            checkDate: paymentInfo.checkDate || null,
+            
+            // Status
+            status: 'completed',
+            
+            // Metadata
+            processedAt: new Date(),
+            processedBy: paymentInfo.processedBy || 'system',
+            notes: paymentInfo.notes || ''
+        });
+        
+        // Update assignment
+        assignment.paidAmount = (assignment.paidAmount || 0) + paymentInfo.amount;
+        assignment.balance = assignment.totalFee - assignment.paidAmount;
+        assignment.paymentStatus = assignment.balance <= 0 ? 'paid' : 'partial';
+        assignment.lastPaymentDate = new Date();
+        
+        await wixData.update('VendorEventAssignments', assignment);
+        
+        // Update vendor totals
+        vendor.totalPaid = (vendor.totalPaid || 0) + paymentInfo.amount;
+        vendor.balance = Math.max(0, (vendor.balance || 0) - paymentInfo.amount);
+        
+        await wixData.update('Vendors', vendor);
+        
+        // Send receipt
+        await triggeredEmails.emailContact(
+            'vendor_payment_receipt',
+            vendor.email,
+            {
+                variables: {
+                    contactName: vendor.contactName,
+                    businessName: vendor.businessName,
+                    amount: paymentInfo.amount,
+                    paymentMethod: paymentInfo.method,
+                    transactionId: payment._id,
+                    remainingBalance: assignment.balance
+                }
+            }
+        );
+        
+        await logVendorActivity(vendorId, 'PAYMENT_RECEIVED', 
+            `Payment of $${paymentInfo.amount} received`);
+        
+        return {
+            success: true,
+            paymentId: payment._id,
+            newBalance: assignment.balance,
+            message: 'Payment processed successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error processing vendor payment:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Send payment reminders to vendors
+ */
+export async function sendVendorPaymentReminders() {
+    try {
+        const unpaidAssignments = await wixData.query('VendorEventAssignments')
+            .eq('paymentStatus', 'pending')
+            .or(
+                wixData.query('VendorEventAssignments').eq('paymentStatus', 'partial')
+            )
+            .find();
+        
+        let remindersSent = 0;
+        
+        for (const assignment of unpaidAssignments.items) {
+            const vendor = await wixData.get('Vendors', assignment.vendorId);
+            const event = await wixData.get('Events', assignment.eventId);
+            
+            if (!vendor || !event) continue;
+            
+            // Check if event is within 2 weeks
+            const eventDate = new Date(event.eventDate);
+            const now = new Date();
+            const daysUntilEvent = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilEvent > 0 && daysUntilEvent <= 14) {
+                await triggeredEmails.emailContact(
+                    'vendor_payment_reminder',
+                    vendor.email,
+                    {
+                        variables: {
+                            contactName: vendor.contactName,
+                            businessName: vendor.businessName,
+                            eventName: event.title,
+                            eventDate: formatDate(event.eventDate),
+                            amountDue: assignment.balance,
+                            boothNumber: assignment.boothNumber,
+                            daysUntilEvent: daysUntilEvent
+                        }
+                    }
+                );
+                
+                remindersSent++;
+            }
+        }
+        
+        return {
+            success: true,
+            remindersSent: remindersSent
+        };
+        
+    } catch (error) {
+        console.error('Error sending payment reminders:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// VENDOR CHECK-IN
+// =====================================================
+
+/**
+ * Check in vendor at event
+ * @param {string} vendorId 
+ * @param {string} eventId 
+ */
+export async function checkInVendor(vendorId, eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const assignments = await wixData.query('VendorEventAssignments')
+            .eq('vendorId', vendorId)
+            .eq('eventId', eventId)
+            .find();
+        
+        if (assignments.items.length === 0) {
+            return { success: false, error: 'No assignment found' };
+        }
+        
+        const assignment = assignments.items[0];
+        
+        // Check payment status
+        if (assignment.paymentStatus !== 'paid') {
+            return { 
+                success: false, 
+                error: `Outstanding balance: $${assignment.balance}`,
+                requiresPayment: true,
+                balance: assignment.balance
+            };
+        }
+        
+        assignment.checkedIn = true;
+        assignment.checkInTime = new Date();
+        assignment.checkedInBy = member._id;
+        assignment.status = 'active';
+        
+        await wixData.update('VendorEventAssignments', assignment);
+        
+        // Update booth status
+        const booth = await wixData.get('EventBooths', assignment.boothId);
+        booth.status = BOOTH_STATUS.OCCUPIED;
+        await wixData.update('EventBooths', booth);
+        
+        const vendor = await wixData.get('Vendors', vendorId);
+        
+        await logVendorActivity(vendorId, 'CHECKED_IN', 
+            `Vendor checked in at booth ${assignment.boothNumber}`);
+        
+        return {
+            success: true,
+            vendorName: vendor.businessName,
+            boothNumber: assignment.boothNumber,
+            message: `${vendor.businessName} checked in at booth ${assignment.boothNumber}`
+        };
+        
+    } catch (error) {
+        console.error('Error checking in vendor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// VENDOR RATINGS & FEEDBACK
+// =====================================================
+
+/**
+ * Rate vendor after event
+ * @param {string} vendorId 
+ * @param {string} eventId 
+ * @param {Object} ratingData 
+ */
+export async function rateVendor(vendorId, eventId, ratingData) {
+    try {
+        const member = await currentMember.getMember();
+        
+        // Check if already rated
+        const existingRating = await wixData.query('VendorRatings')
+            .eq('vendorId', vendorId)
+            .eq('eventId', eventId)
+            .eq('raterId', member?._id || ratingData.raterEmail)
+            .find();
+        
+        if (existingRating.items.length > 0) {
+            return { success: false, error: 'You have already rated this vendor' };
+        }
+        
+        const rating = await wixData.insert('VendorRatings', {
+            vendorId: vendorId,
+            eventId: eventId,
+            raterId: member?._id || null,
+            raterEmail: ratingData.raterEmail || '',
+            raterName: ratingData.raterName || 'Anonymous',
+            
+            // Ratings (1-5)
+            overallRating: ratingData.overallRating,
+            productQuality: ratingData.productQuality || null,
+            customerService: ratingData.customerService || null,
+            valueForMoney: ratingData.valueForMoney || null,
+            
+            // Feedback
+            comments: ratingData.comments || '',
+            wouldRecommend: ratingData.wouldRecommend || false,
+            
+            // Metadata
+            createdAt: new Date()
+        });
+        
+        // Update vendor average rating
+        await updateVendorAverageRating(vendorId);
+        
+        return {
+            success: true,
+            message: 'Thank you for your feedback!'
+        };
+        
+    } catch (error) {
+        console.error('Error rating vendor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Update vendor's average rating
+ * @param {string} vendorId 
+ */
+async function updateVendorAverageRating(vendorId) {
+    const ratings = await wixData.query('VendorRatings')
+        .eq('vendorId', vendorId)
+        .find();
+    
+    if (ratings.items.length === 0) return;
+    
+    const totalRating = ratings.items.reduce((sum, r) => sum + r.overallRating, 0);
+    const averageRating = totalRating / ratings.items.length;
+    
+    const vendor = await wixData.get('Vendors', vendorId);
+    vendor.averageRating = Math.round(averageRating * 10) / 10;
+    vendor.totalRatings = ratings.items.length;
+    
+    await wixData.update('Vendors', vendor);
+}
+
+// =====================================================
+// REPORTING
+// =====================================================
+
+/**
+ * Get vendor report for event
+ * @param {string} eventId 
+ */
+export async function getVendorReportForEvent(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const assignments = await wixData.query('VendorEventAssignments')
+            .eq('eventId', eventId)
+            .find();
+        
+        let totalRevenue = 0;
+        let totalPaid = 0;
+        let totalOutstanding = 0;
+        let checkedInCount = 0;
+        
+        const vendorDetails = [];
+        
+        for (const assignment of assignments.items) {
+            const vendor = await wixData.get('Vendors', assignment.vendorId);
+            
+            totalRevenue += assignment.totalFee;
+            totalPaid += assignment.paidAmount;
+            totalOutstanding += assignment.balance;
+            if (assignment.checkedIn) checkedInCount++;
+            
+            vendorDetails.push({
+                vendorId: vendor._id,
+                businessName: vendor.businessName,
+                vendorType: vendor.vendorTypeName,
+                boothNumber: assignment.boothNumber,
+                totalFee: assignment.totalFee,
+                paidAmount: assignment.paidAmount,
+                balance: assignment.balance,
+                paymentStatus: assignment.paymentStatus,
+                checkedIn: assignment.checkedIn
+            });
+        }
+        
+        return {
+            success: true,
+            summary: {
+                totalVendors: assignments.items.length,
+                checkedIn: checkedInCount,
+                totalRevenue: totalRevenue,
+                totalPaid: totalPaid,
+                totalOutstanding: totalOutstanding
+            },
+            vendors: vendorDetails
+        };
+        
+    } catch (error) {
+        console.error('Error getting vendor report:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get all vendors
+ * @param {Object} filters 
+ */
+export async function getAllVendors(filters = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        let query = wixData.query('Vendors');
+        
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+        if (filters.vendorType) {
+            query = query.eq('vendorType', filters.vendorType);
+        }
+        
+        const vendors = await query
+            .descending('createdAt')
+            .find();
+        
+        return {
+            success: true,
+            vendors: vendors.items,
+            total: vendors.items.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting vendors:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Generate application number
+ */
+function generateApplicationNumber() {
+    const year = new Date().getFullYear();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `VND-${year}-${random}`;
+}
+
+/**
+ * Create admin task
+ */
+async function createAdminTask(taskData) {
+    await wixData.insert('AdminTasks', {
+        ...taskData,
+        status: 'pending',
+        createdAt: new Date()
+    });
+}
+
+/**
+ * Log vendor activity
+ */
+async function logVendorActivity(vendorId, action, details) {
+    await wixData.insert('VendorActivityLog', {
+        vendorId: vendorId,
+        action: action,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+/**
+ * Check if member is admin
+ */
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}

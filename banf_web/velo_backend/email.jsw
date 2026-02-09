@@ -1,0 +1,391 @@
+// backend/email.jsw
+// BANF Email Service - Wix Velo Backend
+// Uses Triggered Emails feature
+
+import wixCrm from 'wix-crm-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+/**
+ * Send welcome email to new member
+ */
+export async function sendWelcomeEmail(memberData) {
+    try {
+        const emailId = 'welcome_email'; // Create this triggered email in Wix dashboard
+        
+        await triggeredEmails.emailMember(emailId, memberData.contactId, {
+            variables: {
+                memberName: memberData.firstName,
+                fullName: `${memberData.firstName} ${memberData.lastName}`,
+                membershipType: memberData.membershipType || 'General',
+                joinDate: new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending welcome email:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send event registration confirmation
+ */
+export async function sendEventConfirmation(registrationData) {
+    try {
+        const emailId = 'event_confirmation';
+        
+        await triggeredEmails.emailMember(emailId, registrationData.contactId, {
+            variables: {
+                memberName: registrationData.memberName,
+                eventName: registrationData.eventName,
+                eventDate: registrationData.eventDate,
+                eventTime: registrationData.eventTime,
+                eventLocation: registrationData.location,
+                registrationId: registrationData.registrationId,
+                guestCount: registrationData.guestCount || 0,
+                totalAmount: registrationData.totalAmount || 'Free'
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending event confirmation:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send payment receipt
+ */
+export async function sendPaymentReceipt(paymentData) {
+    try {
+        const emailId = 'payment_receipt';
+        
+        await triggeredEmails.emailMember(emailId, paymentData.contactId, {
+            variables: {
+                memberName: paymentData.memberName,
+                transactionId: paymentData.transactionId,
+                amount: paymentData.amount,
+                paymentMethod: paymentData.paymentMethod,
+                paymentDate: new Date().toLocaleDateString('en-US'),
+                description: paymentData.description,
+                receiptNumber: paymentData.receiptNumber
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending payment receipt:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send membership renewal reminder
+ */
+export async function sendRenewalReminder(memberData) {
+    try {
+        const emailId = 'renewal_reminder';
+        
+        await triggeredEmails.emailMember(emailId, memberData.contactId, {
+            variables: {
+                memberName: memberData.firstName,
+                membershipType: memberData.membershipType,
+                expirationDate: memberData.expirationDate,
+                renewalAmount: memberData.renewalAmount,
+                daysUntilExpiry: memberData.daysUntilExpiry
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending renewal reminder:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send event reminder
+ */
+export async function sendEventReminder(eventData) {
+    try {
+        const emailId = 'event_reminder';
+        
+        await triggeredEmails.emailMember(emailId, eventData.contactId, {
+            variables: {
+                memberName: eventData.memberName,
+                eventName: eventData.eventName,
+                eventDate: eventData.eventDate,
+                eventTime: eventData.eventTime,
+                eventLocation: eventData.location,
+                reminderType: eventData.reminderType // 1day, 1week, etc.
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending event reminder:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send survey invitation
+ */
+export async function sendSurveyInvitation(surveyData) {
+    try {
+        const emailId = 'survey_invitation';
+        
+        await triggeredEmails.emailMember(emailId, surveyData.contactId, {
+            variables: {
+                memberName: surveyData.memberName,
+                surveyTitle: surveyData.surveyTitle,
+                surveyDescription: surveyData.surveyDescription,
+                surveyLink: surveyData.surveyLink,
+                deadline: surveyData.deadline
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending survey invitation:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send complaint acknowledgment
+ */
+export async function sendComplaintAcknowledgment(complaintData) {
+    try {
+        // For anonymous complaints, we can't send to member
+        // This would be used for non-anonymous complaints
+        if (!complaintData.contactId) {
+            return { success: false, error: 'No contact ID for anonymous complaint' };
+        }
+        
+        const emailId = 'complaint_acknowledgment';
+        
+        await triggeredEmails.emailMember(emailId, complaintData.contactId, {
+            variables: {
+                complaintId: complaintData.complaintId,
+                accessCode: complaintData.accessCode,
+                submittedDate: new Date().toLocaleDateString('en-US')
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending complaint acknowledgment:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send admin notification
+ */
+export async function sendAdminNotification(notificationData) {
+    try {
+        const emailId = 'admin_notification';
+        
+        // Get admin contacts
+        const adminEmails = notificationData.adminEmails || [];
+        
+        for (const adminEmail of adminEmails) {
+            // Create contact if needed
+            const contactId = await getOrCreateContact(adminEmail);
+            
+            await triggeredEmails.emailContact(emailId, contactId, {
+                variables: {
+                    notificationType: notificationData.type,
+                    title: notificationData.title,
+                    message: notificationData.message,
+                    actionUrl: notificationData.actionUrl,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending admin notification:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send newsletter/announcement
+ */
+export async function sendNewsletter(newsletterData) {
+    try {
+        const emailId = 'newsletter';
+        
+        // This would typically use email marketing campaigns
+        // For triggered emails, we'd need to loop through contacts
+        
+        await triggeredEmails.emailContact(emailId, newsletterData.contactId, {
+            variables: {
+                title: newsletterData.title,
+                content: newsletterData.content,
+                highlights: newsletterData.highlights,
+                upcomingEvents: newsletterData.upcomingEvents,
+                magazineLink: newsletterData.magazineLink
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending newsletter:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send article submission confirmation
+ */
+export async function sendArticleSubmissionConfirmation(articleData) {
+    try {
+        const emailId = 'article_submission';
+        
+        await triggeredEmails.emailMember(emailId, articleData.contactId, {
+            variables: {
+                authorName: articleData.authorName,
+                articleTitle: articleData.title,
+                category: articleData.category,
+                submittedDate: new Date().toLocaleDateString('en-US')
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending article confirmation:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send article approval/rejection notification
+ */
+export async function sendArticleReviewResult(reviewData) {
+    try {
+        const emailId = reviewData.approved ? 'article_approved' : 'article_rejected';
+        
+        await triggeredEmails.emailMember(emailId, reviewData.contactId, {
+            variables: {
+                authorName: reviewData.authorName,
+                articleTitle: reviewData.title,
+                decision: reviewData.approved ? 'approved' : 'rejected',
+                feedback: reviewData.feedback,
+                magazineIssue: reviewData.magazineIssue
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending review result:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send password reset email
+ */
+export async function sendPasswordResetEmail(resetData) {
+    try {
+        const emailId = 'password_reset';
+        
+        await triggeredEmails.emailMember(emailId, resetData.contactId, {
+            variables: {
+                memberName: resetData.memberName,
+                resetLink: resetData.resetLink,
+                expirationTime: '24 hours'
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending password reset email:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send Zelle payment verification request
+ */
+export async function sendZelleVerificationRequest(paymentData) {
+    try {
+        const emailId = 'zelle_verification';
+        
+        await triggeredEmails.emailMember(emailId, paymentData.contactId, {
+            variables: {
+                memberName: paymentData.memberName,
+                amount: paymentData.amount,
+                transactionId: paymentData.transactionId,
+                zelleConfirmation: paymentData.zelleConfirmation,
+                description: paymentData.description
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending Zelle verification:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Helper function to get or create contact
+async function getOrCreateContact(email) {
+    try {
+        const contacts = await wixCrm.contacts.queryContacts()
+            .eq('primaryInfo.email', email)
+            .find();
+        
+        if (contacts.items.length > 0) {
+            return contacts.items[0]._id;
+        }
+        
+        // Create new contact
+        const newContact = await wixCrm.contacts.createContact({
+            info: {
+                emails: [{ email: email }]
+            }
+        });
+        
+        return newContact._id;
+    } catch (error) {
+        console.error('Error getting/creating contact:', error);
+        throw error;
+    }
+}
+
+/**
+ * Create email template variables helper
+ */
+export function createEmailVariables(templateName, data) {
+    const templates = {
+        welcome_email: {
+            memberName: data.firstName || 'Member',
+            fullName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+            membershipType: data.membershipType || 'General',
+            joinDate: new Date().toLocaleDateString('en-US')
+        },
+        event_confirmation: {
+            memberName: data.memberName || 'Member',
+            eventName: data.eventName || 'Event',
+            eventDate: data.eventDate || '',
+            eventTime: data.eventTime || '',
+            eventLocation: data.location || 'TBD',
+            registrationId: data.registrationId || '',
+            guestCount: data.guestCount || 0,
+            totalAmount: data.totalAmount || 'Free'
+        },
+        // Add more template variable mappings as needed
+    };
+    
+    return templates[templateName] || data;
+}

@@ -1,0 +1,382 @@
+/**
+ * BANF Accounting Ledger Backend Module
+ * Handles income/expense tracking linked to database
+ * 
+ * File: backend/accounting-ledger.jsw
+ * Deploy to: Wix Velo Backend
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// Financial Categories
+export const INCOME_CATEGORIES = [
+    { id: 'membership', name: 'Membership Dues', subcategories: ['New Member', 'Renewal', 'Family', 'Individual', 'Student'] },
+    { id: 'event', name: 'Event Revenue', subcategories: ['Durga Puja', 'Kali Puja', 'Saraswati Puja', 'Poila Boishakh', 'Picnic', 'Other'] },
+    { id: 'sponsorship', name: 'Sponsorship', subcategories: ['Platinum', 'Gold', 'Silver', 'Bronze', 'Other'] },
+    { id: 'donation', name: 'Donations', subcategories: ['General', 'Scholarship', 'Event', 'Emergency Relief'] },
+    { id: 'merchandise', name: 'Merchandise', subcategories: ['T-Shirts', 'Souvenirs', 'Other'] },
+    { id: 'other_income', name: 'Other Income', subcategories: ['Interest', 'Refunds', 'Miscellaneous'] }
+];
+
+export const EXPENSE_CATEGORIES = [
+    { id: 'venue', name: 'Venue & Rental', subcategories: ['Event Venue', 'Equipment Rental', 'Tables & Chairs'] },
+    { id: 'food', name: 'Food & Catering', subcategories: ['Catering', 'Groceries', 'Beverages', 'Supplies'] },
+    { id: 'entertainment', name: 'Entertainment', subcategories: ['Performers', 'Sound System', 'Decorations', 'DJ'] },
+    { id: 'supplies', name: 'Supplies & Materials', subcategories: ['Office Supplies', 'Event Supplies', 'Printing'] },
+    { id: 'technology', name: 'Technology', subcategories: ['Website', 'Software', 'Equipment'] },
+    { id: 'marketing', name: 'Marketing', subcategories: ['Advertising', 'Printing', 'Social Media'] },
+    { id: 'scholarship', name: 'Scholarship', subcategories: ['Student Scholarship', 'Community Support'] },
+    { id: 'administrative', name: 'Administrative', subcategories: ['Bank Fees', 'Insurance', 'Legal', 'Registration'] },
+    { id: 'other_expense', name: 'Other Expenses', subcategories: ['Miscellaneous', 'Emergency', 'Refunds'] }
+];
+
+/**
+ * Add a new financial record (income or expense)
+ * @param {object} recordData - Financial record details
+ * @returns {object} - Result of the operation
+ */
+export async function addFinancialRecord(recordData) {
+    const {
+        transactionType, // 'income' or 'expense'
+        amount,
+        category,
+        subcategory,
+        description,
+        eventName,
+        transactionDate,
+        paymentMethod,
+        receiptNumber,
+        vendorName,
+        notes,
+        adminId,
+        adminName
+    } = recordData;
+    
+    try {
+        // Validate required fields
+        if (!transactionType || !amount || !category || !description || !transactionDate) {
+            return { success: false, error: 'Missing required fields' };
+        }
+        
+        // Generate receipt number if not provided
+        const receipt = receiptNumber || generateReceiptNumber(transactionType);
+        
+        const record = await wixData.insert('FinancialRecords', {
+            transactionType,
+            amount: parseFloat(amount),
+            netAmount: parseFloat(amount), // For manual entries, net = gross
+            processingFee: 0,
+            category,
+            subcategory: subcategory || '',
+            description,
+            eventName: eventName || '',
+            transactionDate: new Date(transactionDate),
+            paymentMethod: paymentMethod || 'Cash',
+            receiptNumber: receipt,
+            vendorName: vendorName || '',
+            notes: notes || '',
+            isApproved: false, // Requires admin approval
+            createdBy: adminId,
+            createdByName: adminName,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        return {
+            success: true,
+            record: {
+                id: record._id,
+                receiptNumber: receipt
+            },
+            message: `${transactionType === 'income' ? 'Income' : 'Expense'} record created successfully`
+        };
+    } catch (error) {
+        console.error('Failed to add financial record:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Generate a unique receipt number
+ * @param {string} type - 'income' or 'expense'
+ * @returns {string} - Receipt number
+ */
+function generateReceiptNumber(type) {
+    const prefix = type === 'income' ? 'INC' : 'EXP';
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `BANF-${prefix}-${dateStr}-${random}`;
+}
+
+/**
+ * Get financial summary for a date range
+ * @param {Date} startDate - Start of period
+ * @param {Date} endDate - End of period
+ * @returns {object} - Financial summary
+ */
+export async function getFinancialSummary(startDate, endDate) {
+    try {
+        const records = await wixData.query('FinancialRecords')
+            .ge('transactionDate', new Date(startDate))
+            .le('transactionDate', new Date(endDate))
+            .eq('isApproved', true)
+            .find({ suppressAuth: true });
+        
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let totalProcessingFees = 0;
+        const incomeByCategory = {};
+        const expenseByCategory = {};
+        
+        records.items.forEach(record => {
+            if (record.transactionType === 'income') {
+                totalIncome += record.amount;
+                totalProcessingFees += record.processingFee || 0;
+                incomeByCategory[record.category] = (incomeByCategory[record.category] || 0) + record.amount;
+            } else {
+                totalExpense += record.amount;
+                expenseByCategory[record.category] = (expenseByCategory[record.category] || 0) + record.amount;
+            }
+        });
+        
+        return {
+            success: true,
+            summary: {
+                period: { startDate, endDate },
+                totalIncome: parseFloat(totalIncome.toFixed(2)),
+                totalExpense: parseFloat(totalExpense.toFixed(2)),
+                netBalance: parseFloat((totalIncome - totalExpense).toFixed(2)),
+                totalProcessingFees: parseFloat(totalProcessingFees.toFixed(2)),
+                netIncomeAfterFees: parseFloat((totalIncome - totalProcessingFees).toFixed(2)),
+                transactionCount: records.items.length,
+                incomeByCategory,
+                expenseByCategory
+            }
+        };
+    } catch (error) {
+        console.error('Failed to get financial summary:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get detailed ledger entries for a date range
+ * @param {Date} startDate - Start of period
+ * @param {Date} endDate - End of period
+ * @param {string} type - 'all', 'income', or 'expense'
+ * @returns {object} - Ledger entries
+ */
+export async function getLedgerEntries(startDate, endDate, type = 'all') {
+    try {
+        let query = wixData.query('FinancialRecords')
+            .ge('transactionDate', new Date(startDate))
+            .le('transactionDate', new Date(endDate));
+        
+        if (type !== 'all') {
+            query = query.eq('transactionType', type);
+        }
+        
+        const records = await query
+            .ascending('transactionDate')
+            .find({ suppressAuth: true });
+        
+        // Calculate running balance
+        let runningBalance = 0;
+        const entries = records.items.map(record => {
+            if (record.transactionType === 'income') {
+                runningBalance += record.amount;
+            } else {
+                runningBalance -= record.amount;
+            }
+            
+            return {
+                id: record._id,
+                date: record.transactionDate,
+                type: record.transactionType,
+                category: record.category,
+                subcategory: record.subcategory,
+                description: record.description,
+                eventName: record.eventName,
+                debit: record.transactionType === 'expense' ? record.amount : 0,
+                credit: record.transactionType === 'income' ? record.amount : 0,
+                processingFee: record.processingFee || 0,
+                netAmount: record.netAmount || record.amount,
+                balance: parseFloat(runningBalance.toFixed(2)),
+                receiptNumber: record.receiptNumber,
+                paymentMethod: record.paymentMethod,
+                isApproved: record.isApproved,
+                createdBy: record.createdByName
+            };
+        });
+        
+        return {
+            success: true,
+            entries,
+            totalCount: entries.length,
+            finalBalance: runningBalance
+        };
+    } catch (error) {
+        console.error('Failed to get ledger entries:', error);
+        return { success: false, error: error.message, entries: [] };
+    }
+}
+
+/**
+ * Approve a financial record
+ * @param {string} recordId - Record ID to approve
+ * @param {string} adminId - Approving admin ID
+ * @param {string} adminName - Approving admin name
+ * @returns {object} - Result
+ */
+export async function approveFinancialRecord(recordId, adminId, adminName) {
+    try {
+        const record = await wixData.get('FinancialRecords', recordId);
+        
+        if (!record) {
+            return { success: false, error: 'Record not found' };
+        }
+        
+        await wixData.update('FinancialRecords', {
+            ...record,
+            isApproved: true,
+            approvedBy: adminId,
+            approvedByName: adminName,
+            approvedAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        return { success: true, message: 'Record approved successfully' };
+    } catch (error) {
+        console.error('Failed to approve record:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get pending records for approval
+ * @returns {object} - Pending records
+ */
+export async function getPendingApprovals() {
+    try {
+        const records = await wixData.query('FinancialRecords')
+            .eq('isApproved', false)
+            .descending('createdAt')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            records: records.items,
+            count: records.items.length
+        };
+    } catch (error) {
+        console.error('Failed to get pending approvals:', error);
+        return { success: false, error: error.message, records: [] };
+    }
+}
+
+/**
+ * Get annual report data
+ * @param {number} year - Year for report
+ * @returns {object} - Annual report
+ */
+export async function getAnnualReport(year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59);
+    
+    try {
+        const records = await wixData.query('FinancialRecords')
+            .ge('transactionDate', startDate)
+            .le('transactionDate', endDate)
+            .eq('isApproved', true)
+            .find({ suppressAuth: true });
+        
+        // Monthly breakdown
+        const monthlyData = {};
+        for (let month = 0; month < 12; month++) {
+            monthlyData[month] = { income: 0, expense: 0, net: 0 };
+        }
+        
+        let totalIncome = 0;
+        let totalExpense = 0;
+        const categoryBreakdown = { income: {}, expense: {} };
+        
+        records.items.forEach(record => {
+            const month = new Date(record.transactionDate).getMonth();
+            const amount = record.amount;
+            
+            if (record.transactionType === 'income') {
+                totalIncome += amount;
+                monthlyData[month].income += amount;
+                categoryBreakdown.income[record.category] = (categoryBreakdown.income[record.category] || 0) + amount;
+            } else {
+                totalExpense += amount;
+                monthlyData[month].expense += amount;
+                categoryBreakdown.expense[record.category] = (categoryBreakdown.expense[record.category] || 0) + amount;
+            }
+            
+            monthlyData[month].net = monthlyData[month].income - monthlyData[month].expense;
+        });
+        
+        return {
+            success: true,
+            report: {
+                year,
+                totalIncome: parseFloat(totalIncome.toFixed(2)),
+                totalExpense: parseFloat(totalExpense.toFixed(2)),
+                netProfit: parseFloat((totalIncome - totalExpense).toFixed(2)),
+                transactionCount: records.items.length,
+                monthlyData,
+                categoryBreakdown,
+                generatedAt: new Date()
+            }
+        };
+    } catch (error) {
+        console.error('Failed to generate annual report:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Export ledger to CSV format
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {string} - CSV content
+ */
+export async function exportLedgerToCSV(startDate, endDate) {
+    try {
+        const result = await getLedgerEntries(startDate, endDate, 'all');
+        
+        if (!result.success) {
+            return { success: false, error: result.error };
+        }
+        
+        const headers = ['Date', 'Type', 'Category', 'Subcategory', 'Description', 'Debit', 'Credit', 'Balance', 'Receipt #', 'Payment Method', 'Approved', 'Created By'];
+        const rows = result.entries.map(entry => [
+            new Date(entry.date).toLocaleDateString(),
+            entry.type,
+            entry.category,
+            entry.subcategory,
+            `"${entry.description.replace(/"/g, '""')}"`,
+            entry.debit.toFixed(2),
+            entry.credit.toFixed(2),
+            entry.balance.toFixed(2),
+            entry.receiptNumber,
+            entry.paymentMethod,
+            entry.isApproved ? 'Yes' : 'No',
+            entry.createdBy || ''
+        ]);
+        
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        
+        return {
+            success: true,
+            csv: csvContent,
+            filename: `BANF_Ledger_${new Date(startDate).toISOString().split('T')[0]}_to_${new Date(endDate).toISOString().split('T')[0]}.csv`
+        };
+    } catch (error) {
+        console.error('Failed to export ledger:', error);
+        return { success: false, error: error.message };
+    }
+}

@@ -1,0 +1,377 @@
+// backend/admin.jsw
+// BANF Admin Dashboard - Wix Velo Backend
+
+import wixData from 'wix-data';
+import { currentMember, authentication } from 'wix-members-backend';
+import { getFinancialSummary } from 'backend/finance.jsw';
+import { getMembershipStats } from 'backend/members.jsw';
+
+/**
+ * Get comprehensive dashboard statistics
+ */
+export async function getDashboardStats() {
+    try {
+        const now = new Date();
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        
+        // Get all stats in parallel
+        const [
+            memberStats,
+            financialSummary,
+            upcomingEvents,
+            pendingPayments,
+            recentFeedback,
+            pendingComplaints
+        ] = await Promise.all([
+            getMembershipStats(),
+            getFinancialSummary(),
+            getUpcomingEventsCount(),
+            getPendingPaymentsCount(),
+            getRecentFeedbackCount(),
+            getPendingComplaintsCount()
+        ]);
+        
+        return {
+            members: memberStats,
+            finance: financialSummary,
+            upcomingEvents,
+            pendingPayments,
+            recentFeedback,
+            pendingComplaints,
+            generatedAt: new Date().toISOString()
+        };
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        return null;
+    }
+}
+
+/**
+ * Check if current user is admin
+ */
+export async function isAdmin() {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) return false;
+        
+        // Check admin collection
+        const adminRecord = await wixData.query('Admins')
+            .eq('email', member.loginEmail)
+            .eq('isActive', true)
+            .find();
+        
+        return adminRecord.items.length > 0;
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+    }
+}
+
+/**
+ * Get admin user details
+ */
+export async function getAdminProfile() {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) return null;
+        
+        const adminRecord = await wixData.query('Admins')
+            .eq('email', member.loginEmail)
+            .find();
+        
+        if (adminRecord.items.length === 0) return null;
+        
+        return {
+            id: adminRecord.items[0]._id,
+            email: adminRecord.items[0].email,
+            fullName: adminRecord.items[0].fullName,
+            role: adminRecord.items[0].role,
+            permissions: adminRecord.items[0].permissions || []
+        };
+    } catch (error) {
+        console.error('Error getting admin profile:', error);
+        return null;
+    }
+}
+
+/**
+ * Create admin user (super_admin only)
+ */
+export async function createAdmin(adminData, superAdminId) {
+    try {
+        // Verify super admin
+        const superAdmin = await wixData.get('Admins', superAdminId);
+        if (!superAdmin || superAdmin.role !== 'super_admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+        
+        // Check if admin already exists
+        const existing = await wixData.query('Admins')
+            .eq('email', adminData.email)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Admin with this email already exists' };
+        }
+        
+        const admin = {
+            username: adminData.username,
+            email: adminData.email,
+            fullName: adminData.fullName,
+            role: adminData.role || 'admin',
+            permissions: adminData.permissions || ['read', 'write'],
+            isActive: true,
+            createdBy: superAdminId,
+            _createdDate: new Date()
+        };
+        
+        const result = await wixData.insert('Admins', admin);
+        return { success: true, adminId: result._id };
+    } catch (error) {
+        console.error('Error creating admin:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get activity log
+ */
+export async function getActivityLog(options = { limit: 50, skip: 0 }) {
+    try {
+        const result = await wixData.query('ActivityLog')
+            .descending('timestamp')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find();
+        
+        return {
+            items: result.items,
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting activity log:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Log admin activity
+ */
+export async function logActivity(adminId, action, details) {
+    try {
+        const logEntry = {
+            adminId: adminId,
+            action: action,
+            details: details,
+            timestamp: new Date(),
+            ipAddress: '', // Would need to be passed from frontend
+            _createdDate: new Date()
+        };
+        
+        await wixData.insert('ActivityLog', logEntry);
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+}
+
+/**
+ * Get meeting minutes list
+ */
+export async function getMeetingMinutes(options = { limit: 20, skip: 0 }) {
+    try {
+        const result = await wixData.query('MeetingMinutes')
+            .descending('meetingDate')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find();
+        
+        return {
+            items: result.items,
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting meeting minutes:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Create meeting minutes
+ */
+export async function createMeetingMinutes(minutesData, adminId) {
+    try {
+        const minutes = {
+            title: minutesData.title,
+            meetingDate: new Date(minutesData.meetingDate),
+            location: minutesData.location || 'Virtual',
+            agenda: minutesData.agenda || '',
+            minutesContent: minutesData.content,
+            summary: minutesData.summary || '',
+            hasConfidentialSection: minutesData.hasConfidentialSection || false,
+            confidentialNote: minutesData.confidentialNote || '',
+            attendees: JSON.stringify(minutesData.attendees || []),
+            actionItems: minutesData.actionItems || '',
+            nextMeetingDate: minutesData.nextMeetingDate ? new Date(minutesData.nextMeetingDate) : null,
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('MeetingMinutes', minutes);
+        
+        // Log activity
+        await logActivity(adminId, 'CREATE_MEETING_MINUTES', {
+            minutesId: result._id,
+            title: minutes.title
+        });
+        
+        return { success: true, minutesId: result._id };
+    } catch (error) {
+        console.error('Error creating meeting minutes:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get important messages/announcements
+ */
+export async function getImportantMessages(includeExpired = false) {
+    try {
+        let query = wixData.query('ImportantMessages')
+            .eq('isActive', true);
+        
+        if (!includeExpired) {
+            const now = new Date();
+            query = query.or(
+                wixData.query('ImportantMessages').isNotEmpty('expiryDate').ge('expiryDate', now),
+                wixData.query('ImportantMessages').isEmpty('expiryDate')
+            );
+        }
+        
+        query = query.descending('_createdDate');
+        
+        const result = await query.find();
+        return result.items;
+    } catch (error) {
+        console.error('Error getting important messages:', error);
+        return [];
+    }
+}
+
+/**
+ * Create important message/announcement
+ */
+export async function createImportantMessage(messageData, adminId) {
+    try {
+        const message = {
+            title: messageData.title,
+            content: messageData.content,
+            messageType: messageData.type || 'general', // general, urgent, event, maintenance
+            priority: messageData.priority || 'normal', // low, normal, high, urgent
+            targetAudience: messageData.targetAudience || 'all', // all, members, admins
+            expiryDate: messageData.expiryDate ? new Date(messageData.expiryDate) : null,
+            isActive: true,
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('ImportantMessages', message);
+        return { success: true, messageId: result._id };
+    } catch (error) {
+        console.error('Error creating message:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Helper functions for dashboard stats
+async function getUpcomingEventsCount() {
+    try {
+        return await wixData.query('Events')
+            .ge('eventDate', new Date())
+            .eq('isActive', true)
+            .count();
+    } catch (error) {
+        return 0;
+    }
+}
+
+async function getPendingPaymentsCount() {
+    try {
+        return await wixData.query('ZellePayments')
+            .eq('isVerified', false)
+            .count();
+    } catch (error) {
+        return 0;
+    }
+}
+
+async function getRecentFeedbackCount() {
+    try {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        
+        return await wixData.query('EventFeedback')
+            .ge('submittedAt', weekAgo)
+            .count();
+    } catch (error) {
+        return 0;
+    }
+}
+
+async function getPendingComplaintsCount() {
+    try {
+        return await wixData.query('Complaints')
+            .eq('status', 'submitted')
+            .count();
+    } catch (error) {
+        return 0;
+    }
+}
+
+/**
+ * Export data for reporting
+ */
+export async function exportData(collectionName, filters = {}, format = 'json') {
+    try {
+        let query = wixData.query(collectionName);
+        
+        // Apply filters
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                query = query.eq(key, value);
+            }
+        });
+        
+        const result = await query.limit(1000).find();
+        
+        if (format === 'json') {
+            return {
+                success: true,
+                data: result.items,
+                count: result.totalCount
+            };
+        }
+        
+        // For CSV format
+        if (format === 'csv' && result.items.length > 0) {
+            const headers = Object.keys(result.items[0]).filter(k => !k.startsWith('_'));
+            const rows = result.items.map(item => 
+                headers.map(h => JSON.stringify(item[h] || '')).join(',')
+            );
+            
+            return {
+                success: true,
+                data: [headers.join(','), ...rows].join('\n'),
+                count: result.totalCount
+            };
+        }
+        
+        return { success: true, data: [], count: 0 };
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        return { success: false, error: error.message };
+    }
+}

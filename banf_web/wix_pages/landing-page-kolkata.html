@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bengali Association of North Florida (BANF) - Celebrating Bengali Culture in Jacksonville since 2008">
+    <title>BANF Jacksonville - Bengali Association of North Florida</title>
+    
+    <!-- Fonts: Bengali + English -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* West Bengal / Kolkata Inspired Colors */
+            --saffron: #FF6B35;
+            --saffron-dark: #E85A24;
+            --bengal-green: #006A4E;
+            --bengal-green-light: #00856F;
+            --burgundy: #8B0000;
+            --burgundy-light: #A52A2A;
+            --gold: #D4AF37;
+            --gold-light: #E5C158;
+            --terracotta: #E2725B;
+            --navy: #1a1a2e;
+            --navy-light: #2d2d44;
+            --white: #ffffff;
+            --off-white: #f8f9fa;
+            --cream: #FFF8E7;
+            --gray-100: #f0f2f5;
+            --gray-200: #e9ecef;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            
+            /* Gradients */
+            --gradient-saffron: linear-gradient(135deg, #FF6B35 0%, #f7931e 100%);
+            --gradient-green: linear-gradient(135deg, #006A4E 0%, #00856F 100%);
+            --gradient-burgundy: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
+            --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+            --gradient-navy: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            --gradient-hero: linear-gradient(135deg, rgba(139,0,0,0.95) 0%, rgba(255,107,53,0.9) 50%, rgba(247,147,30,0.85) 100%);
+            --gradient-terracotta: linear-gradient(135deg, #E2725B 0%, #D4654A 100%);
+            
+            /* Shadows */
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 40px rgba(255, 107, 53, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--off-white);
+            color: var(--gray-700);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        .bengali-text {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+        }
+
+        /* ========== NAVIGATION ========== */
+        .navbar {
+            background: transparent;
+            padding: 1.2rem 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+
+        .navbar.scrolled {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 0.8rem 0;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .navbar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white) !important;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-brand .om-icon {
+            color: var(--gold);
+            font-size: 1.8rem;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.85) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.5rem 1rem !important;
+            margin: 0 0.1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--white) !important;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn-nav-login {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+            color: var(--white);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav-login:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: var(--white);
+            color: var(--white);
+        }
+
+        .btn-nav-join {
+            background: var(--gradient-gold);
+            border: none;
+            color: var(--navy);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav-join:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        /* ========== HERO SECTION ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            background: var(--gradient-hero);
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://static.wixstatic.com/media/c62f94_9e58db92918340338d8902f14016a55f~mv2.jpg') center/cover;
+            opacity: 0.15;
+            z-index: 0;
+        }
+
+        /* Alpona Pattern Overlay */
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, var(--off-white), transparent);
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 0 1rem;
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            color: var(--white);
+            margin-bottom: 1rem;
+            text-shadow: 2px 4px 20px rgba(0,0,0,0.3);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            color: rgba(255,255,255,0.9);
+            max-width: 700px;
+            margin: 0 auto 1.5rem;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+
+        .hero-bengali {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: var(--gold-light);
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: var(--white);
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            animation: fadeInUp 1s ease-out 0.8s both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn-primary-custom {
+            background: var(--gradient-saffron);
+            color: var(--white);
+            border: none;
+            padding: 0.9rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow);
+            color: var(--white);
+        }
+
+        .btn-outline-custom {
+            background: transparent;
+            color: var(--white);
+            border: 2px solid rgba(255,255,255,0.5);
+            padding: 0.85rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-outline-custom:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: var(--white);
+            color: var(--white);
+            transform: translateY(-3px);
+        }
+
+        /* ========== STATS SECTION ========== */
+        .stats-section {
+            background: var(--gradient-saffron);
+            padding: 4rem 0;
+            margin-top: -100px;
+            position: relative;
+            z-index: 3;
+        }
+
+        .stat-item {
+            text-align: center;
+            color: var(--white);
+        }
+
+        .stat-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        /* ========== QUICK ACCESS STRIP ========== */
+        .quick-access {
+            margin-top: -40px;
+            position: relative;
+            z-index: 10;
+            padding: 0 1rem;
+        }
+
+        .quick-access-inner {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+
+        .quick-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--gray-700);
+        }
+
+        .quick-item:hover {
+            background: var(--cream);
+            transform: translateY(-5px);
+            color: var(--navy);
+        }
+
+        .quick-item .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-item:hover .icon-box {
+            transform: scale(1.1);
+        }
+
+        .quick-item h6 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .quick-item span {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        /* ========== SECTION STYLES ========== */
+        section {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+
+        .section-header p {
+            color: var(--gray-500);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+        }
+
+        /* ========== EC MEMBERS SECTION ========== */
+        .leadership-section {
+            background: var(--off-white);
+        }
+
+        .ec-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.4s ease;
+            height: 100%;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .ec-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .ec-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--white);
+            background: var(--gradient-saffron);
+        }
+
+        .ec-avatar-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 1rem;
+            border: 4px solid var(--saffron);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+        }
+
+        .ec-position {
+            display: inline-block;
+            background: var(--gradient-saffron);
+            color: var(--white);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .ec-card h6 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            color: var(--navy);
+        }
+
+        .ec-card small {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        /* ========== EVENTS SECTION ========== */
+        .events-section {
+            background: linear-gradient(135deg, var(--gray-100) 0%, var(--off-white) 100%);
+        }
+
+        .event-card {
+            background: var(--white);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.4s ease;
+            height: 100%;
+        }
+
+        .event-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .event-icon {
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .event-body {
+            padding: 1.5rem;
+        }
+
+        .event-body h5 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--navy);
+        }
+
+        .event-body p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .event-date-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        /* ========== MEMBERSHIP SECTION ========== */
+        .membership-section {
+            background: var(--gradient-navy);
+            color: var(--white);
+        }
+
+        .membership-section .section-header h2 {
+            color: var(--white);
+        }
+
+        .membership-section .section-header h2::after {
+            background: var(--gradient-gold);
+        }
+
+        .membership-section .section-header p {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .pricing-card {
+            background: var(--white);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.4s ease;
+            height: 100%;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .pricing-card.featured {
+            border: 3px solid var(--saffron);
+            transform: scale(1.03);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.06);
+        }
+
+        .pricing-header {
+            padding: 2rem;
+            text-align: center;
+            color: var(--white);
+        }
+
+        .pricing-header h4 {
+            color: var(--white);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-price {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 700;
+        }
+
+        .pricing-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .pricing-body {
+            padding: 2rem;
+            color: var(--gray-700);
+        }
+
+        .pricing-feature {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .pricing-feature:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-feature i {
+            color: var(--bengal-green);
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .pricing-footer {
+            padding: 0 2rem 2rem;
+        }
+
+        /* ========== PRESIDENT MESSAGE ========== */
+        .president-section {
+            background: linear-gradient(135deg, var(--off-white) 0%, var(--gray-100) 100%);
+        }
+
+        .president-card {
+            background: var(--white);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .president-header {
+            background: var(--gradient-burgundy);
+            color: var(--white);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .president-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--white);
+            object-fit: cover;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .president-header h4 {
+            color: var(--white);
+            margin-bottom: 0.25rem;
+        }
+
+        .president-header span {
+            color: var(--gold-light);
+            font-size: 0.9rem;
+        }
+
+        .lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .lang-btn {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lang-btn.active {
+            background: var(--white);
+            color: var(--burgundy);
+            border-color: var(--white);
+        }
+
+        .president-body {
+            padding: 2.5rem;
+            line-height: 1.9;
+        }
+
+        .president-body p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            border-left: 4px solid var(--bengal-green);
+            border-radius: 0 12px 12px 0;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            font-weight: 500;
+            color: #155724;
+        }
+
+        /* ========== RADIO SECTION ========== */
+        .radio-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--white);
+        }
+
+        .radio-player-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 24px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .radio-visualizer {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--gradient-saffron);
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4); }
+            50% { box-shadow: 0 0 0 20px rgba(255, 107, 53, 0); }
+        }
+
+        .radio-btn {
+            background: var(--gradient-saffron);
+            color: var(--white);
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .radio-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* ========== CONTACT SECTION ========== */
+        .contact-section {
+            background: var(--navy);
+            color: var(--white);
+        }
+
+        .contact-section .section-header h2 {
+            color: var(--white);
+        }
+
+        .contact-section .section-header h2::after {
+            background: var(--gradient-saffron);
+        }
+
+        .contact-section .section-header p {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .contact-card {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .contact-card i {
+            font-size: 2.5rem;
+            color: var(--saffron);
+            margin-bottom: 1rem;
+        }
+
+        .contact-card h5 {
+            color: var(--white);
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-card p {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .social-link {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .social-link:hover {
+            background: var(--gradient-saffron);
+            transform: translateY(-5px);
+            color: var(--white);
+        }
+
+        /* ========== FOOTER ========== */
+        footer {
+            background: #0d0d1a;
+            color: var(--white);
+            padding: 3rem 0 1.5rem;
+        }
+
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+
+        .footer-logo i {
+            color: var(--gold);
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--saffron);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .footer-bottom p {
+            color: rgba(255,255,255,0.5);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* ========== BACK TO TOP ========== */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-saffron);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.2rem;
+            text-decoration: none;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            color: var(--white);
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1200px) {
+            .quick-access-inner {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            section {
+                padding: 4rem 0;
+            }
+            .quick-access-inner {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .stat-number {
+                font-size: 2.5rem;
+            }
+            .quick-access-inner {
+                grid-template-columns: 1fr 1fr;
+                padding: 1.5rem;
+            }
+            .quick-item {
+                padding: 1rem 0.5rem;
+            }
+            .navbar-nav {
+                background: rgba(26, 26, 46, 0.98);
+                backdrop-filter: blur(20px);
+                padding: 1rem;
+                border-radius: 12px;
+                margin-top: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .quick-access-inner {
+                grid-template-columns: 1fr;
+            }
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top" id="mainNavbar">
+        <div class="container">
+            <a class="navbar-brand" href="#home">
+                <i class="fas fa-om om-icon"></i>
+                <span>BANF Jacksonville</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: rgba(255,255,255,0.3);">
+                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto me-3">
+                    <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#events">Events</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#gallery">Gallery</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#leadership">Leadership</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#membership">Membership</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#radio">Radio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                </ul>
+                <div class="d-flex gap-2">
+                    <button class="btn-nav-login" id="btnLogin">Login</button>
+                    <button class="btn-nav-join" id="btnJoin">Join Now</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Bengali Association of North Florida</h1>
+            <p class="hero-subtitle">Preserving and promoting literature, art, music and the rich cultural heritage of Bengal</p>
+            <p class="hero-bengali bengali-text">নর্থ ফ্লোরিডার বাঙালি সমিতি • ১৭ বছরের গৌরবময় ঐতিহ্য • জ্যাকসনভিল, ফ্লোরিডা</p>
+            <div class="hero-badge">
+                <i class="fas fa-award me-2"></i>501(c)(3) Non-Profit Organization | Est. 2008
+            </div>
+            <div class="hero-buttons">
+                <a href="#events" class="btn-primary-custom">
+                    <i class="fas fa-calendar-alt"></i>Upcoming Events
+                </a>
+                <a href="#membership" class="btn-outline-custom">
+                    <i class="fas fa-user-plus"></i>Become a Member
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-6 col-md-3 mb-3 mb-md-0" data-aos="fade-up">
+                    <div class="stat-item">
+                        <div class="stat-number" id="statYears">17</div>
+                        <div class="stat-label">Years of Heritage</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3 mb-md-0" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stat-item">
+                        <div class="stat-number" id="statMembers">200+</div>
+                        <div class="stat-label">Active Members</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stat-item">
+                        <div class="stat-number" id="statEvents">100+</div>
+                        <div class="stat-label">Events Organized</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stat-item">
+                        <div class="stat-number">17</div>
+                        <div class="stat-label">Past Committees</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Access Strip -->
+    <div class="quick-access">
+        <div class="container">
+            <div class="quick-access-inner" data-aos="fade-up">
+                <a href="#membership" class="quick-item" id="btnQuickMembership">
+                    <div class="icon-box" style="background: var(--gradient-saffron);">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h6>Pay Membership</h6>
+                    <span>Renew or Join</span>
+                </a>
+                <a href="#events" class="quick-item" id="btnQuickEvents">
+                    <div class="icon-box" style="background: var(--gradient-green);">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h6>Events Calendar</h6>
+                    <span>2025 Schedule</span>
+                </a>
+                <a href="#radio" class="quick-item" id="btnQuickRadio">
+                    <div class="icon-box" style="background: var(--gradient-burgundy);">
+                        <i class="fas fa-headphones"></i>
+                    </div>
+                    <h6>BANF Radio</h6>
+                    <span>Listen Live</span>
+                </a>
+                <a href="#gallery" class="quick-item" id="btnQuickGallery">
+                    <div class="icon-box" style="background: var(--gradient-gold);">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <h6>Photo Gallery</h6>
+                    <span>Memories</span>
+                </a>
+                <a href="#about" class="quick-item" id="btnQuickAbout">
+                    <div class="icon-box" style="background: var(--gradient-navy);">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <h6>About BANF</h6>
+                    <span>Our Story</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <section id="about" class="president-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="bengali-text">সভাপতির বার্তা</h2>
+                <p>President's Welcome Message</p>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-10" data-aos="fade-up">
+                    <div class="president-card">
+                        <div class="president-header">
+                            <img src="https://via.placeholder.com/120" alt="Dr. Ranadhir Ghosh" class="president-avatar" id="presidentAvatar">
+                            <h4>Dr. Ranadhir Ghosh</h4>
+                            <span>President, BANF 2025-26</span>
+                            <div class="lang-toggle">
+                                <button class="lang-btn active" onclick="toggleLang('bn')" id="lang-bn">বাংলা</button>
+                                <button class="lang-btn" onclick="toggleLang('en')" id="lang-en">English</button>
+                            </div>
+                        </div>
+                        <div class="president-body bengali-text" id="msg-bn">
+                            <p class="lead fw-bold" style="color: var(--navy);">প্রিয় BANF পরিবার,</p>
+                            <p>BANF শুধু একটি সংগঠন নয়—এটি আমাদের সবার স্বপ্ন, পরিশ্রম ও সাংস্কৃতিক বন্ধনের প্রতিফলন। আমরা প্রত্যেকে ভিন্ন ভিন্ন জায়গা থেকে এসেছি—কেউ নতুন, কেউ বহু বছর ধরে এখানে আছেন।</p>
+                            <div class="highlight-box">
+                                <p>আমাদের মূল বিশ্বাস—BANF-এর সদস্যদের মধ্যে সংযোগ, সমন্বয় এবং সহমর্মিতা বজায় রাখা ও বৃদ্ধি করা।</p>
+                            </div>
+                            <p>এখনই সময়—আরও বড় স্বপ্ন দেখার, এবং আমাদের সংস্কৃতি ও মূল্যবোধকে ভবিষ্যৎ প্রজন্মের হাতে সঠিকভাবে তুলে দেওয়ার।</p>
+                            <p class="text-end mt-4"><strong>— ডঃ রণধীর ঘোষ</strong><br><small class="text-muted">সভাপতি, BANF</small></p>
+                        </div>
+                        <div class="president-body" id="msg-en" style="display: none;">
+                            <p class="lead fw-bold" style="color: var(--navy);">Dear BANF Family,</p>
+                            <p>BANF is not just an organization—it is a reflection of all our dreams, hard work, and cultural bonds. Each of us has come from different places—some are new, some have been here for many years.</p>
+                            <div class="highlight-box">
+                                <p>Our core belief—to maintain and strengthen the connection, coordination, and compassion among BANF members.</p>
+                            </div>
+                            <p>Now is the time—to dream bigger, and to properly pass on our culture and values to future generations.</p>
+                            <p class="text-end mt-4"><strong>— Dr. Ranadhir Ghosh</strong><br><small class="text-muted">President, BANF</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section id="events" class="events-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>2025 Event Calendar</h2>
+                <p>Upcoming celebrations and cultural programs</p>
+            </div>
+            <div class="row" id="eventsContainer">
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-gold);">
+                            <i class="fas fa-book-open" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Saraswati Puja 2025</h5>
+                            <p>Celebration of Goddess Saraswati with Hate Khori (initiation to learning) for children.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-gold);">February 2025</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-green);">
+                            <i class="fas fa-sun" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Pohela Boishakh 1432</h5>
+                            <p>Bengali New Year celebration with Mangal Shobhajatra, traditional music, and authentic food.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-green);">April 14, 2025</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-terracotta);">
+                            <i class="fas fa-leaf" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Basant Bahaar</h5>
+                            <p>Spring celebration with classical and contemporary Bengali music, poetry, and art.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-terracotta);">March 2025</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: #764ba2;">
+                            <i class="fas fa-theater-masks" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Anandadhara</h5>
+                            <p>"Stream of Joy" - BANF's annual cultural extravaganza with music, dance, and drama.</p>
+                            <span class="event-date-badge" style="background: #764ba2;">Summer 2025</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: #17a2b8;">
+                            <i class="fas fa-cloud-rain" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Shrabono Sondha</h5>
+                            <p>Monsoon evening cultural program featuring drama performances and Rabindra Sangeet.</p>
+                            <span class="event-date-badge" style="background: #17a2b8;">July/August 2025</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-saffron);">
+                            <i class="fas fa-om" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h5>Durga Puja 2025</h5>
+                            <p>Multi-day festival honoring Goddess Durga with traditional rituals, cultural programs, and community feast.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-saffron);">October 2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" style="background: var(--gradient-navy); color: var(--white);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 style="color: var(--white);">Photo Gallery</h2>
+                <p style="color: rgba(255,255,255,0.7);">Capturing memories from our cultural celebrations</p>
+            </div>
+            <div class="row" id="galleryContainer">
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://static.wixstatic.com/media/c62f94_b2ca407644824da0bcb6399814ee8c32~mv2.jpg" alt="Durga Puja 2024" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: var(--gradient-saffron); color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2024</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">Durga Puja 2024</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-map-marker-alt me-1"></i>Jacksonville, FL</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in" data-aos-delay="100">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://static.wixstatic.com/media/c62f94_fa6ca99f02614d71a90c72eb29664861~mv2.jpg" alt="Saraswati Puja 2025" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: var(--gradient-gold); color: #333; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2025</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">Saraswati Puja 2025</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-music me-1"></i>Cultural Celebration</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in" data-aos-delay="200">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://i.ytimg.com/vi/fNqu5XFMdZc/maxresdefault.jpg" alt="Basant Bahaar 2021" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: var(--gradient-green); color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2021</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">Basant Bahaar</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-leaf me-1"></i>Spring Celebration</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in" data-aos-delay="300">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://i.ytimg.com/vi/4yqXCE0mJ9w/maxresdefault.jpg" alt="Poila Baishakh 2020" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: var(--gradient-burgundy); color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2020</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">Poila Baishakh</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-sun me-1"></i>Bengali New Year 1427</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in" data-aos-delay="400">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://i.ytimg.com/vi/MqcX-vFtWZk/maxresdefault.jpg" alt="Mahalaya 2020" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: #764ba2; color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2020</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">Mahalaya</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-pray me-1"></i>Sacred Ceremony</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="zoom-in" data-aos-delay="500">
+                    <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer;">
+                        <img src="https://static.wixstatic.com/media/c62f94_9e58db92918340338d8902f14016a55f~mv2.jpg" alt="BANF Community" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                        <div style="position: absolute; top: 1rem; right: 1rem; background: var(--gradient-terracotta); color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">2024</div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;">
+                            <h6 style="color: white; font-size: 1rem; margin-bottom: 0.25rem;">BANF Family</h6>
+                            <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"><i class="fas fa-users me-1"></i>Community Gathering</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="https://www.youtube.com/@banfjacksonville" target="_blank" class="btn-primary-custom">
+                    <i class="fab fa-youtube me-2"></i>View All on YouTube
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Leadership Section -->
+    <section id="leadership" class="leadership-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Executive Committee</h2>
+                <p>2025-26 Leadership Team</p>
+            </div>
+            <div class="row" id="ecContainer">
+                <!-- President -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up">
+                    <div class="ec-card">
+                        <img src="https://via.placeholder.com/100" alt="Dr Ranadhir Ghosh" class="ec-avatar-img">
+                        <span class="ec-position">President</span>
+                        <h6>Dr Ranadhir Ghosh</h6>
+                        <small>Strategic Planning</small>
+                    </div>
+                </div>
+                <!-- Vice President -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="50">
+                    <div class="ec-card">
+                        <img src="https://via.placeholder.com/100" alt="Partha Mukhopadhyay" class="ec-avatar-img">
+                        <span class="ec-position">Vice President</span>
+                        <h6>Partha Mukhopadhyay</h6>
+                        <small>Deputy Executive</small>
+                    </div>
+                </div>
+                <!-- Treasurer -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="ec-card">
+                        <div class="ec-avatar">AC</div>
+                        <span class="ec-position">Treasurer</span>
+                        <h6>Amit Chandak</h6>
+                        <small>Financial Management</small>
+                    </div>
+                </div>
+                <!-- General Secretary -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="150">
+                    <div class="ec-card">
+                        <img src="https://via.placeholder.com/100" alt="Dr Payel Banerjee" class="ec-avatar-img">
+                        <span class="ec-position">General Secretary</span>
+                        <h6>Dr Payel Banerjee</h6>
+                        <small>Community Outreach</small>
+                    </div>
+                </div>
+                <!-- Cultural Secretary -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="ec-card">
+                        <img src="https://via.placeholder.com/100" alt="Dr Moumita Ghosh" class="ec-avatar-img">
+                        <span class="ec-position">Cultural Secretary</span>
+                        <h6>Dr Moumita Ghosh</h6>
+                        <small>Cultural Programming</small>
+                    </div>
+                </div>
+                <!-- Food Coordinator -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="250">
+                    <div class="ec-card">
+                        <div class="ec-avatar">BD</div>
+                        <span class="ec-position">Food Coordinator</span>
+                        <h6>Banty Dutta</h6>
+                        <small>Food & Catering</small>
+                    </div>
+                </div>
+                <!-- Event Planner -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="ec-card">
+                        <div class="ec-avatar">RG</div>
+                        <span class="ec-position">Event Planner</span>
+                        <h6>Rajanya Ghosh</h6>
+                        <small>Event Planning</small>
+                    </div>
+                </div>
+                <!-- Puja Coordinator -->
+                <div class="col-lg-3 col-md-4 col-6 mb-4" data-aos="fade-up" data-aos-delay="350">
+                    <div class="ec-card">
+                        <div class="ec-avatar">RC</div>
+                        <span class="ec-position">Puja Coordinator</span>
+                        <h6>Rwiti Choudhury</h6>
+                        <small>Puja Coordination</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Membership Section -->
+    <section id="membership" class="membership-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Membership Plans</h2>
+                <p>Join our community • 2025-2026 Season</p>
+            </div>
+            <div class="row justify-content-center" id="membershipContainer">
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up">
+                    <div class="pricing-card">
+                        <div class="pricing-header" style="background: var(--gray-500);">
+                            <h4><i class="fas fa-user me-2"></i>Individual</h4>
+                            <div class="pricing-price">$50<span>/year</span></div>
+                        </div>
+                        <div class="pricing-body">
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Access to all BANF events</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Voting rights in elections</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>BANF newsletter subscription</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Jagriti magazine copy</div>
+                        </div>
+                        <div class="pricing-footer">
+                            <a href="#" class="btn btn-outline-secondary w-100 btn-lg">Select Plan</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="pricing-card featured">
+                        <div class="pricing-header" style="background: var(--gradient-saffron);">
+                            <span class="badge bg-warning text-dark mb-2">Most Popular</span>
+                            <h4><i class="fas fa-users me-2"></i>Family</h4>
+                            <div class="pricing-price">$100<span>/year</span></div>
+                        </div>
+                        <div class="pricing-body">
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>All Individual benefits</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>2 adults + 2 children</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Priority event registration</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Cultural program eligibility</div>
+                        </div>
+                        <div class="pricing-footer">
+                            <a href="#" class="btn-primary-custom w-100 btn btn-lg">Select Plan</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="pricing-card">
+                        <div class="pricing-header" style="background: var(--gradient-green);">
+                            <h4><i class="fas fa-heart me-2"></i>Senior</h4>
+                            <div class="pricing-price">$35<span>/year</span></div>
+                        </div>
+                        <div class="pricing-body">
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>All Individual benefits</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Discounted membership</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Special seating at events</div>
+                            <div class="pricing-feature"><i class="fas fa-check-circle"></i>Senior community meetups</div>
+                        </div>
+                        <div class="pricing-footer">
+                            <a href="#" class="btn btn-outline-success w-100 btn-lg">Select Plan</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Radio Section -->
+    <section id="radio" class="radio-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0" data-aos="fade-right">
+                    <h2 style="color: var(--white); margin-bottom: 1rem;">
+                        <i class="fas fa-broadcast-tower me-2" style="color: var(--saffron);"></i>
+                        BANF Radio
+                    </h2>
+                    <p class="bengali-text" style="color: var(--gold-light); font-size: 1.2rem; margin-bottom: 1rem;">
+                        ২৪/৭ বাংলা রেডিও • সঙ্গীত • সংবাদ • সংস্কৃতি
+                    </p>
+                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 2rem;">
+                        Listen to Bengali music, cultural programs, community news, and more. Available 24/7 for the Jacksonville Bengali community.
+                    </p>
+                    <ul style="list-style: none; padding: 0; margin-bottom: 2rem;">
+                        <li style="color: rgba(255,255,255,0.9); padding: 0.5rem 0;">
+                            <i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>
+                            Bengali & English Programming
+                        </li>
+                        <li style="color: rgba(255,255,255,0.9); padding: 0.5rem 0;">
+                            <i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>
+                            Rabindra Sangeet & Modern Songs
+                        </li>
+                        <li style="color: rgba(255,255,255,0.9); padding: 0.5rem 0;">
+                            <i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>
+                            Community Announcements
+                        </li>
+                        <li style="color: rgba(255,255,255,0.9); padding: 0.5rem 0;">
+                            <i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>
+                            Request Your Favorite Songs
+                        </li>
+                    </ul>
+                    <a href="/radio" class="btn-primary-custom">
+                        <i class="fas fa-headphones me-2"></i>Go to Full Radio Page
+                    </a>
+                </div>
+                <div class="col-lg-6" data-aos="fade-left">
+                    <div class="radio-player-box">
+                        <div class="radio-visualizer" id="radioVisualizer">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <h5 style="color: var(--white); margin-bottom: 0.5rem;">Now Playing</h5>
+                        <p id="nowPlayingText" style="color: rgba(255,255,255,0.7); margin-bottom: 1.5rem;">BANF Radio • Live Stream</p>
+                        <button class="radio-btn" id="radioPlayBtn" onclick="toggleRadio()">
+                            <i class="fas fa-play" id="radioPlayIcon"></i>
+                        </button>
+                        <audio id="radioAudio" src="https://stream.zeno.fm/yn65fsaurfhvv" preload="none"></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Stay Connected</h2>
+                <p>Join our vibrant Bengali community in Jacksonville</p>
+            </div>
+            <div class="row mb-5">
+                <div class="col-md-4" data-aos="fade-up">
+                    <div class="contact-card">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <h5>Location</h5>
+                        <p>Jacksonville, Florida<br>Northeast Florida Region</p>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="contact-card">
+                        <i class="fas fa-envelope"></i>
+                        <h5>Email</h5>
+                        <p>info@jaxbengali.org<br>banfjax@gmail.com</p>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="contact-card">
+                        <i class="fas fa-globe"></i>
+                        <h5>Website</h5>
+                        <p><a href="https://www.jaxbengali.org" target="_blank" style="color: rgba(255,255,255,0.7);">www.jaxbengali.org</a></p>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center" data-aos="fade-up">
+                <div class="social-links">
+                    <a href="https://www.facebook.com/banfofficial/" target="_blank" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/banf_jax" target="_blank" class="social-link"><i class="fab fa-instagram"></i></a>
+                    <a href="https://www.youtube.com/@banfjacksonville" target="_blank" class="social-link"><i class="fab fa-youtube"></i></a>
+                    <a href="https://wa.me/19045551234" target="_blank" class="social-link"><i class="fab fa-whatsapp"></i></a>
+                    <a href="mailto:info@jaxbengali.org" class="social-link"><i class="fas fa-envelope"></i></a>
+                </div>
+                <a href="#membership" class="btn-primary-custom btn btn-lg px-5">
+                    <i class="fas fa-user-plus me-2"></i>Become a Member
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <div class="footer-logo">
+                        <i class="fas fa-om me-2"></i>BANF Jacksonville
+                    </div>
+                    <p class="bengali-text" style="color: rgba(255,255,255,0.7);">নর্থ ফ্লোরিডার বাঙালি সমিতি</p>
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">501(c)(3) Non-Profit Organization<br>Est. 2008 • Jacksonville, FL</p>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6 mb-4">
+                    <h6 style="color: var(--white); margin-bottom: 1rem;">Quick Links</h6>
+                    <ul class="footer-links">
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#events">Events</a></li>
+                        <li><a href="#gallery">Gallery</a></li>
+                        <li><a href="#membership">Membership</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6 mb-4">
+                    <h6 style="color: var(--white); margin-bottom: 1rem;">Resources</h6>
+                    <ul class="footer-links">
+                        <li><a href="#radio">BANF Radio</a></li>
+                        <li><a href="#">E-Magazine</a></li>
+                        <li><a href="#">Jacksonville Guide</a></li>
+                        <li><a href="#">Meeting Minutes</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 style="color: var(--white); margin-bottom: 1rem;">Members</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Member Login</a></li>
+                        <li><a href="#">Pay Dues</a></li>
+                        <li><a href="#">Feedback</a></li>
+                        <li><a href="#">Sponsors</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 style="color: var(--white); margin-bottom: 1rem;">Contact</h6>
+                    <ul class="footer-links">
+                        <li><a href="mailto:info@jaxbengali.org">Email Us</a></li>
+                        <li><a href="#">Jacksonville, FL</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Admin Login</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Bengali Association of North Florida. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top -->
+    <a href="#home" class="back-to-top" id="backToTop"><i class="fas fa-arrow-up"></i></a>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 50
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            document.querySelector('.navbar').classList.toggle('scrolled', window.scrollY > 50);
+            document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 500);
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Language Toggle for President's Message
+        function toggleLang(lang) {
+            const bnMsg = document.getElementById('msg-bn');
+            const enMsg = document.getElementById('msg-en');
+            const bnBtn = document.getElementById('lang-bn');
+            const enBtn = document.getElementById('lang-en');
+            
+            if (lang === 'bn') {
+                bnMsg.style.display = 'block';
+                enMsg.style.display = 'none';
+                bnBtn.classList.add('active');
+                enBtn.classList.remove('active');
+            } else {
+                bnMsg.style.display = 'none';
+                enMsg.style.display = 'block';
+                enBtn.classList.add('active');
+                bnBtn.classList.remove('active');
+            }
+        }
+
+        // Radio Player
+        let isPlaying = false;
+        function toggleRadio() {
+            const audio = document.getElementById('radioAudio');
+            const icon = document.getElementById('radioPlayIcon');
+            const visualizer = document.getElementById('radioVisualizer');
+            
+            if (isPlaying) {
+                audio.pause();
+                icon.className = 'fas fa-play';
+                visualizer.style.animation = 'none';
+            } else {
+                audio.play();
+                icon.className = 'fas fa-pause';
+                visualizer.style.animation = 'pulse 2s infinite';
+            }
+            isPlaying = !isPlaying;
+        }
+    </script>
+</body>
+</html>

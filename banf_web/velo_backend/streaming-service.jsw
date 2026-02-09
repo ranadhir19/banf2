@@ -1,0 +1,910 @@
+/**
+ * BANF Video Streaming Service
+ * =============================
+ * Wix Velo Backend Module for live streaming and video management
+ * 
+ * Features:
+ * - Create and schedule streaming events
+ * - YouTube Live / Vimeo / Custom RTMP integration
+ * - Automatic reminder notifications
+ * - Viewer analytics
+ * - Stream recording/archiving
+ * 
+ * @module backend/streaming-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import { contacts } from 'wix-crm-backend';
+
+// =====================================================
+// STREAMING EVENT MANAGEMENT
+// =====================================================
+
+/**
+ * Create a new streaming event
+ * @param {Object} eventData Streaming event details
+ * @returns {Promise<Object>} Created event with ID
+ */
+export async function createStreamingEvent(eventData) {
+    // Verify admin permissions
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const streamEvent = {
+            title: eventData.title,
+            description: eventData.description || '',
+            category: eventData.category || 'cultural',
+            scheduledDate: new Date(eventData.scheduledDate),
+            scheduledTime: eventData.scheduledTime,
+            duration: eventData.estimatedDuration || 120, // minutes
+            
+            // Stream Configuration
+            streamType: eventData.streamType || 'youtube', // youtube, vimeo, custom
+            streamUrl: eventData.streamUrl || null,
+            embedCode: eventData.embedCode || null,
+            rtmpUrl: eventData.rtmpUrl || null,
+            streamKey: eventData.streamKey || null, // Encrypted storage recommended
+            
+            // Media
+            thumbnailUrl: eventData.thumbnailUrl || '/default-stream-thumb.jpg',
+            previewVideoUrl: eventData.previewVideoUrl || null,
+            
+            // Status
+            status: 'scheduled', // scheduled, live, ended, cancelled
+            isPublished: true,
+            isFeatured: eventData.isFeatured || false,
+            
+            // Notifications
+            sendReminders: eventData.sendReminders !== false,
+            reminder24hSent: false,
+            reminder1hSent: false,
+            
+            // Analytics
+            viewerCount: 0,
+            peakViewers: 0,
+            totalViews: 0,
+            
+            // Metadata
+            createdAt: new Date(),
+            createdBy: member._id,
+            lastModified: new Date()
+        };
+        
+        const result = await wixData.insert('StreamingEvents', streamEvent);
+        
+        // Schedule reminder notifications
+        if (streamEvent.sendReminders) {
+            await scheduleStreamReminders(result._id, streamEvent.scheduledDate);
+        }
+        
+        // Send immediate announcement if requested
+        if (eventData.sendAnnouncement) {
+            await sendStreamAnnouncement(result);
+        }
+        
+        return {
+            success: true,
+            eventId: result._id,
+            message: 'Streaming event created successfully',
+            shareUrl: generateShareUrl(result._id)
+        };
+        
+    } catch (error) {
+        console.error('Error creating streaming event:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Update streaming event
+ * @param {string} eventId 
+ * @param {Object} updates 
+ */
+export async function updateStreamingEvent(eventId, updates) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('StreamingEvents', eventId);
+        
+        // Apply updates
+        const updatedEvent = {
+            ...event,
+            ...updates,
+            lastModified: new Date()
+        };
+        
+        await wixData.update('StreamingEvents', updatedEvent);
+        
+        return {
+            success: true,
+            message: 'Event updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error updating event:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Go live with streaming event
+ * @param {string} eventId 
+ */
+export async function goLive(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('StreamingEvents', eventId);
+        
+        event.status = 'live';
+        event.actualStartTime = new Date();
+        event.lastModified = new Date();
+        
+        await wixData.update('StreamingEvents', event);
+        
+        // Send "We're Live!" notification
+        await sendLiveNotification(event);
+        
+        // Start viewer tracking
+        await initializeViewerTracking(eventId);
+        
+        return {
+            success: true,
+            message: 'Stream is now LIVE!',
+            viewerDashboardUrl: `/admin/streaming/${eventId}/live`
+        };
+        
+    } catch (error) {
+        console.error('Error going live:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * End live stream
+ * @param {string} eventId 
+ * @param {Object} options - Archive options
+ */
+export async function endStream(eventId, options = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('StreamingEvents', eventId);
+        
+        event.status = 'ended';
+        event.actualEndTime = new Date();
+        event.actualDuration = Math.round(
+            (event.actualEndTime - event.actualStartTime) / 60000
+        ); // minutes
+        
+        // Archive URL if available
+        if (options.archiveUrl) {
+            event.archiveUrl = options.archiveUrl;
+            event.isArchived = true;
+        }
+        
+        event.lastModified = new Date();
+        
+        await wixData.update('StreamingEvents', event);
+        
+        // Finalize analytics
+        await finalizeStreamAnalytics(eventId);
+        
+        return {
+            success: true,
+            message: 'Stream ended successfully',
+            analytics: {
+                duration: event.actualDuration,
+                peakViewers: event.peakViewers,
+                totalViews: event.totalViews
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error ending stream:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Cancel streaming event
+ * @param {string} eventId 
+ * @param {string} reason 
+ */
+export async function cancelStream(eventId, reason = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('StreamingEvents', eventId);
+        
+        event.status = 'cancelled';
+        event.cancellationReason = reason;
+        event.cancelledAt = new Date();
+        event.cancelledBy = member._id;
+        
+        await wixData.update('StreamingEvents', event);
+        
+        // Notify members who RSVPed
+        await sendCancellationNotification(event, reason);
+        
+        return {
+            success: true,
+            message: 'Stream cancelled and notifications sent'
+        };
+        
+    } catch (error) {
+        console.error('Error cancelling stream:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// STREAM RETRIEVAL
+// =====================================================
+
+/**
+ * Get upcoming streaming events
+ * @param {number} limit 
+ */
+export async function getUpcomingStreams(limit = 10) {
+    try {
+        const now = new Date();
+        
+        const streams = await wixData.query('StreamingEvents')
+            .ge('scheduledDate', now)
+            .eq('isPublished', true)
+            .ne('status', 'cancelled')
+            .ascending('scheduledDate')
+            .limit(limit)
+            .find();
+        
+        return {
+            success: true,
+            streams: streams.items.map(sanitizeStreamForPublic)
+        };
+        
+    } catch (error) {
+        console.error('Error getting upcoming streams:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get current live stream(s)
+ */
+export async function getLiveStreams() {
+    try {
+        const streams = await wixData.query('StreamingEvents')
+            .eq('status', 'live')
+            .find();
+        
+        return {
+            success: true,
+            streams: streams.items.map(sanitizeStreamForPublic),
+            isLiveNow: streams.items.length > 0
+        };
+        
+    } catch (error) {
+        console.error('Error getting live streams:', error);
+        return {
+            success: false,
+            streams: [],
+            isLiveNow: false
+        };
+    }
+}
+
+/**
+ * Get archived/past streams
+ * @param {number} limit 
+ * @param {number} skip 
+ */
+export async function getPastStreams(limit = 20, skip = 0) {
+    try {
+        const streams = await wixData.query('StreamingEvents')
+            .eq('status', 'ended')
+            .eq('isArchived', true)
+            .descending('actualEndTime')
+            .skip(skip)
+            .limit(limit)
+            .find();
+        
+        return {
+            success: true,
+            streams: streams.items.map(sanitizeStreamForPublic),
+            total: streams.totalCount,
+            hasMore: streams.items.length === limit
+        };
+        
+    } catch (error) {
+        console.error('Error getting past streams:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get single stream details
+ * @param {string} eventId 
+ */
+export async function getStreamDetails(eventId) {
+    try {
+        const event = await wixData.get('StreamingEvents', eventId);
+        
+        if (!event || !event.isPublished) {
+            return {
+                success: false,
+                error: 'Stream not found'
+            };
+        }
+        
+        // Log view
+        await logStreamView(eventId);
+        
+        return {
+            success: true,
+            stream: sanitizeStreamForPublic(event)
+        };
+        
+    } catch (error) {
+        console.error('Error getting stream details:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// NOTIFICATIONS & REMINDERS
+// =====================================================
+
+/**
+ * Schedule reminder emails for streaming event
+ * @param {string} eventId 
+ * @param {Date} scheduledDate 
+ */
+async function scheduleStreamReminders(eventId, scheduledDate) {
+    try {
+        // 24-hour reminder
+        const reminder24h = new Date(scheduledDate);
+        reminder24h.setHours(reminder24h.getHours() - 24);
+        
+        await wixData.insert('ScheduledNotifications', {
+            eventId: eventId,
+            type: 'stream_reminder_24h',
+            scheduledFor: reminder24h,
+            sent: false
+        });
+        
+        // 1-hour reminder
+        const reminder1h = new Date(scheduledDate);
+        reminder1h.setHours(reminder1h.getHours() - 1);
+        
+        await wixData.insert('ScheduledNotifications', {
+            eventId: eventId,
+            type: 'stream_reminder_1h',
+            scheduledFor: reminder1h,
+            sent: false
+        });
+        
+    } catch (error) {
+        console.error('Error scheduling reminders:', error);
+    }
+}
+
+/**
+ * Send stream announcement to all members
+ * @param {Object} event 
+ */
+async function sendStreamAnnouncement(event) {
+    try {
+        // Get all active members
+        const members = await wixData.query('Members/PrivateMembersData')
+            .eq('status', 'APPROVED')
+            .find({ suppressAuth: true });
+        
+        // Send triggered email to each member
+        for (const member of members.items) {
+            try {
+                await triggeredEmails.emailMember(
+                    'stream_announcement',
+                    member._id,
+                    {
+                        variables: {
+                            streamTitle: event.title,
+                            streamDate: formatDate(event.scheduledDate),
+                            streamTime: event.scheduledTime,
+                            streamDescription: event.description,
+                            streamUrl: generateShareUrl(event._id),
+                            thumbnailUrl: event.thumbnailUrl
+                        }
+                    }
+                );
+            } catch (emailError) {
+                console.error(`Error sending to ${member._id}:`, emailError);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error sending announcement:', error);
+    }
+}
+
+/**
+ * Send "We're Live!" notification
+ * @param {Object} event 
+ */
+async function sendLiveNotification(event) {
+    try {
+        // Get members who RSVPed for this stream
+        const rsvps = await wixData.query('StreamRSVPs')
+            .eq('streamId', event._id)
+            .find();
+        
+        for (const rsvp of rsvps.items) {
+            try {
+                await triggeredEmails.emailMember(
+                    'stream_live_now',
+                    rsvp.memberId,
+                    {
+                        variables: {
+                            streamTitle: event.title,
+                            watchUrl: generateWatchUrl(event._id)
+                        }
+                    }
+                );
+            } catch (emailError) {
+                console.error('Error sending live notification:', emailError);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error in live notification:', error);
+    }
+}
+
+/**
+ * Send cancellation notification
+ * @param {Object} event 
+ * @param {string} reason 
+ */
+async function sendCancellationNotification(event, reason) {
+    try {
+        const rsvps = await wixData.query('StreamRSVPs')
+            .eq('streamId', event._id)
+            .find();
+        
+        for (const rsvp of rsvps.items) {
+            try {
+                await triggeredEmails.emailMember(
+                    'stream_cancelled',
+                    rsvp.memberId,
+                    {
+                        variables: {
+                            streamTitle: event.title,
+                            cancellationReason: reason || 'No reason provided'
+                        }
+                    }
+                );
+            } catch (emailError) {
+                console.error('Error sending cancellation:', emailError);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error in cancellation notification:', error);
+    }
+}
+
+// =====================================================
+// RSVP MANAGEMENT
+// =====================================================
+
+/**
+ * RSVP for streaming event
+ * @param {string} streamId 
+ */
+export async function rsvpForStream(streamId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Please log in to RSVP');
+    }
+    
+    try {
+        // Check if already RSVPed
+        const existing = await wixData.query('StreamRSVPs')
+            .eq('streamId', streamId)
+            .eq('memberId', member._id)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return {
+                success: true,
+                message: 'You are already registered for this stream'
+            };
+        }
+        
+        // Create RSVP
+        await wixData.insert('StreamRSVPs', {
+            streamId: streamId,
+            memberId: member._id,
+            memberEmail: member.loginEmail,
+            memberName: `${member.firstName || ''} ${member.lastName || ''}`.trim(),
+            rsvpDate: new Date(),
+            notifyOnLive: true
+        });
+        
+        // Increment RSVP count on stream
+        const stream = await wixData.get('StreamingEvents', streamId);
+        stream.rsvpCount = (stream.rsvpCount || 0) + 1;
+        await wixData.update('StreamingEvents', stream);
+        
+        return {
+            success: true,
+            message: "You're registered! We'll remind you before the stream."
+        };
+        
+    } catch (error) {
+        console.error('Error RSVPing:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Cancel RSVP
+ * @param {string} streamId 
+ */
+export async function cancelStreamRSVP(streamId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Please log in');
+    }
+    
+    try {
+        const rsvp = await wixData.query('StreamRSVPs')
+            .eq('streamId', streamId)
+            .eq('memberId', member._id)
+            .find();
+        
+        if (rsvp.items.length > 0) {
+            await wixData.remove('StreamRSVPs', rsvp.items[0]._id);
+            
+            // Decrement RSVP count
+            const stream = await wixData.get('StreamingEvents', streamId);
+            stream.rsvpCount = Math.max(0, (stream.rsvpCount || 1) - 1);
+            await wixData.update('StreamingEvents', stream);
+        }
+        
+        return {
+            success: true,
+            message: 'RSVP cancelled'
+        };
+        
+    } catch (error) {
+        console.error('Error cancelling RSVP:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// VIEWER ANALYTICS
+// =====================================================
+
+/**
+ * Initialize viewer tracking for live stream
+ * @param {string} eventId 
+ */
+async function initializeViewerTracking(eventId) {
+    await wixData.insert('StreamViewerTracking', {
+        streamId: eventId,
+        timestamp: new Date(),
+        currentViewers: 0,
+        type: 'session_start'
+    });
+}
+
+/**
+ * Update viewer count (called from frontend periodically)
+ * @param {string} eventId 
+ * @param {number} viewerCount 
+ */
+export async function updateViewerCount(eventId, viewerCount) {
+    try {
+        const stream = await wixData.get('StreamingEvents', eventId);
+        
+        stream.viewerCount = viewerCount;
+        stream.peakViewers = Math.max(stream.peakViewers || 0, viewerCount);
+        
+        await wixData.update('StreamingEvents', stream);
+        
+        // Log for historical tracking
+        await wixData.insert('StreamViewerTracking', {
+            streamId: eventId,
+            timestamp: new Date(),
+            currentViewers: viewerCount,
+            type: 'periodic_update'
+        });
+        
+        return { success: true };
+        
+    } catch (error) {
+        console.error('Error updating viewer count:', error);
+        return { success: false };
+    }
+}
+
+/**
+ * Log individual stream view
+ * @param {string} eventId 
+ */
+async function logStreamView(eventId) {
+    try {
+        const stream = await wixData.get('StreamingEvents', eventId);
+        stream.totalViews = (stream.totalViews || 0) + 1;
+        await wixData.update('StreamingEvents', stream);
+    } catch (error) {
+        console.error('Error logging view:', error);
+    }
+}
+
+/**
+ * Finalize stream analytics after ending
+ * @param {string} eventId 
+ */
+async function finalizeStreamAnalytics(eventId) {
+    try {
+        // Get all viewer tracking data
+        const tracking = await wixData.query('StreamViewerTracking')
+            .eq('streamId', eventId)
+            .find();
+        
+        // Calculate statistics
+        const viewerCounts = tracking.items
+            .filter(t => t.type === 'periodic_update')
+            .map(t => t.currentViewers);
+        
+        const avgViewers = viewerCounts.length > 0 
+            ? Math.round(viewerCounts.reduce((a, b) => a + b, 0) / viewerCounts.length)
+            : 0;
+        
+        // Update stream with final analytics
+        const stream = await wixData.get('StreamingEvents', eventId);
+        stream.analytics = {
+            averageViewers: avgViewers,
+            totalDataPoints: viewerCounts.length,
+            viewerHistory: viewerCounts.slice(-50) // Keep last 50 data points
+        };
+        
+        await wixData.update('StreamingEvents', stream);
+        
+    } catch (error) {
+        console.error('Error finalizing analytics:', error);
+    }
+}
+
+/**
+ * Get stream analytics (admin only)
+ * @param {string} eventId 
+ */
+export async function getStreamAnalytics(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const stream = await wixData.get('StreamingEvents', eventId);
+        
+        const tracking = await wixData.query('StreamViewerTracking')
+            .eq('streamId', eventId)
+            .ascending('timestamp')
+            .find();
+        
+        const rsvps = await wixData.query('StreamRSVPs')
+            .eq('streamId', eventId)
+            .find();
+        
+        return {
+            success: true,
+            analytics: {
+                totalViews: stream.totalViews || 0,
+                peakViewers: stream.peakViewers || 0,
+                averageViewers: stream.analytics?.averageViewers || 0,
+                actualDuration: stream.actualDuration || 0,
+                rsvpCount: rsvps.items.length,
+                viewerTimeline: tracking.items.map(t => ({
+                    timestamp: t.timestamp,
+                    viewers: t.currentViewers
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting analytics:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Check if member is admin
+ * @param {string} memberId 
+ */
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Sanitize stream data for public viewing
+ * @param {Object} stream 
+ */
+function sanitizeStreamForPublic(stream) {
+    const { streamKey, rtmpUrl, ...publicData } = stream;
+    return publicData;
+}
+
+/**
+ * Generate share URL for stream
+ * @param {string} eventId 
+ */
+function generateShareUrl(eventId) {
+    return `https://jaxbengali.org/live/${eventId}`;
+}
+
+/**
+ * Generate watch URL
+ * @param {string} eventId 
+ */
+function generateWatchUrl(eventId) {
+    return `https://jaxbengali.org/watch/${eventId}`;
+}
+
+/**
+ * Format date for display
+ * @param {Date} date 
+ */
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+// =====================================================
+// CRON JOBS (called by Wix Scheduled Jobs)
+// =====================================================
+
+/**
+ * Process scheduled notifications (run every 15 minutes)
+ */
+export async function processScheduledNotifications() {
+    try {
+        const now = new Date();
+        
+        const pendingNotifications = await wixData.query('ScheduledNotifications')
+            .eq('sent', false)
+            .le('scheduledFor', now)
+            .find();
+        
+        for (const notification of pendingNotifications.items) {
+            try {
+                const event = await wixData.get('StreamingEvents', notification.eventId);
+                
+                if (event && event.status === 'scheduled') {
+                    // Get RSVPed members
+                    const rsvps = await wixData.query('StreamRSVPs')
+                        .eq('streamId', notification.eventId)
+                        .find();
+                    
+                    // Send appropriate reminder
+                    const templateId = notification.type === 'stream_reminder_24h' 
+                        ? 'stream_reminder_24h' 
+                        : 'stream_reminder_1h';
+                    
+                    for (const rsvp of rsvps.items) {
+                        await triggeredEmails.emailMember(
+                            templateId,
+                            rsvp.memberId,
+                            {
+                                variables: {
+                                    streamTitle: event.title,
+                                    streamTime: event.scheduledTime,
+                                    watchUrl: generateWatchUrl(event._id)
+                                }
+                            }
+                        );
+                    }
+                    
+                    // Update event flags
+                    if (notification.type === 'stream_reminder_24h') {
+                        event.reminder24hSent = true;
+                    } else {
+                        event.reminder1hSent = true;
+                    }
+                    await wixData.update('StreamingEvents', event);
+                }
+                
+                // Mark notification as sent
+                notification.sent = true;
+                notification.sentAt = new Date();
+                await wixData.update('ScheduledNotifications', notification);
+                
+            } catch (notifError) {
+                console.error(`Error processing notification ${notification._id}:`, notifError);
+            }
+        }
+        
+        return { success: true, processed: pendingNotifications.items.length };
+        
+    } catch (error) {
+        console.error('Error in processScheduledNotifications:', error);
+        return { success: false, error: error.message };
+    }
+}

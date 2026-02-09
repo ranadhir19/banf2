@@ -1,0 +1,922 @@
+/**
+ * BANF Payment Automation Service
+ * ==================================
+ * Wix Velo Backend Module for automated payment processing
+ * 
+ * Features:
+ * - Payment completion handling
+ * - Automatic receipt generation
+ * - Tax receipt for donations
+ * - Payment reminders
+ * - Refund processing
+ * - Financial reporting
+ * 
+ * @module backend/payment-automation.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import wixPayBackend from 'wix-pay-backend';
+
+// =====================================================
+// PAYMENT TYPES & CONFIGURATION
+// =====================================================
+
+const PAYMENT_TYPES = {
+    MEMBERSHIP: {
+        name: 'Membership Payment',
+        taxDeductible: false,
+        receiptPrefix: 'MEM'
+    },
+    DONATION: {
+        name: 'Donation',
+        taxDeductible: true,
+        receiptPrefix: 'DON'
+    },
+    EVENT_TICKET: {
+        name: 'Event Ticket',
+        taxDeductible: false,
+        receiptPrefix: 'TKT'
+    },
+    PUJA_SPONSORSHIP: {
+        name: 'Puja Sponsorship',
+        taxDeductible: true,
+        receiptPrefix: 'PUJ'
+    },
+    VENDOR_FEE: {
+        name: 'Vendor Fee',
+        taxDeductible: false,
+        receiptPrefix: 'VND'
+    },
+    AD_SPONSORSHIP: {
+        name: 'Advertisement Sponsorship',
+        taxDeductible: false,
+        receiptPrefix: 'ADS'
+    },
+    MISCELLANEOUS: {
+        name: 'Miscellaneous Payment',
+        taxDeductible: false,
+        receiptPrefix: 'MISC'
+    }
+};
+
+// BANF Organization Info (for receipts)
+const ORG_INFO = {
+    name: 'Bengal Association of North Florida, Inc.',
+    shortName: 'BANF',
+    ein: 'XX-XXXXXXX', // Replace with actual EIN
+    address: 'Jacksonville, FL',
+    website: 'https://jaxbengali.org',
+    email: 'treasurer@jaxbengali.org',
+    phone: '(904) XXX-XXXX'
+};
+
+// =====================================================
+// PAYMENT PROCESSING
+// =====================================================
+
+/**
+ * Handle payment completion (webhook from Wix Payments)
+ * @param {Object} paymentEvent - Payment event data from Wix
+ */
+export async function onPaymentComplete(paymentEvent) {
+    try {
+        console.log('Processing payment completion:', paymentEvent.payment?.id);
+        
+        const payment = paymentEvent.payment;
+        const metadata = payment.metadata || {};
+        
+        // Create payment record
+        const paymentRecord = await wixData.insert('Payments', {
+            paymentId: payment.id,
+            transactionId: payment.transactionId,
+            memberId: metadata.memberId || null,
+            memberEmail: metadata.memberEmail || payment.payer?.email,
+            memberName: `${payment.payer?.firstName || ''} ${payment.payer?.lastName || ''}`.trim(),
+            
+            // Payment Details
+            paymentType: metadata.paymentType || 'MISCELLANEOUS',
+            amount: payment.amount?.amount || 0,
+            currency: payment.amount?.currency || 'USD',
+            status: 'COMPLETED',
+            
+            // Related Records
+            eventId: metadata.eventId || null,
+            membershipType: metadata.membershipType || null,
+            donationCampaign: metadata.donationCampaign || null,
+            
+            // Receipt
+            receiptNumber: generateReceiptNumber(metadata.paymentType || 'MISC'),
+            receiptSent: false,
+            
+            // Metadata
+            description: metadata.description || '',
+            notes: metadata.notes || '',
+            
+            // Timestamps
+            paymentDate: new Date(),
+            createdAt: new Date()
+        });
+        
+        // Process based on payment type
+        switch (metadata.paymentType) {
+            case 'MEMBERSHIP':
+                await processMembershipPayment(paymentRecord, metadata);
+                break;
+            case 'DONATION':
+                await processDonationPayment(paymentRecord, metadata);
+                break;
+            case 'EVENT_TICKET':
+                await processEventPayment(paymentRecord, metadata);
+                break;
+            case 'PUJA_SPONSORSHIP':
+                await processPujaSponsorshipPayment(paymentRecord, metadata);
+                break;
+            default:
+                await processGenericPayment(paymentRecord);
+        }
+        
+        // Send receipt email
+        await sendPaymentReceipt(paymentRecord);
+        
+        // Log payment
+        await logPaymentActivity(paymentRecord, 'PAYMENT_COMPLETED', 'Payment processed successfully');
+        
+        return {
+            success: true,
+            paymentId: paymentRecord._id,
+            receiptNumber: paymentRecord.receiptNumber
+        };
+        
+    } catch (error) {
+        console.error('Error processing payment:', error);
+        
+        // Log error
+        await wixData.insert('PaymentErrors', {
+            paymentEventId: paymentEvent.payment?.id,
+            error: error.message,
+            timestamp: new Date()
+        });
+        
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Process membership payment
+ * @param {Object} paymentRecord 
+ * @param {Object} metadata 
+ */
+async function processMembershipPayment(paymentRecord, metadata) {
+    try {
+        if (!metadata.memberId || !metadata.membershipType) {
+            console.error('Missing membership data in payment');
+            return;
+        }
+        
+        // Import member automation module
+        const { renewMembership } = await import('backend/member-automation.jsw');
+        
+        await renewMembership(
+            metadata.memberId,
+            metadata.membershipType,
+            {
+                paymentId: paymentRecord._id,
+                transactionId: paymentRecord.transactionId
+            }
+        );
+        
+        console.log('Membership activated for:', metadata.memberId);
+        
+    } catch (error) {
+        console.error('Error processing membership payment:', error);
+    }
+}
+
+/**
+ * Process donation payment
+ * @param {Object} paymentRecord 
+ * @param {Object} metadata 
+ */
+async function processDonationPayment(paymentRecord, metadata) {
+    try {
+        // Record donation
+        await wixData.insert('Donations', {
+            paymentId: paymentRecord._id,
+            donorId: metadata.memberId || null,
+            donorName: paymentRecord.memberName,
+            donorEmail: paymentRecord.memberEmail,
+            amount: paymentRecord.amount,
+            campaign: metadata.donationCampaign || 'General Fund',
+            isRecurring: metadata.isRecurring || false,
+            recurringFrequency: metadata.recurringFrequency || null,
+            isAnonymous: metadata.isAnonymous || false,
+            dedicatedTo: metadata.dedicatedTo || null,
+            dedicationType: metadata.dedicationType || null, // 'in_honor', 'in_memory'
+            donationDate: new Date(),
+            taxReceiptSent: false,
+            fiscalYear: new Date().getFullYear()
+        });
+        
+        // Update member profile donation total
+        if (metadata.memberId) {
+            const profile = await wixData.query('MemberProfiles')
+                .eq('memberId', metadata.memberId)
+                .find();
+            
+            if (profile.items.length > 0) {
+                const member = profile.items[0];
+                member.totalDonations = (member.totalDonations || 0) + paymentRecord.amount;
+                member.lastDonationDate = new Date();
+                await wixData.update('MemberProfiles', member);
+                
+                // Award engagement points
+                const { addEngagementPoints } = await import('backend/member-automation.jsw');
+                await addEngagementPoints(metadata.memberId, 15, `Donation: $${paymentRecord.amount}`);
+            }
+        }
+        
+        // Create admin notification for large donations
+        if (paymentRecord.amount >= 100) {
+            await createAdminNotification({
+                type: 'LARGE_DONATION',
+                title: `New donation received: $${paymentRecord.amount}`,
+                details: `Donor: ${paymentRecord.memberName}, Campaign: ${metadata.donationCampaign || 'General'}`,
+                priority: 'high'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error processing donation:', error);
+    }
+}
+
+/**
+ * Process event ticket payment
+ * @param {Object} paymentRecord 
+ * @param {Object} metadata 
+ */
+async function processEventPayment(paymentRecord, metadata) {
+    try {
+        // Create RSVP record
+        await wixData.insert('EventRSVPs', {
+            eventId: metadata.eventId,
+            memberId: metadata.memberId || null,
+            attendeeName: paymentRecord.memberName,
+            attendeeEmail: paymentRecord.memberEmail,
+            ticketType: metadata.ticketType || 'general',
+            quantity: metadata.ticketQuantity || 1,
+            totalPaid: paymentRecord.amount,
+            paymentId: paymentRecord._id,
+            dietaryRestrictions: metadata.dietaryRestrictions || '',
+            rsvpDate: new Date(),
+            checkedIn: false
+        });
+        
+        // Update event ticket count
+        const event = await wixData.get('Events', metadata.eventId);
+        if (event) {
+            event.ticketsSold = (event.ticketsSold || 0) + (metadata.ticketQuantity || 1);
+            event.revenue = (event.revenue || 0) + paymentRecord.amount;
+            await wixData.update('Events', event);
+        }
+        
+        // Send event confirmation email
+        await triggeredEmails.emailContact(
+            'event_ticket_confirmation',
+            paymentRecord.memberEmail,
+            {
+                variables: {
+                    attendeeName: paymentRecord.memberName,
+                    eventName: metadata.eventName || 'BANF Event',
+                    eventDate: metadata.eventDate || 'TBD',
+                    ticketQuantity: metadata.ticketQuantity || 1,
+                    totalAmount: `$${paymentRecord.amount}`,
+                    confirmationNumber: paymentRecord.receiptNumber
+                }
+            }
+        );
+        
+    } catch (error) {
+        console.error('Error processing event payment:', error);
+    }
+}
+
+/**
+ * Process Puja sponsorship payment
+ * @param {Object} paymentRecord 
+ * @param {Object} metadata 
+ */
+async function processPujaSponsorshipPayment(paymentRecord, metadata) {
+    try {
+        // Record sponsorship
+        await wixData.insert('PujaSponsorship', {
+            paymentId: paymentRecord._id,
+            sponsorId: metadata.memberId || null,
+            sponsorName: paymentRecord.memberName,
+            sponsorEmail: paymentRecord.memberEmail,
+            sponsorshipType: metadata.sponsorshipType || 'general',
+            pujaYear: metadata.pujaYear || new Date().getFullYear(),
+            amount: paymentRecord.amount,
+            dedicatedTo: metadata.dedicatedTo || null,
+            dedicationType: metadata.dedicationType || null,
+            displayName: metadata.displayName || paymentRecord.memberName,
+            isAnonymous: metadata.isAnonymous || false,
+            sponsorshipDate: new Date()
+        });
+        
+        // Update member donation totals (Puja sponsorships count as donations)
+        if (metadata.memberId) {
+            const profile = await wixData.query('MemberProfiles')
+                .eq('memberId', metadata.memberId)
+                .find();
+            
+            if (profile.items.length > 0) {
+                const member = profile.items[0];
+                member.totalDonations = (member.totalDonations || 0) + paymentRecord.amount;
+                member.pujaContributions = (member.pujaContributions || 0) + paymentRecord.amount;
+                await wixData.update('MemberProfiles', member);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error processing Puja sponsorship:', error);
+    }
+}
+
+/**
+ * Process generic payment
+ * @param {Object} paymentRecord 
+ */
+async function processGenericPayment(paymentRecord) {
+    // Just log the payment
+    console.log('Generic payment processed:', paymentRecord.receiptNumber);
+}
+
+// =====================================================
+// RECEIPT GENERATION
+// =====================================================
+
+/**
+ * Send payment receipt email
+ * @param {Object} paymentRecord 
+ */
+async function sendPaymentReceipt(paymentRecord) {
+    try {
+        const paymentTypeConfig = PAYMENT_TYPES[paymentRecord.paymentType] || PAYMENT_TYPES.MISCELLANEOUS;
+        
+        // Determine which email template to use
+        const templateId = paymentTypeConfig.taxDeductible 
+            ? 'tax_deductible_receipt' 
+            : 'payment_receipt';
+        
+        await triggeredEmails.emailContact(
+            templateId,
+            paymentRecord.memberEmail,
+            {
+                variables: {
+                    recipientName: paymentRecord.memberName,
+                    receiptNumber: paymentRecord.receiptNumber,
+                    paymentDate: formatDate(paymentRecord.paymentDate),
+                    paymentType: paymentTypeConfig.name,
+                    amount: `$${paymentRecord.amount.toFixed(2)}`,
+                    description: paymentRecord.description || paymentTypeConfig.name,
+                    
+                    // Org info for tax receipts
+                    orgName: ORG_INFO.name,
+                    orgEIN: ORG_INFO.ein,
+                    orgAddress: ORG_INFO.address,
+                    
+                    // Tax receipt specific
+                    isTaxDeductible: paymentTypeConfig.taxDeductible,
+                    taxYear: new Date().getFullYear()
+                }
+            }
+        );
+        
+        // Update record
+        paymentRecord.receiptSent = true;
+        paymentRecord.receiptSentDate = new Date();
+        await wixData.update('Payments', paymentRecord);
+        
+        console.log('Receipt sent for:', paymentRecord.receiptNumber);
+        
+    } catch (error) {
+        console.error('Error sending receipt:', error);
+    }
+}
+
+/**
+ * Generate tax receipt for donations (end of year)
+ * @param {string} memberId 
+ * @param {number} fiscalYear 
+ */
+export async function generateAnnualTaxReceipt(memberId, fiscalYear) {
+    const member = await currentMember.getMember();
+    if (!member || (member._id !== memberId && !await isAdmin(member._id))) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        // Get all tax-deductible donations for the year
+        const donations = await wixData.query('Donations')
+            .eq('donorId', memberId)
+            .eq('fiscalYear', fiscalYear)
+            .find();
+        
+        const pujaSponsors = await wixData.query('PujaSponsorship')
+            .eq('sponsorId', memberId)
+            .eq('pujaYear', fiscalYear)
+            .find();
+        
+        // Calculate total
+        const donationTotal = donations.items.reduce((sum, d) => sum + d.amount, 0);
+        const pujaTotal = pujaSponsors.items.reduce((sum, p) => sum + p.amount, 0);
+        const grandTotal = donationTotal + pujaTotal;
+        
+        if (grandTotal === 0) {
+            return {
+                success: true,
+                message: 'No tax-deductible contributions found for this year',
+                total: 0
+            };
+        }
+        
+        // Get member info
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find();
+        
+        const memberProfile = profile.items[0];
+        
+        // Generate receipt record
+        const receiptRecord = await wixData.insert('AnnualTaxReceipts', {
+            memberId: memberId,
+            memberName: `${memberProfile.firstName} ${memberProfile.lastName}`,
+            memberEmail: memberProfile.email,
+            memberAddress: memberProfile.address,
+            fiscalYear: fiscalYear,
+            donationTotal: donationTotal,
+            pujaTotal: pujaTotal,
+            grandTotal: grandTotal,
+            donationCount: donations.items.length,
+            pujaCount: pujaSponsors.items.length,
+            receiptNumber: `TAX-${fiscalYear}-${generateShortId()}`,
+            generatedDate: new Date(),
+            downloadUrl: null // Will be populated if PDF generated
+        });
+        
+        // Send annual tax receipt email
+        await triggeredEmails.emailMember(
+            'annual_tax_receipt',
+            memberId,
+            {
+                variables: {
+                    firstName: memberProfile.firstName,
+                    fiscalYear: fiscalYear,
+                    donationTotal: `$${donationTotal.toFixed(2)}`,
+                    pujaTotal: `$${pujaTotal.toFixed(2)}`,
+                    grandTotal: `$${grandTotal.toFixed(2)}`,
+                    receiptNumber: receiptRecord.receiptNumber,
+                    orgName: ORG_INFO.name,
+                    orgEIN: ORG_INFO.ein
+                }
+            }
+        );
+        
+        return {
+            success: true,
+            receiptNumber: receiptRecord.receiptNumber,
+            total: grandTotal,
+            details: {
+                donations: donationTotal,
+                pujaSponsorship: pujaTotal
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error generating annual tax receipt:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// PAYMENT REMINDERS
+// =====================================================
+
+/**
+ * Send payment reminders for pending invoices
+ * (Run weekly via scheduled job)
+ */
+export async function sendPendingPaymentReminders() {
+    try {
+        const sevenDaysAgo = addDays(new Date(), -7);
+        
+        // Find unpaid invoices older than 7 days
+        const pendingPayments = await wixData.query('PendingInvoices')
+            .eq('status', 'PENDING')
+            .lt('createdAt', sevenDaysAgo)
+            .eq('reminderSent', false)
+            .find();
+        
+        let remindersSent = 0;
+        
+        for (const invoice of pendingPayments.items) {
+            await triggeredEmails.emailContact(
+                'payment_reminder',
+                invoice.email,
+                {
+                    variables: {
+                        recipientName: invoice.recipientName,
+                        invoiceAmount: `$${invoice.amount.toFixed(2)}`,
+                        invoiceDescription: invoice.description,
+                        paymentLink: invoice.paymentLink,
+                        dueDate: formatDate(invoice.dueDate)
+                    }
+                }
+            );
+            
+            invoice.reminderSent = true;
+            invoice.reminderSentDate = new Date();
+            await wixData.update('PendingInvoices', invoice);
+            
+            remindersSent++;
+        }
+        
+        return {
+            success: true,
+            remindersSent: remindersSent
+        };
+        
+    } catch (error) {
+        console.error('Error sending payment reminders:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// REFUND PROCESSING
+// =====================================================
+
+/**
+ * Process refund request
+ * @param {string} paymentId 
+ * @param {number} refundAmount 
+ * @param {string} reason 
+ */
+export async function processRefund(paymentId, refundAmount, reason) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const payment = await wixData.get('Payments', paymentId);
+        
+        if (!payment) {
+            return { success: false, error: 'Payment not found' };
+        }
+        
+        if (refundAmount > payment.amount) {
+            return { success: false, error: 'Refund amount exceeds original payment' };
+        }
+        
+        // Check if already refunded
+        const existingRefunds = await wixData.query('Refunds')
+            .eq('originalPaymentId', paymentId)
+            .find();
+        
+        const totalRefunded = existingRefunds.items.reduce((sum, r) => sum + r.amount, 0);
+        
+        if (totalRefunded + refundAmount > payment.amount) {
+            return { 
+                success: false, 
+                error: `Cannot refund more than original amount. Already refunded: $${totalRefunded}` 
+            };
+        }
+        
+        // Create refund record
+        const refund = await wixData.insert('Refunds', {
+            originalPaymentId: paymentId,
+            originalTransactionId: payment.transactionId,
+            memberId: payment.memberId,
+            memberEmail: payment.memberEmail,
+            memberName: payment.memberName,
+            refundAmount: refundAmount,
+            reason: reason,
+            status: 'PENDING', // Will be updated after Wix processes
+            requestedBy: member._id,
+            requestedAt: new Date()
+        });
+        
+        // Process through Wix Pay
+        try {
+            await wixPayBackend.refundTransaction(
+                payment.transactionId,
+                { amount: refundAmount }
+            );
+            
+            refund.status = 'COMPLETED';
+            refund.completedAt = new Date();
+            await wixData.update('Refunds', refund);
+            
+        } catch (refundError) {
+            refund.status = 'FAILED';
+            refund.errorMessage = refundError.message;
+            await wixData.update('Refunds', refund);
+            
+            return {
+                success: false,
+                error: `Refund processing failed: ${refundError.message}`
+            };
+        }
+        
+        // Update original payment
+        payment.refundedAmount = (payment.refundedAmount || 0) + refundAmount;
+        payment.status = refundAmount >= payment.amount ? 'FULLY_REFUNDED' : 'PARTIALLY_REFUNDED';
+        await wixData.update('Payments', payment);
+        
+        // Send refund confirmation
+        await triggeredEmails.emailContact(
+            'refund_confirmation',
+            payment.memberEmail,
+            {
+                variables: {
+                    recipientName: payment.memberName,
+                    refundAmount: `$${refundAmount.toFixed(2)}`,
+                    originalAmount: `$${payment.amount.toFixed(2)}`,
+                    reason: reason,
+                    originalReceiptNumber: payment.receiptNumber
+                }
+            }
+        );
+        
+        await logPaymentActivity(payment, 'REFUND_PROCESSED', `Refund of $${refundAmount} - ${reason}`);
+        
+        return {
+            success: true,
+            refundId: refund._id,
+            message: `Refund of $${refundAmount} processed successfully`
+        };
+        
+    } catch (error) {
+        console.error('Error processing refund:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// FINANCIAL REPORTING
+// =====================================================
+
+/**
+ * Get financial summary (admin only)
+ * @param {Date} startDate 
+ * @param {Date} endDate 
+ */
+export async function getFinancialSummary(startDate, endDate) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const payments = await wixData.query('Payments')
+            .eq('status', 'COMPLETED')
+            .between('paymentDate', new Date(startDate), new Date(endDate))
+            .find();
+        
+        const refunds = await wixData.query('Refunds')
+            .eq('status', 'COMPLETED')
+            .between('completedAt', new Date(startDate), new Date(endDate))
+            .find();
+        
+        // Calculate totals by type
+        const byType = {};
+        for (const payment of payments.items) {
+            const type = payment.paymentType || 'MISCELLANEOUS';
+            if (!byType[type]) {
+                byType[type] = { count: 0, total: 0 };
+            }
+            byType[type].count++;
+            byType[type].total += payment.amount;
+        }
+        
+        const totalRevenue = payments.items.reduce((sum, p) => sum + p.amount, 0);
+        const totalRefunds = refunds.items.reduce((sum, r) => sum + r.refundAmount, 0);
+        
+        // Monthly breakdown
+        const monthlyRevenue = {};
+        for (const payment of payments.items) {
+            const monthKey = formatMonthKey(new Date(payment.paymentDate));
+            monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + payment.amount;
+        }
+        
+        return {
+            success: true,
+            summary: {
+                period: {
+                    start: formatDate(startDate),
+                    end: formatDate(endDate)
+                },
+                totalRevenue: totalRevenue,
+                totalRefunds: totalRefunds,
+                netRevenue: totalRevenue - totalRefunds,
+                transactionCount: payments.items.length,
+                refundCount: refunds.items.length,
+                byType: byType,
+                monthlyRevenue: monthlyRevenue,
+                averageTransaction: payments.items.length > 0 
+                    ? Math.round(totalRevenue / payments.items.length * 100) / 100 
+                    : 0
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting financial summary:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get donations report for fiscal year
+ * @param {number} fiscalYear 
+ */
+export async function getDonationsReport(fiscalYear) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const donations = await wixData.query('Donations')
+            .eq('fiscalYear', fiscalYear)
+            .find();
+        
+        const totalDonations = donations.items.reduce((sum, d) => sum + d.amount, 0);
+        
+        // By campaign
+        const byCampaign = {};
+        for (const donation of donations.items) {
+            const campaign = donation.campaign || 'General Fund';
+            if (!byCampaign[campaign]) {
+                byCampaign[campaign] = { count: 0, total: 0 };
+            }
+            byCampaign[campaign].count++;
+            byCampaign[campaign].total += donation.amount;
+        }
+        
+        // Unique donors
+        const uniqueDonors = new Set(donations.items.map(d => d.donorEmail)).size;
+        
+        return {
+            success: true,
+            report: {
+                fiscalYear: fiscalYear,
+                totalDonations: totalDonations,
+                donationCount: donations.items.length,
+                uniqueDonors: uniqueDonors,
+                averageDonation: donations.items.length > 0 
+                    ? Math.round(totalDonations / donations.items.length * 100) / 100 
+                    : 0,
+                byCampaign: byCampaign
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting donations report:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Generate receipt number
+ * @param {string} paymentType 
+ */
+function generateReceiptNumber(paymentType) {
+    const prefix = PAYMENT_TYPES[paymentType]?.receiptPrefix || 'RCP';
+    const year = new Date().getFullYear().toString().slice(-2);
+    const timestamp = Date.now().toString(36).toUpperCase();
+    return `${prefix}-${year}-${timestamp}`;
+}
+
+/**
+ * Generate short ID
+ */
+function generateShortId() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+/**
+ * Create admin notification
+ * @param {Object} notification 
+ */
+async function createAdminNotification(notification) {
+    try {
+        await wixData.insert('AdminNotifications', {
+            ...notification,
+            read: false,
+            createdAt: new Date()
+        });
+    } catch (error) {
+        console.error('Error creating notification:', error);
+    }
+}
+
+/**
+ * Log payment activity
+ * @param {Object} payment 
+ * @param {string} action 
+ * @param {string} details 
+ */
+async function logPaymentActivity(payment, action, details) {
+    try {
+        await wixData.insert('PaymentActivityLog', {
+            paymentId: payment._id,
+            transactionId: payment.transactionId,
+            action: action,
+            details: details,
+            timestamp: new Date()
+        });
+    } catch (error) {
+        console.error('Error logging payment activity:', error);
+    }
+}
+
+/**
+ * Check if member is admin
+ * @param {string} memberId 
+ */
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec') ||
+                role.toLowerCase().includes('treasurer')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Add days to date
+ * @param {Date} date 
+ * @param {number} days 
+ */
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+/**
+ * Format date for display
+ * @param {Date} date 
+ */
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+/**
+ * Format month key for reporting
+ * @param {Date} date 
+ */
+function formatMonthKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}

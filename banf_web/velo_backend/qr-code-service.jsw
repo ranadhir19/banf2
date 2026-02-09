@@ -1,0 +1,973 @@
+/**
+ * BANF QR Code Service
+ * =====================
+ * Wix Velo Backend Module for QR code generation, validation, and scanning
+ * 
+ * Features:
+ * - Unique QR code generation per attendee
+ * - Embedded attendee data (membership, dietary, etc.)
+ * - One-time scan validation (void after use)
+ * - Multi-station support (food, entry, etc.)
+ * - Real-time tracking dashboard
+ * - Offline validation support
+ * 
+ * @module backend/qr-code-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import crypto from 'crypto';
+
+// =====================================================
+// QR CODE TYPES & CONFIGURATIONS
+// =====================================================
+
+const QR_CODE_TYPES = {
+    EVENT_ENTRY: {
+        id: 'event_entry',
+        name: 'Event Entry',
+        icon: '🎟️',
+        singleUse: false, // Allow re-entry
+        stations: ['main_entry', 'side_entry', 'vip_entry']
+    },
+    FOOD_SERVICE: {
+        id: 'food_service',
+        name: 'Food Service',
+        icon: '🍽️',
+        singleUse: true, // One meal per attendee
+        stations: ['food_counter_1', 'food_counter_2', 'vip_food']
+    },
+    PRASAD: {
+        id: 'prasad',
+        name: 'Prasad Distribution',
+        icon: '🙏',
+        singleUse: true,
+        stations: ['prasad_counter']
+    },
+    PRIZE_CLAIM: {
+        id: 'prize_claim',
+        name: 'Prize Claim',
+        icon: '🎁',
+        singleUse: true,
+        stations: ['prize_booth']
+    },
+    PARKING: {
+        id: 'parking',
+        name: 'Parking Pass',
+        icon: '🅿️',
+        singleUse: false,
+        stations: ['parking_entry', 'parking_exit']
+    },
+    KIDS_ACTIVITY: {
+        id: 'kids_activity',
+        name: 'Kids Activity',
+        icon: '🎨',
+        singleUse: false,
+        stations: ['kids_zone']
+    }
+};
+
+const QR_STATUS = {
+    ACTIVE: 'active',
+    USED: 'used',
+    VOID: 'void',
+    EXPIRED: 'expired'
+};
+
+// =====================================================
+// QR CODE GENERATION
+// =====================================================
+
+/**
+ * Generate QR codes for all attendees of an event
+ * @param {string} eventId
+ * @param {Object} options
+ */
+export async function generateEventQRCodes(eventId, options = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Get all confirmed RSVPs
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .eq('rsvpStatus', 'attending')
+            .find();
+        
+        const qrTypes = options.qrTypes || ['EVENT_ENTRY', 'FOOD_SERVICE'];
+        let generatedCount = 0;
+        const qrCodes = [];
+        
+        for (const rsvp of rsvps.items) {
+            // Generate QR for main attendee
+            const mainQR = await generateAttendeeQRCodes(
+                eventId, 
+                rsvp._id, 
+                rsvp.mainAttendee, 
+                qrTypes,
+                true
+            );
+            qrCodes.push(mainQR);
+            generatedCount++;
+            
+            // Generate QR for guests
+            for (let i = 0; i < (rsvp.guests?.length || 0); i++) {
+                const guest = rsvp.guests[i];
+                const guestQR = await generateAttendeeQRCodes(
+                    eventId,
+                    rsvp._id,
+                    guest,
+                    qrTypes,
+                    false,
+                    i
+                );
+                qrCodes.push(guestQR);
+                generatedCount++;
+            }
+        }
+        
+        // Create QR batch record
+        const batch = await wixData.insert('QRBatches', {
+            eventId: eventId,
+            eventTitle: event.title,
+            totalGenerated: generatedCount,
+            qrTypes: qrTypes,
+            generatedAt: new Date(),
+            generatedBy: member._id,
+            status: 'completed'
+        });
+        
+        await logQRActivity(eventId, 'BATCH_GENERATED', 
+            `Generated ${generatedCount} QR codes for ${rsvps.items.length} RSVPs`);
+        
+        return {
+            success: true,
+            batchId: batch._id,
+            totalGenerated: generatedCount,
+            totalRSVPs: rsvps.items.length,
+            qrCodes: qrCodes
+        };
+        
+    } catch (error) {
+        console.error('Error generating QR codes:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Generate QR codes for a single attendee
+ */
+async function generateAttendeeQRCodes(eventId, rsvpId, attendee, qrTypes, isPrimary, guestIndex = null) {
+    const qrCodes = {};
+    
+    // Generate unique identifier for this attendee
+    const attendeeKey = isPrimary 
+        ? `${rsvpId}_primary`
+        : `${rsvpId}_guest_${guestIndex}`;
+    
+    for (const qrType of qrTypes) {
+        const typeConfig = QR_CODE_TYPES[qrType];
+        if (!typeConfig) continue;
+        
+        // Generate unique QR code
+        const qrCode = generateSecureQRCode();
+        
+        // QR data payload
+        const qrData = {
+            code: qrCode,
+            eventId: eventId,
+            rsvpId: rsvpId,
+            attendeeKey: attendeeKey,
+            
+            // Attendee Info
+            name: attendee.name,
+            ageCategory: attendee.ageCategory || 'adult',
+            dietary: attendee.dietary || 'no_restriction',
+            dietaryNotes: attendee.dietaryNotes || '',
+            isPrimary: isPrimary,
+            
+            // QR Type
+            qrType: qrType,
+            typeName: typeConfig.name,
+            typeIcon: typeConfig.icon,
+            singleUse: typeConfig.singleUse,
+            
+            // Status
+            status: QR_STATUS.ACTIVE,
+            scannedAt: null,
+            scannedBy: null,
+            scannedStation: null,
+            
+            // Validation
+            validFrom: new Date(),
+            validUntil: null, // Set based on event end time
+            
+            // Metadata
+            createdAt: new Date()
+        };
+        
+        // Store in database
+        const record = await wixData.insert('QRCodes', qrData);
+        
+        qrCodes[qrType] = {
+            qrCode: qrCode,
+            recordId: record._id,
+            qrUrl: generateQRUrl(qrCode),
+            type: typeConfig.name,
+            icon: typeConfig.icon
+        };
+    }
+    
+    return {
+        attendeeKey: attendeeKey,
+        name: attendee.name,
+        dietary: attendee.dietary,
+        isPrimary: isPrimary,
+        qrCodes: qrCodes
+    };
+}
+
+/**
+ * Generate a single QR code for specific purpose
+ * @param {Object} data
+ */
+export async function generateSingleQRCode(data) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const qrCode = generateSecureQRCode();
+        const typeConfig = QR_CODE_TYPES[data.qrType] || QR_CODE_TYPES.EVENT_ENTRY;
+        
+        const record = await wixData.insert('QRCodes', {
+            code: qrCode,
+            eventId: data.eventId,
+            name: data.name,
+            email: data.email || '',
+            phone: data.phone || '',
+            purpose: data.purpose || 'general',
+            
+            qrType: data.qrType,
+            typeName: typeConfig.name,
+            typeIcon: typeConfig.icon,
+            singleUse: typeConfig.singleUse,
+            
+            status: QR_STATUS.ACTIVE,
+            
+            customData: data.customData || {},
+            notes: data.notes || '',
+            
+            createdAt: new Date(),
+            createdBy: member._id
+        });
+        
+        return {
+            success: true,
+            qrCode: qrCode,
+            recordId: record._id,
+            qrUrl: generateQRUrl(qrCode),
+            qrImageUrl: await getQRImageUrl(qrCode, data)
+        };
+        
+    } catch (error) {
+        console.error('Error generating QR:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// QR CODE VALIDATION & SCANNING
+// =====================================================
+
+/**
+ * Validate and process QR code scan
+ * @param {string} qrCode
+ * @param {Object} scanData - { stationId, scannedBy, location }
+ */
+export async function validateQRCode(qrCode, scanData = {}) {
+    try {
+        // Find QR code record
+        const qrRecords = await wixData.query('QRCodes')
+            .eq('code', qrCode)
+            .find({ suppressAuth: true });
+        
+        if (qrRecords.items.length === 0) {
+            await logScanAttempt(qrCode, 'INVALID', 'QR code not found', scanData);
+            return {
+                success: false,
+                valid: false,
+                error: 'Invalid QR code',
+                errorCode: 'INVALID_CODE'
+            };
+        }
+        
+        const qr = qrRecords.items[0];
+        
+        // Check if already used (for single-use codes)
+        if (qr.singleUse && qr.status === QR_STATUS.USED) {
+            await logScanAttempt(qrCode, 'ALREADY_USED', 
+                `Already scanned at ${qr.scannedStation} on ${qr.scannedAt}`, scanData);
+            return {
+                success: false,
+                valid: false,
+                error: 'QR code already used',
+                errorCode: 'ALREADY_USED',
+                previousScan: {
+                    station: qr.scannedStation,
+                    time: qr.scannedAt
+                }
+            };
+        }
+        
+        // Check if void
+        if (qr.status === QR_STATUS.VOID) {
+            await logScanAttempt(qrCode, 'VOID', 'QR code has been voided', scanData);
+            return {
+                success: false,
+                valid: false,
+                error: 'QR code has been cancelled',
+                errorCode: 'VOID'
+            };
+        }
+        
+        // Check expiration
+        if (qr.validUntil && new Date() > new Date(qr.validUntil)) {
+            qr.status = QR_STATUS.EXPIRED;
+            await wixData.update('QRCodes', qr, { suppressAuth: true });
+            
+            await logScanAttempt(qrCode, 'EXPIRED', 'QR code has expired', scanData);
+            return {
+                success: false,
+                valid: false,
+                error: 'QR code has expired',
+                errorCode: 'EXPIRED'
+            };
+        }
+        
+        // Valid! Process the scan
+        if (qr.singleUse) {
+            qr.status = QR_STATUS.USED;
+        }
+        qr.scannedAt = new Date();
+        qr.scannedBy = scanData.scannedBy || 'system';
+        qr.scannedStation = scanData.stationId || 'unknown';
+        qr.scanLocation = scanData.location || '';
+        qr.scanCount = (qr.scanCount || 0) + 1;
+        
+        await wixData.update('QRCodes', qr, { suppressAuth: true });
+        
+        // Log successful scan
+        await wixData.insert('QRScanLog', {
+            qrCode: qrCode,
+            qrRecordId: qr._id,
+            eventId: qr.eventId,
+            attendeeName: qr.name,
+            qrType: qr.qrType,
+            stationId: scanData.stationId,
+            scannedBy: scanData.scannedBy,
+            location: scanData.location,
+            result: 'SUCCESS',
+            timestamp: new Date()
+        });
+        
+        // Return attendee info for display
+        return {
+            success: true,
+            valid: true,
+            attendee: {
+                name: qr.name,
+                ageCategory: qr.ageCategory,
+                dietary: qr.dietary,
+                dietaryIcon: getDietaryIcon(qr.dietary),
+                dietaryNotes: qr.dietaryNotes,
+                isPrimary: qr.isPrimary,
+                qrType: qr.typeName,
+                typeIcon: qr.typeIcon
+            },
+            scanInfo: {
+                scanCount: qr.scanCount,
+                isFirstScan: qr.scanCount === 1,
+                singleUse: qr.singleUse,
+                nowVoid: qr.singleUse
+            },
+            displayMessage: generateScanMessage(qr)
+        };
+        
+    } catch (error) {
+        console.error('Error validating QR:', error);
+        return {
+            success: false,
+            valid: false,
+            error: 'Validation error',
+            errorCode: 'SYSTEM_ERROR'
+        };
+    }
+}
+
+/**
+ * Bulk validate QR codes (for offline sync)
+ * @param {Array} codes - Array of {qrCode, scanData}
+ */
+export async function bulkValidateQRCodes(codes) {
+    const results = [];
+    
+    for (const item of codes) {
+        const result = await validateQRCode(item.qrCode, item.scanData);
+        results.push({
+            qrCode: item.qrCode,
+            ...result
+        });
+    }
+    
+    return {
+        success: true,
+        results: results,
+        validCount: results.filter(r => r.valid).length,
+        invalidCount: results.filter(r => !r.valid).length
+    };
+}
+
+/**
+ * Void a QR code manually
+ * @param {string} qrCode
+ * @param {string} reason
+ */
+export async function voidQRCode(qrCode, reason = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const qrRecords = await wixData.query('QRCodes')
+            .eq('code', qrCode)
+            .find();
+        
+        if (qrRecords.items.length === 0) {
+            return { success: false, error: 'QR code not found' };
+        }
+        
+        const qr = qrRecords.items[0];
+        qr.status = QR_STATUS.VOID;
+        qr.voidedAt = new Date();
+        qr.voidedBy = member._id;
+        qr.voidReason = reason;
+        
+        await wixData.update('QRCodes', qr);
+        
+        await logQRActivity(qr.eventId, 'QR_VOIDED', 
+            `QR for ${qr.name} voided: ${reason}`);
+        
+        return {
+            success: true,
+            message: `QR code for ${qr.name} has been voided`
+        };
+        
+    } catch (error) {
+        console.error('Error voiding QR:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// QR CODE DELIVERY
+// =====================================================
+
+/**
+ * Send QR codes via email
+ * @param {string} eventId
+ */
+export async function sendQRCodeEmails(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .eq('rsvpStatus', 'attending')
+            .find();
+        
+        let sentCount = 0;
+        
+        for (const rsvp of rsvps.items) {
+            // Get all QR codes for this RSVP
+            const qrCodes = await wixData.query('QRCodes')
+                .eq('rsvpId', rsvp._id)
+                .find();
+            
+            // Group by attendee
+            const primaryQRs = qrCodes.items.filter(q => q.isPrimary);
+            const guestQRs = qrCodes.items.filter(q => !q.isPrimary);
+            
+            // Send email to primary attendee
+            await triggeredEmails.emailContact(
+                'qr_code_delivery',
+                rsvp.mainAttendee.email,
+                {
+                    variables: {
+                        name: rsvp.mainAttendee.name,
+                        eventTitle: event.title,
+                        eventDate: formatDate(event.eventDate),
+                        eventTime: event.startTime,
+                        eventLocation: event.venueName,
+                        totalInParty: rsvp.totalAttendees,
+                        qrCodeUrl: generateQRUrl(primaryQRs.find(q => q.qrType === 'FOOD_SERVICE')?.code),
+                        entryQRUrl: generateQRUrl(primaryQRs.find(q => q.qrType === 'EVENT_ENTRY')?.code),
+                        dietaryPreference: rsvp.mainAttendee.dietary,
+                        guestCount: rsvp.guests?.length || 0
+                    }
+                }
+            );
+            
+            sentCount++;
+        }
+        
+        await logQRActivity(eventId, 'QR_EMAILS_SENT', 
+            `Sent QR code emails to ${sentCount} attendees`);
+        
+        return {
+            success: true,
+            sentCount: sentCount,
+            message: `QR codes sent to ${sentCount} attendees`
+        };
+        
+    } catch (error) {
+        console.error('Error sending QR emails:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Generate WhatsApp message with QR code
+ * @param {string} qrCode
+ * @param {Object} attendeeInfo
+ */
+export async function generateWhatsAppQRMessage(qrCode, attendeeInfo, eventInfo) {
+    const qrImageUrl = await getQRImageUrl(qrCode, attendeeInfo);
+    
+    const message = `🎉 *Your QR Code for ${eventInfo.title}*\n\n` +
+        `👤 *Name:* ${attendeeInfo.name}\n` +
+        `📅 *Date:* ${eventInfo.date}\n` +
+        `📍 *Venue:* ${eventInfo.location}\n` +
+        `🍽️ *Dietary:* ${attendeeInfo.dietary}\n\n` +
+        `📲 *Your QR Code:* ${qrImageUrl}\n\n` +
+        `Please show this QR code at the food counter.\n` +
+        `⚠️ Note: This QR code is valid for ONE meal only.\n\n` +
+        `🙏 BANF - Bengali Association of North Florida`;
+    
+    return {
+        message: message,
+        qrImageUrl: qrImageUrl
+    };
+}
+
+/**
+ * Send QR codes via SMS
+ * @param {string} eventId
+ * @param {Array} phoneNumbers - Optional, if not provided sends to all
+ */
+export async function sendQRCodeSMS(eventId, phoneNumbers = null) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        let rsvpQuery = wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .eq('rsvpStatus', 'attending');
+        
+        const rsvps = await rsvpQuery.find();
+        
+        let queuedCount = 0;
+        
+        for (const rsvp of rsvps.items) {
+            const phone = rsvp.mainAttendee.phone;
+            
+            if (!phone) continue;
+            if (phoneNumbers && !phoneNumbers.includes(phone)) continue;
+            
+            // Get food QR code
+            const qrCodes = await wixData.query('QRCodes')
+                .eq('rsvpId', rsvp._id)
+                .eq('qrType', 'FOOD_SERVICE')
+                .eq('isPrimary', true)
+                .find();
+            
+            if (qrCodes.items.length > 0) {
+                const qr = qrCodes.items[0];
+                
+                await wixData.insert('SMSQueue', {
+                    eventId: eventId,
+                    phone: phone,
+                    message: `BANF ${event.title}: Your food QR code link: ${generateQRUrl(qr.code)} - Show at counter. Valid for ${rsvp.totalAttendees} person(s). Dietary: ${rsvp.mainAttendee.dietary}`,
+                    status: 'queued',
+                    createdAt: new Date()
+                });
+                
+                queuedCount++;
+            }
+        }
+        
+        return {
+            success: true,
+            queuedCount: queuedCount,
+            message: `SMS queued for ${queuedCount} recipients`
+        };
+        
+    } catch (error) {
+        console.error('Error queueing SMS:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// STATION MANAGEMENT
+// =====================================================
+
+/**
+ * Register a scanning station
+ * @param {Object} stationData
+ */
+export async function registerStation(stationData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const station = await wixData.insert('QRStations', {
+            stationId: `STN_${Date.now()}`,
+            eventId: stationData.eventId,
+            name: stationData.name,
+            type: stationData.type, // food, entry, prasad, etc.
+            location: stationData.location || '',
+            
+            // Operators
+            operators: stationData.operators || [],
+            
+            // Status
+            status: 'inactive', // inactive, active, closed
+            activatedAt: null,
+            
+            // Stats
+            totalScans: 0,
+            successfulScans: 0,
+            failedScans: 0,
+            
+            // Settings
+            allowedQRTypes: stationData.allowedQRTypes || ['FOOD_SERVICE'],
+            
+            createdAt: new Date(),
+            createdBy: member._id
+        });
+        
+        return {
+            success: true,
+            stationId: station.stationId,
+            message: `Station "${station.name}" registered`
+        };
+        
+    } catch (error) {
+        console.error('Error registering station:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Activate a station for scanning
+ * @param {string} stationId
+ */
+export async function activateStation(stationId) {
+    try {
+        const stations = await wixData.query('QRStations')
+            .eq('stationId', stationId)
+            .find();
+        
+        if (stations.items.length === 0) {
+            return { success: false, error: 'Station not found' };
+        }
+        
+        const station = stations.items[0];
+        station.status = 'active';
+        station.activatedAt = new Date();
+        
+        await wixData.update('QRStations', station);
+        
+        return {
+            success: true,
+            message: `Station "${station.name}" is now active`
+        };
+        
+    } catch (error) {
+        console.error('Error activating station:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get real-time station stats
+ * @param {string} eventId
+ */
+export async function getStationStats(eventId) {
+    try {
+        const stations = await wixData.query('QRStations')
+            .eq('eventId', eventId)
+            .find();
+        
+        const stats = [];
+        
+        for (const station of stations.items) {
+            // Get recent scans
+            const recentScans = await wixData.query('QRScanLog')
+                .eq('stationId', station.stationId)
+                .descending('timestamp')
+                .limit(10)
+                .find();
+            
+            stats.push({
+                stationId: station.stationId,
+                name: station.name,
+                type: station.type,
+                status: station.status,
+                totalScans: station.totalScans,
+                successfulScans: station.successfulScans,
+                failedScans: station.failedScans,
+                successRate: station.totalScans > 0 
+                    ? Math.round((station.successfulScans / station.totalScans) * 100) 
+                    : 0,
+                recentScans: recentScans.items.map(s => ({
+                    name: s.attendeeName,
+                    result: s.result,
+                    time: s.timestamp
+                }))
+            });
+        }
+        
+        return {
+            success: true,
+            stations: stats,
+            totalStations: stations.items.length,
+            activeStations: stations.items.filter(s => s.status === 'active').length
+        };
+        
+    } catch (error) {
+        console.error('Error getting station stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// ANALYTICS
+// =====================================================
+
+/**
+ * Get QR code scanning analytics
+ * @param {string} eventId
+ */
+export async function getQRAnalytics(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const qrCodes = await wixData.query('QRCodes')
+            .eq('eventId', eventId)
+            .find();
+        
+        const scanLogs = await wixData.query('QRScanLog')
+            .eq('eventId', eventId)
+            .find();
+        
+        // Count by status
+        const byStatus = {
+            active: qrCodes.items.filter(q => q.status === QR_STATUS.ACTIVE).length,
+            used: qrCodes.items.filter(q => q.status === QR_STATUS.USED).length,
+            void: qrCodes.items.filter(q => q.status === QR_STATUS.VOID).length
+        };
+        
+        // Count by type
+        const byType = {};
+        for (const qr of qrCodes.items) {
+            byType[qr.qrType] = (byType[qr.qrType] || 0) + 1;
+        }
+        
+        // Food served by dietary
+        const foodServed = qrCodes.items.filter(
+            q => q.qrType === 'FOOD_SERVICE' && q.status === QR_STATUS.USED
+        );
+        
+        const byDietary = {};
+        for (const qr of foodServed) {
+            const dietary = qr.dietary || 'no_restriction';
+            byDietary[dietary] = (byDietary[dietary] || 0) + 1;
+        }
+        
+        // Scan timeline (hourly)
+        const scanTimeline = scanLogs.items.reduce((acc, scan) => {
+            const hour = new Date(scan.timestamp).getHours();
+            acc[hour] = (acc[hour] || 0) + 1;
+            return acc;
+        }, {});
+        
+        // Check-in rate
+        const foodQRs = qrCodes.items.filter(q => q.qrType === 'FOOD_SERVICE');
+        const checkInRate = foodQRs.length > 0 
+            ? Math.round((foodServed.length / foodQRs.length) * 100)
+            : 0;
+        
+        return {
+            success: true,
+            analytics: {
+                summary: {
+                    totalQRCodes: qrCodes.items.length,
+                    totalScans: scanLogs.items.length,
+                    uniqueAttendees: new Set(qrCodes.items.map(q => q.attendeeKey)).size,
+                    checkInRate: checkInRate
+                },
+                byStatus: byStatus,
+                byType: byType,
+                foodService: {
+                    totalMealsServed: foodServed.length,
+                    byDietary: byDietary,
+                    vegetarianMeals: (byDietary['vegetarian'] || 0) + (byDietary['vegan'] || 0),
+                    nonVegMeals: byDietary['non_vegetarian'] || 0
+                },
+                timeline: scanTimeline,
+                
+                // For real-time dashboard
+                recentScans: scanLogs.items.slice(0, 20).map(s => ({
+                    name: s.attendeeName,
+                    type: s.qrType,
+                    station: s.stationId,
+                    result: s.result,
+                    time: s.timestamp
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting QR analytics:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function generateSecureQRCode() {
+    // Generate 12-character alphanumeric code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude similar chars
+    let code = '';
+    const randomBytes = crypto.randomBytes(12);
+    
+    for (let i = 0; i < 12; i++) {
+        code += chars[randomBytes[i] % chars.length];
+    }
+    
+    return code;
+}
+
+function generateQRUrl(qrCode) {
+    return `https://jaxbengali.org/qr/${qrCode}`;
+}
+
+async function getQRImageUrl(qrCode, data = {}) {
+    // Generate QR code image URL using a QR code service
+    // This would integrate with a QR code generation API
+    const qrData = encodeURIComponent(generateQRUrl(qrCode));
+    const size = 300;
+    
+    // Using Google Charts API for QR code generation (or could use custom service)
+    return `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${qrData}&choe=UTF-8`;
+}
+
+function getDietaryIcon(dietary) {
+    const icons = {
+        'vegetarian': '🥬',
+        'non_vegetarian': '🍗',
+        'vegan': '🌱',
+        'gluten_free': '🌾',
+        'nut_allergy': '🥜',
+        'dairy_free': '🥛',
+        'halal': '☪️',
+        'kosher': '✡️',
+        'no_restriction': '✅'
+    };
+    return icons[dietary] || '✅';
+}
+
+function generateScanMessage(qr) {
+    if (qr.qrType === 'FOOD_SERVICE') {
+        return `✅ ${qr.name}\n🍽️ ${qr.dietaryNotes || qr.dietary}\n${qr.typeIcon} Meal served`;
+    }
+    return `✅ ${qr.name}\n${qr.typeIcon} ${qr.typeName} verified`;
+}
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+async function logQRActivity(eventId, action, details) {
+    await wixData.insert('QRActivityLog', {
+        eventId: eventId,
+        action: action,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+async function logScanAttempt(qrCode, result, reason, scanData) {
+    await wixData.insert('QRScanLog', {
+        qrCode: qrCode,
+        result: result,
+        reason: reason,
+        stationId: scanData?.stationId,
+        scannedBy: scanData?.scannedBy,
+        timestamp: new Date()
+    });
+}
+
+// Export constants
+export { QR_CODE_TYPES, QR_STATUS };

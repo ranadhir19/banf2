@@ -1,0 +1,842 @@
+/**
+ * BANF Member Directory & Search Service
+ * ========================================
+ * Wix Velo Backend Module for member directory and networking
+ * 
+ * Features:
+ * - Member search and filtering
+ * - Profile visibility controls
+ * - Member networking
+ * - Family connections
+ * - Member statistics
+ * 
+ * @module backend/member-directory-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// DIRECTORY CONFIGURATION
+// =====================================================
+
+const VISIBILITY_LEVELS = {
+    PUBLIC: 'public',           // All members can see
+    MEMBERS_ONLY: 'members',    // Only logged-in members
+    PRIVATE: 'private'          // Only the member and admins
+};
+
+const PROFILE_FIELDS = {
+    name: { default: VISIBILITY_LEVELS.PUBLIC },
+    email: { default: VISIBILITY_LEVELS.MEMBERS_ONLY },
+    phone: { default: VISIBILITY_LEVELS.MEMBERS_ONLY },
+    address: { default: VISIBILITY_LEVELS.PRIVATE },
+    profession: { default: VISIBILITY_LEVELS.PUBLIC },
+    hometown: { default: VISIBILITY_LEVELS.PUBLIC },
+    interests: { default: VISIBILITY_LEVELS.PUBLIC },
+    familyMembers: { default: VISIBILITY_LEVELS.MEMBERS_ONLY }
+};
+
+// =====================================================
+// MEMBER DIRECTORY SEARCH
+// =====================================================
+
+/**
+ * Search member directory
+ * @param {Object} searchParams
+ */
+export async function searchDirectory(searchParams = {}) {
+    const member = await currentMember.getMember();
+    const isLoggedIn = !!member;
+    const isAdminUser = member ? await isAdmin(member._id) : false;
+    
+    try {
+        let query = wixData.query('MemberProfiles')
+            .eq('isActive', true);
+        
+        // Text search
+        if (searchParams.query) {
+            const searchTerm = searchParams.query.toLowerCase();
+            query = query.or(
+                wixData.query('MemberProfiles')
+                    .contains('firstName', searchTerm)
+                    .or(
+                        wixData.query('MemberProfiles')
+                            .contains('lastName', searchTerm)
+                    )
+                    .or(
+                        wixData.query('MemberProfiles')
+                            .contains('hometown', searchTerm)
+                    )
+            );
+        }
+        
+        // Filter by hometown
+        if (searchParams.hometown) {
+            query = query.eq('hometown', searchParams.hometown);
+        }
+        
+        // Filter by profession
+        if (searchParams.profession) {
+            query = query.eq('profession', searchParams.profession);
+        }
+        
+        // Filter by membership type
+        if (searchParams.membershipType) {
+            query = query.eq('membershipType', searchParams.membershipType);
+        }
+        
+        // Filter by join year
+        if (searchParams.joinYear) {
+            const startDate = new Date(searchParams.joinYear, 0, 1);
+            const endDate = new Date(searchParams.joinYear, 11, 31);
+            query = query.between('memberSince', startDate, endDate);
+        }
+        
+        // Filter by interests
+        if (searchParams.interests && searchParams.interests.length > 0) {
+            query = query.hasSome('interests', searchParams.interests);
+        }
+        
+        // Pagination
+        const page = searchParams.page || 1;
+        const limit = searchParams.limit || 20;
+        const skip = (page - 1) * limit;
+        
+        // Sort
+        if (searchParams.sortBy === 'name') {
+            query = query.ascending('lastName').ascending('firstName');
+        } else if (searchParams.sortBy === 'recent') {
+            query = query.descending('memberSince');
+        } else {
+            query = query.ascending('lastName');
+        }
+        
+        const results = await query
+            .skip(skip)
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        // Filter fields based on visibility
+        const filteredResults = results.items.map(profile => 
+            filterProfileByVisibility(profile, isLoggedIn, isAdminUser)
+        );
+        
+        return {
+            success: true,
+            members: filteredResults,
+            pagination: {
+                page: page,
+                limit: limit,
+                total: results.totalCount,
+                totalPages: Math.ceil(results.totalCount / limit),
+                hasMore: results.hasNext()
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error searching directory:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member profile
+ * @param {string} memberId
+ */
+export async function getMemberProfile(memberId) {
+    const currentUser = await currentMember.getMember();
+    const isLoggedIn = !!currentUser;
+    const isOwnProfile = currentUser?._id === memberId;
+    const isAdminUser = currentUser ? await isAdmin(currentUser._id) : false;
+    
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const memberProfile = profile.items[0];
+        
+        // Check if profile is public or user is authorized
+        if (memberProfile.profileVisibility === VISIBILITY_LEVELS.PRIVATE 
+            && !isOwnProfile && !isAdminUser) {
+            return { success: false, error: 'Profile is private' };
+        }
+        
+        // Get additional data
+        const enrichedProfile = await enrichProfile(memberProfile);
+        
+        // Filter based on visibility
+        const filteredProfile = isOwnProfile || isAdminUser 
+            ? enrichedProfile 
+            : filterProfileByVisibility(enrichedProfile, isLoggedIn, isAdminUser);
+        
+        return {
+            success: true,
+            profile: filteredProfile,
+            isOwnProfile: isOwnProfile
+        };
+        
+    } catch (error) {
+        console.error('Error getting profile:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// PROFILE MANAGEMENT
+// =====================================================
+
+/**
+ * Update member profile
+ * @param {Object} profileData
+ */
+export async function updateMyProfile(profileData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        // Get existing profile
+        let existingProfile = await wixData.query('MemberProfiles')
+            .eq('memberId', member._id)
+            .find({ suppressAuth: true });
+        
+        let profile;
+        
+        if (existingProfile.items.length > 0) {
+            // Update existing
+            profile = existingProfile.items[0];
+            
+            // Updateable fields
+            const updateableFields = [
+                'firstName', 'lastName', 'phone', 'address', 'city', 'state', 'zip',
+                'hometown', 'profession', 'employer', 'bio', 'interests',
+                'profilePhoto', 'coverPhoto', 'socialLinks',
+                'profileVisibility', 'fieldVisibility'
+            ];
+            
+            for (const field of updateableFields) {
+                if (profileData[field] !== undefined) {
+                    profile[field] = profileData[field];
+                }
+            }
+            
+            profile.lastUpdated = new Date();
+            
+            await wixData.update('MemberProfiles', profile);
+            
+        } else {
+            // Create new profile
+            profile = await wixData.insert('MemberProfiles', {
+                memberId: member._id,
+                email: member.loginEmail,
+                firstName: profileData.firstName || member.contactDetails?.firstName || '',
+                lastName: profileData.lastName || member.contactDetails?.lastName || '',
+                phone: profileData.phone || member.contactDetails?.phones?.[0] || '',
+                address: profileData.address || '',
+                city: profileData.city || '',
+                state: profileData.state || '',
+                zip: profileData.zip || '',
+                hometown: profileData.hometown || '',
+                profession: profileData.profession || '',
+                employer: profileData.employer || '',
+                bio: profileData.bio || '',
+                interests: profileData.interests || [],
+                profilePhoto: profileData.profilePhoto || member.profilePhoto || '',
+                coverPhoto: profileData.coverPhoto || '',
+                socialLinks: profileData.socialLinks || {},
+                profileVisibility: profileData.profileVisibility || VISIBILITY_LEVELS.MEMBERS_ONLY,
+                fieldVisibility: profileData.fieldVisibility || {},
+                membershipType: 'regular',
+                memberSince: new Date(),
+                isActive: true,
+                lastUpdated: new Date()
+            });
+        }
+        
+        return {
+            success: true,
+            profileId: profile._id,
+            message: 'Profile updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update visibility settings
+ * @param {Object} visibilitySettings
+ */
+export async function updateVisibilitySettings(visibilitySettings) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', member._id)
+            .find({ suppressAuth: true });
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Profile not found' };
+        }
+        
+        const memberProfile = profile.items[0];
+        
+        memberProfile.profileVisibility = visibilitySettings.profileVisibility || memberProfile.profileVisibility;
+        memberProfile.fieldVisibility = {
+            ...memberProfile.fieldVisibility,
+            ...visibilitySettings.fieldVisibility
+        };
+        memberProfile.lastUpdated = new Date();
+        
+        await wixData.update('MemberProfiles', memberProfile);
+        
+        return {
+            success: true,
+            message: 'Visibility settings updated'
+        };
+        
+    } catch (error) {
+        console.error('Error updating visibility:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// FAMILY CONNECTIONS
+// =====================================================
+
+/**
+ * Add family member connection
+ * @param {Object} familyData
+ */
+export async function addFamilyMember(familyData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', member._id)
+            .find({ suppressAuth: true });
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Profile not found' };
+        }
+        
+        const memberProfile = profile.items[0];
+        const familyMembers = memberProfile.familyMembers || [];
+        
+        // Create family member entry
+        const familyMember = {
+            id: generateId(),
+            name: familyData.name,
+            relationship: familyData.relationship, // spouse, child, parent, sibling
+            age: familyData.age || null,
+            linkedMemberId: familyData.linkedMemberId || null, // If they're also a BANF member
+            addedAt: new Date()
+        };
+        
+        familyMembers.push(familyMember);
+        memberProfile.familyMembers = familyMembers;
+        memberProfile.lastUpdated = new Date();
+        
+        await wixData.update('MemberProfiles', memberProfile);
+        
+        // If linked to another member, create bidirectional link
+        if (familyData.linkedMemberId) {
+            await createFamilyLink(member._id, familyData.linkedMemberId, familyData.relationship);
+        }
+        
+        return {
+            success: true,
+            familyMemberId: familyMember.id,
+            message: 'Family member added'
+        };
+        
+    } catch (error) {
+        console.error('Error adding family member:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get family network
+ * @param {string} memberId
+ */
+export async function getFamilyNetwork(memberId) {
+    const currentUser = await currentMember.getMember();
+    const isOwnProfile = currentUser?._id === memberId;
+    const isAdminUser = currentUser ? await isAdmin(currentUser._id) : false;
+    
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const memberProfile = profile.items[0];
+        
+        // Check visibility
+        const fieldVisibility = memberProfile.fieldVisibility?.familyMembers || PROFILE_FIELDS.familyMembers.default;
+        
+        if (fieldVisibility === VISIBILITY_LEVELS.PRIVATE && !isOwnProfile && !isAdminUser) {
+            return { success: false, error: 'Family information is private' };
+        }
+        
+        const familyMembers = memberProfile.familyMembers || [];
+        
+        // Enrich with linked member data
+        const enrichedFamily = [];
+        for (const fm of familyMembers) {
+            const enriched = { ...fm };
+            
+            if (fm.linkedMemberId) {
+                const linked = await wixData.query('MemberProfiles')
+                    .eq('memberId', fm.linkedMemberId)
+                    .find({ suppressAuth: true });
+                
+                if (linked.items.length > 0) {
+                    enriched.linkedMember = {
+                        name: `${linked.items[0].firstName} ${linked.items[0].lastName}`,
+                        profilePhoto: linked.items[0].profilePhoto
+                    };
+                }
+            }
+            
+            enrichedFamily.push(enriched);
+        }
+        
+        return {
+            success: true,
+            familyMembers: enrichedFamily,
+            totalFamily: enrichedFamily.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting family network:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// DIRECTORY FILTERS & STATS
+// =====================================================
+
+/**
+ * Get filter options for directory
+ */
+export async function getDirectoryFilters() {
+    try {
+        // Get distinct hometowns
+        const hometowns = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .distinct('hometown', { suppressAuth: true });
+        
+        // Get distinct professions
+        const professions = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .distinct('profession', { suppressAuth: true });
+        
+        // Get all interests
+        const allProfiles = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .find({ suppressAuth: true });
+        
+        const interests = new Set();
+        for (const p of allProfiles.items) {
+            if (p.interests) {
+                for (const i of p.interests) {
+                    interests.add(i);
+                }
+            }
+        }
+        
+        // Get membership types
+        const membershipTypes = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .distinct('membershipType', { suppressAuth: true });
+        
+        return {
+            success: true,
+            filters: {
+                hometowns: hometowns.items.filter(Boolean).sort(),
+                professions: professions.items.filter(Boolean).sort(),
+                interests: Array.from(interests).sort(),
+                membershipTypes: membershipTypes.items.filter(Boolean)
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting filters:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get directory statistics
+ */
+export async function getDirectoryStats() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const totalMembers = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .count({ suppressAuth: true });
+        
+        const allProfiles = await wixData.query('MemberProfiles')
+            .eq('isActive', true)
+            .find({ suppressAuth: true });
+        
+        // Hometown distribution
+        const hometownDist = {};
+        for (const p of allProfiles.items) {
+            if (p.hometown) {
+                hometownDist[p.hometown] = (hometownDist[p.hometown] || 0) + 1;
+            }
+        }
+        
+        // Join date distribution
+        const joinByYear = {};
+        for (const p of allProfiles.items) {
+            if (p.memberSince) {
+                const year = new Date(p.memberSince).getFullYear();
+                joinByYear[year] = (joinByYear[year] || 0) + 1;
+            }
+        }
+        
+        // Profile completeness
+        let completeProfiles = 0;
+        const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'hometown'];
+        
+        for (const p of allProfiles.items) {
+            const complete = requiredFields.every(f => p[f] && p[f].toString().trim() !== '');
+            if (complete) completeProfiles++;
+        }
+        
+        // Family members count
+        const totalFamilyMembers = allProfiles.items.reduce((sum, p) => 
+            sum + (p.familyMembers?.length || 0), 0);
+        
+        return {
+            success: true,
+            stats: {
+                totalMembers: totalMembers,
+                profileCompleteness: Math.round((completeProfiles / totalMembers) * 100),
+                totalFamilyMembers: totalFamilyMembers,
+                avgFamilySize: Math.round(totalFamilyMembers / totalMembers * 10) / 10,
+                topHometowns: Object.entries(hometownDist)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10)
+                    .map(([hometown, count]) => ({ hometown, count })),
+                membersByYear: Object.entries(joinByYear)
+                    .sort((a, b) => Number(a[0]) - Number(b[0]))
+                    .map(([year, count]) => ({ year: Number(year), count }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// MEMBER NETWORKING
+// =====================================================
+
+/**
+ * Send connection request
+ * @param {string} targetMemberId
+ * @param {string} message
+ */
+export async function sendConnectionRequest(targetMemberId, message = '') {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        // Check if already connected
+        const existing = await wixData.query('MemberConnections')
+            .eq('memberId1', member._id)
+            .eq('memberId2', targetMemberId)
+            .find({ suppressAuth: true });
+        
+        const existingReverse = await wixData.query('MemberConnections')
+            .eq('memberId1', targetMemberId)
+            .eq('memberId2', member._id)
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0 || existingReverse.items.length > 0) {
+            return { 
+                success: false, 
+                error: 'Connection already exists or pending'
+            };
+        }
+        
+        const memberName = `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim();
+        
+        const connection = await wixData.insert('MemberConnections', {
+            memberId1: member._id,
+            memberName1: memberName,
+            memberId2: targetMemberId,
+            status: 'pending',
+            message: message,
+            requestedAt: new Date()
+        });
+        
+        return {
+            success: true,
+            connectionId: connection._id,
+            message: 'Connection request sent'
+        };
+        
+    } catch (error) {
+        console.error('Error sending connection request:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Respond to connection request
+ * @param {string} connectionId
+ * @param {boolean} accept
+ */
+export async function respondToConnection(connectionId, accept) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const connection = await wixData.get('MemberConnections', connectionId);
+        
+        if (!connection) {
+            return { success: false, error: 'Connection request not found' };
+        }
+        
+        if (connection.memberId2 !== member._id) {
+            return { success: false, error: 'Unauthorized' };
+        }
+        
+        connection.status = accept ? 'connected' : 'declined';
+        connection.respondedAt = new Date();
+        
+        await wixData.update('MemberConnections', connection);
+        
+        return {
+            success: true,
+            message: accept ? 'Connection accepted' : 'Connection declined'
+        };
+        
+    } catch (error) {
+        console.error('Error responding to connection:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get my connections
+ */
+export async function getMyConnections() {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        // Connections where I'm either member1 or member2
+        const connections1 = await wixData.query('MemberConnections')
+            .eq('memberId1', member._id)
+            .eq('status', 'connected')
+            .find({ suppressAuth: true });
+        
+        const connections2 = await wixData.query('MemberConnections')
+            .eq('memberId2', member._id)
+            .eq('status', 'connected')
+            .find({ suppressAuth: true });
+        
+        const connectedMemberIds = [
+            ...connections1.items.map(c => c.memberId2),
+            ...connections2.items.map(c => c.memberId1)
+        ];
+        
+        // Get profiles
+        const profiles = await wixData.query('MemberProfiles')
+            .hasSome('memberId', connectedMemberIds)
+            .find({ suppressAuth: true });
+        
+        // Pending requests for me
+        const pendingRequests = await wixData.query('MemberConnections')
+            .eq('memberId2', member._id)
+            .eq('status', 'pending')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            connections: profiles.items.map(p => ({
+                memberId: p.memberId,
+                name: `${p.firstName} ${p.lastName}`,
+                profilePhoto: p.profilePhoto,
+                hometown: p.hometown,
+                profession: p.profession
+            })),
+            pendingRequests: pendingRequests.items.map(r => ({
+                connectionId: r._id,
+                memberId: r.memberId1,
+                memberName: r.memberName1,
+                message: r.message,
+                requestedAt: r.requestedAt
+            })),
+            totalConnections: connectedMemberIds.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting connections:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function filterProfileByVisibility(profile, isLoggedIn, isAdmin) {
+    const filtered = {
+        memberId: profile.memberId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        profilePhoto: profile.profilePhoto,
+        memberSince: profile.memberSince
+    };
+    
+    const visibility = profile.fieldVisibility || {};
+    
+    // Add fields based on visibility
+    for (const [field, config] of Object.entries(PROFILE_FIELDS)) {
+        const fieldVis = visibility[field] || config.default;
+        
+        if (fieldVis === VISIBILITY_LEVELS.PUBLIC) {
+            filtered[field] = profile[field];
+        } else if (fieldVis === VISIBILITY_LEVELS.MEMBERS_ONLY && isLoggedIn) {
+            filtered[field] = profile[field];
+        } else if (isAdmin) {
+            filtered[field] = profile[field];
+        }
+    }
+    
+    return filtered;
+}
+
+async function enrichProfile(profile) {
+    // Get member's event participation
+    const rsvps = await wixData.query('EventRSVPs')
+        .eq('memberId', profile.memberId)
+        .eq('status', 'confirmed')
+        .count({ suppressAuth: true });
+    
+    // Get volunteer stats
+    const volunteerHours = await wixData.query('Volunteers')
+        .eq('memberId', profile.memberId)
+        .find({ suppressAuth: true });
+    
+    const totalVolunteerHours = volunteerHours.items.length > 0 
+        ? volunteerHours.items[0].totalHours || 0 
+        : 0;
+    
+    return {
+        ...profile,
+        stats: {
+            eventsAttended: rsvps,
+            volunteerHours: totalVolunteerHours
+        }
+    };
+}
+
+async function createFamilyLink(memberId1, memberId2, relationship) {
+    // Create reverse relationship
+    const reverseRelationship = {
+        'spouse': 'spouse',
+        'child': 'parent',
+        'parent': 'child',
+        'sibling': 'sibling'
+    };
+    
+    const profile2 = await wixData.query('MemberProfiles')
+        .eq('memberId', memberId2)
+        .find({ suppressAuth: true });
+    
+    if (profile2.items.length > 0) {
+        const p = profile2.items[0];
+        const family = p.familyMembers || [];
+        
+        // Check if link already exists
+        const exists = family.some(fm => fm.linkedMemberId === memberId1);
+        
+        if (!exists) {
+            const member1Profile = await wixData.query('MemberProfiles')
+                .eq('memberId', memberId1)
+                .find({ suppressAuth: true });
+            
+            if (member1Profile.items.length > 0) {
+                const m1 = member1Profile.items[0];
+                family.push({
+                    id: generateId(),
+                    name: `${m1.firstName} ${m1.lastName}`,
+                    relationship: reverseRelationship[relationship] || relationship,
+                    linkedMemberId: memberId1,
+                    addedAt: new Date()
+                });
+                
+                p.familyMembers = family;
+                await wixData.update('MemberProfiles', p);
+            }
+        }
+    }
+}
+
+function generateId() {
+    return 'fm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { VISIBILITY_LEVELS, PROFILE_FIELDS };

@@ -1,0 +1,883 @@
+/**
+ * BANF Unified Dashboard Service
+ * ================================
+ * Wix Velo Backend Module for role-based dashboard integration
+ * 
+ * Features:
+ * - Role-based access control (Admin vs Member)
+ * - Service categorization
+ * - Dashboard widgets and quick actions
+ * - Activity feeds and notifications
+ * 
+ * @module backend/dashboard-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// ROLE DEFINITIONS
+// =====================================================
+
+const ROLES = {
+    ADMIN: 'admin',
+    EC_MEMBER: 'ec_member',
+    MEMBER: 'member',
+    GUEST: 'guest'
+};
+
+// =====================================================
+// SERVICE CATEGORIZATION
+// =====================================================
+
+const SERVICE_CATEGORIES = {
+    // ADMIN ONLY SERVICES
+    ADMIN_ONLY: [
+        {
+            id: 'event-management',
+            name: 'Event Management',
+            icon: '📅',
+            description: 'Create and manage events, venues, schedules',
+            services: ['event-automation', 'evite-service'],
+            actions: [
+                { label: 'Create Event', action: 'createEvent' },
+                { label: 'View All Events', action: 'viewEvents' },
+                { label: 'Send E-vites', action: 'sendEvites' }
+            ]
+        },
+        {
+            id: 'member-management',
+            name: 'Member Management',
+            icon: '👥',
+            description: 'Manage memberships, approvals, renewals',
+            services: ['member-automation'],
+            actions: [
+                { label: 'Pending Approvals', action: 'pendingApprovals' },
+                { label: 'Member List', action: 'memberList' },
+                { label: 'Renewal Reminders', action: 'renewalReminders' }
+            ]
+        },
+        {
+            id: 'financial-management',
+            name: 'Financial Management',
+            icon: '💰',
+            description: 'Budgets, expenses, income tracking',
+            services: ['budget-finance-service', 'payment-automation'],
+            actions: [
+                { label: 'Event Budgets', action: 'eventBudgets' },
+                { label: 'Pending Expenses', action: 'pendingExpenses' },
+                { label: 'Financial Reports', action: 'financialReports' }
+            ]
+        },
+        {
+            id: 'communication-hub',
+            name: 'Communication Hub',
+            icon: '📢',
+            description: 'Campaigns, announcements, emergency alerts',
+            services: ['communication-hub'],
+            actions: [
+                { label: 'New Campaign', action: 'newCampaign' },
+                { label: 'Scheduled Messages', action: 'scheduledMessages' },
+                { label: 'Emergency Alert', action: 'emergencyAlert' }
+            ]
+        },
+        {
+            id: 'analytics-insights',
+            name: 'Analytics & Insights',
+            icon: '📊',
+            description: 'Event analytics, member trends, predictions',
+            services: ['analytics-service'],
+            actions: [
+                { label: 'Event Analytics', action: 'eventAnalytics' },
+                { label: 'Member Trends', action: 'memberTrends' },
+                { label: 'Predictions', action: 'predictions' }
+            ]
+        },
+        {
+            id: 'vendor-sponsor',
+            name: 'Vendors & Sponsors',
+            icon: '🤝',
+            description: 'Manage vendors, sponsors, partnerships',
+            services: ['vendor-management', 'sponsor-management'],
+            actions: [
+                { label: 'Vendor List', action: 'vendorList' },
+                { label: 'Sponsor Packages', action: 'sponsorPackages' },
+                { label: 'Add Partner', action: 'addPartner' }
+            ]
+        },
+        {
+            id: 'content-moderation',
+            name: 'Content Moderation',
+            icon: '🔍',
+            description: 'Photo approvals, feedback review',
+            services: ['photo-gallery-service', 'feedback-survey-service'],
+            actions: [
+                { label: 'Pending Photos', action: 'pendingPhotos' },
+                { label: 'Survey Results', action: 'surveyResults' },
+                { label: 'Feedback Summary', action: 'feedbackSummary' }
+            ]
+        },
+        {
+            id: 'volunteer-coordination',
+            name: 'Volunteer Coordination',
+            icon: '🙋',
+            description: 'Task assignments, volunteer management',
+            services: ['volunteer-service'],
+            actions: [
+                { label: 'Create Tasks', action: 'createTasks' },
+                { label: 'Volunteer Stats', action: 'volunteerStats' },
+                { label: 'Leaderboard', action: 'volunteerLeaderboard' }
+            ]
+        },
+        {
+            id: 'checkin-operations',
+            name: 'Check-in Operations',
+            icon: '✅',
+            description: 'Kiosk management, attendance tracking',
+            services: ['checkin-kiosk-service', 'qr-code-service'],
+            actions: [
+                { label: 'Start Kiosk', action: 'startKiosk' },
+                { label: 'Generate QR Codes', action: 'generateQR' },
+                { label: 'Attendance Report', action: 'attendanceReport' }
+            ]
+        },
+        {
+            id: 'streaming-radio',
+            name: 'Streaming & Radio',
+            icon: '📻',
+            description: 'Radio scheduling, live streaming',
+            services: ['radio-scheduler', 'streaming-service'],
+            actions: [
+                { label: 'Schedule Programs', action: 'schedulePrograms' },
+                { label: 'Go Live', action: 'goLive' },
+                { label: 'View Schedule', action: 'viewSchedule' }
+            ]
+        }
+    ],
+    
+    // MEMBER ACCESSIBLE SERVICES
+    MEMBER_ACCESS: [
+        {
+            id: 'my-profile',
+            name: 'My Profile',
+            icon: '👤',
+            description: 'View and edit your profile, privacy settings',
+            services: ['member-directory-service'],
+            actions: [
+                { label: 'Edit Profile', action: 'editProfile' },
+                { label: 'Privacy Settings', action: 'privacySettings' },
+                { label: 'My Family', action: 'myFamily' }
+            ]
+        },
+        {
+            id: 'my-events',
+            name: 'My Events',
+            icon: '🎉',
+            description: 'RSVPs, tickets, event history',
+            services: ['evite-service'],
+            actions: [
+                { label: 'Upcoming Events', action: 'upcomingEvents' },
+                { label: 'My RSVPs', action: 'myRSVPs' },
+                { label: 'Past Events', action: 'pastEvents' }
+            ]
+        },
+        {
+            id: 'my-membership',
+            name: 'My Membership',
+            icon: '🎫',
+            description: 'Membership status, renewal, benefits',
+            services: ['member-automation'],
+            actions: [
+                { label: 'View Status', action: 'membershipStatus' },
+                { label: 'Renew Now', action: 'renewMembership' },
+                { label: 'Payment History', action: 'paymentHistory' }
+            ]
+        },
+        {
+            id: 'member-directory',
+            name: 'Member Directory',
+            icon: '📖',
+            description: 'Find and connect with members',
+            services: ['member-directory-service'],
+            actions: [
+                { label: 'Search Members', action: 'searchMembers' },
+                { label: 'My Connections', action: 'myConnections' },
+                { label: 'Pending Requests', action: 'pendingConnections' }
+            ]
+        },
+        {
+            id: 'photo-gallery',
+            name: 'Photo Gallery',
+            icon: '📸',
+            description: 'View and upload event photos',
+            services: ['photo-gallery-service'],
+            actions: [
+                { label: 'Browse Albums', action: 'browseAlbums' },
+                { label: 'Upload Photos', action: 'uploadPhotos' },
+                { label: 'My Uploads', action: 'myUploads' }
+            ]
+        },
+        {
+            id: 'carpool',
+            name: 'Carpool',
+            icon: '🚗',
+            description: 'Offer or request rides to events',
+            services: ['carpool-transport-service'],
+            actions: [
+                { label: 'Offer Ride', action: 'offerRide' },
+                { label: 'Find Ride', action: 'findRide' },
+                { label: 'My Carpools', action: 'myCarpools' }
+            ]
+        },
+        {
+            id: 'volunteer',
+            name: 'Volunteer',
+            icon: '🤝',
+            description: 'Sign up for volunteer opportunities',
+            services: ['volunteer-service'],
+            actions: [
+                { label: 'Available Tasks', action: 'availableTasks' },
+                { label: 'My Tasks', action: 'myTasks' },
+                { label: 'My Hours', action: 'myVolunteerHours' }
+            ]
+        },
+        {
+            id: 'feedback',
+            name: 'Feedback',
+            icon: '📝',
+            description: 'Share your feedback and suggestions',
+            services: ['feedback-survey-service'],
+            actions: [
+                { label: 'Pending Surveys', action: 'pendingSurveys' },
+                { label: 'Submit Feedback', action: 'submitFeedback' }
+            ]
+        }
+    ]
+};
+
+// =====================================================
+// ROLE DETECTION
+// =====================================================
+
+/**
+ * Get current user's role
+ */
+export async function getCurrentUserRole() {
+    try {
+        const member = await currentMember.getMember();
+        
+        if (!member) {
+            return { role: ROLES.GUEST, memberId: null, name: 'Guest' };
+        }
+        
+        const memberData = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', member._id)
+            .find({ suppressAuth: true });
+        
+        let role = ROLES.MEMBER;
+        
+        if (memberData.items.length > 0) {
+            const roles = memberData.items[0].memberRoles || [];
+            
+            if (roles.some(r => r.toLowerCase().includes('admin'))) {
+                role = ROLES.ADMIN;
+            } else if (roles.some(r => r.toLowerCase().includes('ec'))) {
+                role = ROLES.EC_MEMBER;
+            }
+        }
+        
+        return {
+            role: role,
+            memberId: member._id,
+            name: `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim(),
+            email: member.loginEmail,
+            profilePhoto: member.profilePhoto
+        };
+        
+    } catch (error) {
+        console.error('Error getting user role:', error);
+        return { role: ROLES.GUEST, memberId: null, name: 'Guest' };
+    }
+}
+
+/**
+ * Check if user has admin access
+ */
+export async function hasAdminAccess() {
+    const user = await getCurrentUserRole();
+    return user.role === ROLES.ADMIN || user.role === ROLES.EC_MEMBER;
+}
+
+// =====================================================
+// DASHBOARD DATA
+// =====================================================
+
+/**
+ * Get dashboard for current user
+ */
+export async function getDashboard() {
+    const user = await getCurrentUserRole();
+    
+    try {
+        const isAdmin = user.role === ROLES.ADMIN || user.role === ROLES.EC_MEMBER;
+        
+        // Get appropriate service categories
+        const categories = isAdmin 
+            ? [...SERVICE_CATEGORIES.ADMIN_ONLY, ...SERVICE_CATEGORIES.MEMBER_ACCESS]
+            : SERVICE_CATEGORIES.MEMBER_ACCESS;
+        
+        // Get widgets data
+        const widgets = await getWidgetsData(user);
+        
+        // Get activity feed
+        const activity = await getActivityFeed(user);
+        
+        // Get notifications
+        const notifications = await getNotifications(user);
+        
+        // Get quick stats
+        const quickStats = await getQuickStats(user);
+        
+        return {
+            success: true,
+            user: user,
+            isAdmin: isAdmin,
+            categories: categories,
+            widgets: widgets,
+            activity: activity,
+            notifications: notifications,
+            quickStats: quickStats
+        };
+        
+    } catch (error) {
+        console.error('Error getting dashboard:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get admin-specific dashboard
+ */
+export async function getAdminDashboard() {
+    const user = await getCurrentUserRole();
+    
+    if (user.role !== ROLES.ADMIN && user.role !== ROLES.EC_MEMBER) {
+        return { success: false, error: 'Unauthorized' };
+    }
+    
+    try {
+        // Admin-specific stats
+        const adminStats = {
+            // Member stats
+            totalMembers: await wixData.query('Members/PrivateMembersData')
+                .count({ suppressAuth: true }),
+            pendingApprovals: await wixData.query('MembershipRequests')
+                .eq('status', 'pending')
+                .count({ suppressAuth: true }),
+            expiringMemberships: await getExpiringMemberships(),
+            
+            // Event stats
+            upcomingEvents: await wixData.query('Events')
+                .ge('eventDate', new Date())
+                .count({ suppressAuth: true }),
+            totalRSVPs: await getTotalUpcomingRSVPs(),
+            
+            // Financial stats
+            pendingExpenses: await wixData.query('Expenses')
+                .eq('status', 'pending')
+                .count({ suppressAuth: true }),
+            
+            // Content moderation
+            pendingPhotos: await wixData.query('Photos')
+                .eq('status', 'pending')
+                .count({ suppressAuth: true }),
+            
+            // Volunteer stats
+            activeVolunteers: await wixData.query('Volunteers')
+                .eq('status', 'active')
+                .count({ suppressAuth: true }),
+            
+            // Communication
+            scheduledMessages: await wixData.query('ScheduledMessages')
+                .eq('status', 'pending')
+                .count({ suppressAuth: true })
+        };
+        
+        // Pending actions
+        const pendingActions = await getPendingAdminActions();
+        
+        // Recent activity
+        const recentActivity = await getAdminActivityLog();
+        
+        return {
+            success: true,
+            user: user,
+            stats: adminStats,
+            pendingActions: pendingActions,
+            recentActivity: recentActivity,
+            categories: SERVICE_CATEGORIES.ADMIN_ONLY
+        };
+        
+    } catch (error) {
+        console.error('Error getting admin dashboard:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member-specific dashboard
+ */
+export async function getMemberDashboard() {
+    const user = await getCurrentUserRole();
+    
+    if (user.role === ROLES.GUEST) {
+        return { success: false, error: 'Must be logged in' };
+    }
+    
+    try {
+        // Member-specific stats
+        const memberStats = {
+            // Membership
+            membershipStatus: await getMembershipStatus(user.memberId),
+            
+            // Events
+            upcomingRSVPs: await wixData.query('EventRSVPs')
+                .eq('memberId', user.memberId)
+                .eq('status', 'confirmed')
+                .count({ suppressAuth: true }),
+            
+            // Volunteer
+            volunteerHours: await getVolunteerHours(user.memberId),
+            upcomingTasks: await getUpcomingVolunteerTasks(user.memberId),
+            
+            // Carpool
+            pendingRideRequests: await wixData.query('CarpoolBookings')
+                .eq('passengerId', user.memberId)
+                .eq('status', 'pending')
+                .count({ suppressAuth: true }),
+            
+            // Social
+            connectionRequests: await wixData.query('MemberConnections')
+                .eq('memberId2', user.memberId)
+                .eq('status', 'pending')
+                .count({ suppressAuth: true }),
+            
+            // Surveys
+            pendingSurveys: await getPendingSurveys(user.memberId)
+        };
+        
+        // Upcoming events for member
+        const upcomingEvents = await getUpcomingEventsForMember(user.memberId);
+        
+        // Recent photos where member is tagged
+        const recentPhotos = await getRecentTaggedPhotos(user.memberId);
+        
+        return {
+            success: true,
+            user: user,
+            stats: memberStats,
+            upcomingEvents: upcomingEvents,
+            recentPhotos: recentPhotos,
+            categories: SERVICE_CATEGORIES.MEMBER_ACCESS
+        };
+        
+    } catch (error) {
+        console.error('Error getting member dashboard:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// WIDGET DATA
+// =====================================================
+
+async function getWidgetsData(user) {
+    const widgets = [];
+    const isAdmin = user.role === ROLES.ADMIN || user.role === ROLES.EC_MEMBER;
+    
+    // Upcoming Event Widget
+    const nextEvent = await wixData.query('Events')
+        .ge('eventDate', new Date())
+        .ascending('eventDate')
+        .limit(1)
+        .find({ suppressAuth: true });
+    
+    if (nextEvent.items.length > 0) {
+        widgets.push({
+            type: 'next-event',
+            title: 'Next Event',
+            data: {
+                eventTitle: nextEvent.items[0].title,
+                eventDate: nextEvent.items[0].eventDate,
+                venue: nextEvent.items[0].venue
+            }
+        });
+    }
+    
+    // Admin-specific widgets
+    if (isAdmin) {
+        // Pending Actions Widget
+        const pendingCount = await getPendingActionsCount();
+        widgets.push({
+            type: 'pending-actions',
+            title: 'Pending Actions',
+            data: pendingCount
+        });
+    }
+    
+    // Member-specific widgets
+    if (user.memberId) {
+        // Membership Status Widget
+        const membership = await getMembershipStatus(user.memberId);
+        widgets.push({
+            type: 'membership-status',
+            title: 'Membership',
+            data: membership
+        });
+    }
+    
+    return widgets;
+}
+
+async function getActivityFeed(user) {
+    const activities = [];
+    const isAdmin = user.role === ROLES.ADMIN || user.role === ROLES.EC_MEMBER;
+    
+    // Recent events
+    const recentEvents = await wixData.query('Events')
+        .descending('_createdDate')
+        .limit(5)
+        .find({ suppressAuth: true });
+    
+    for (const event of recentEvents.items) {
+        activities.push({
+            type: 'event',
+            icon: '📅',
+            message: `New event: ${event.title}`,
+            timestamp: event._createdDate
+        });
+    }
+    
+    if (isAdmin) {
+        // Recent member joins
+        const recentMembers = await wixData.query('Members/PrivateMembersData')
+            .descending('_createdDate')
+            .limit(5)
+            .find({ suppressAuth: true });
+        
+        for (const m of recentMembers.items) {
+            activities.push({
+                type: 'member',
+                icon: '👋',
+                message: `New member: ${m.firstName} ${m.lastName}`,
+                timestamp: m._createdDate
+            });
+        }
+    }
+    
+    // Sort by timestamp
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return activities.slice(0, 10);
+}
+
+async function getNotifications(user) {
+    const notifications = [];
+    
+    if (user.memberId) {
+        // Pending surveys
+        const surveys = await getPendingSurveys(user.memberId);
+        if (surveys > 0) {
+            notifications.push({
+                type: 'survey',
+                icon: '📝',
+                message: `${surveys} survey(s) awaiting your feedback`,
+                priority: 'low'
+            });
+        }
+        
+        // Connection requests
+        const connections = await wixData.query('MemberConnections')
+            .eq('memberId2', user.memberId)
+            .eq('status', 'pending')
+            .count({ suppressAuth: true });
+        
+        if (connections > 0) {
+            notifications.push({
+                type: 'connection',
+                icon: '🤝',
+                message: `${connections} connection request(s)`,
+                priority: 'medium'
+            });
+        }
+    }
+    
+    return notifications;
+}
+
+async function getQuickStats(user) {
+    const isAdmin = user.role === ROLES.ADMIN || user.role === ROLES.EC_MEMBER;
+    
+    if (isAdmin) {
+        return {
+            members: await wixData.query('Members/PrivateMembersData')
+                .count({ suppressAuth: true }),
+            events: await wixData.query('Events')
+                .ge('eventDate', new Date())
+                .count({ suppressAuth: true }),
+            pending: await getPendingActionsCount()
+        };
+    }
+    
+    return {
+        eventsAttended: await wixData.query('EventRSVPs')
+            .eq('memberId', user.memberId)
+            .eq('status', 'confirmed')
+            .count({ suppressAuth: true }),
+        volunteerHours: await getVolunteerHours(user.memberId)
+    };
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function getExpiringMemberships() {
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    
+    return await wixData.query('Memberships')
+        .le('expiryDate', thirtyDaysFromNow)
+        .ge('expiryDate', new Date())
+        .count({ suppressAuth: true });
+}
+
+async function getTotalUpcomingRSVPs() {
+    const upcomingEvents = await wixData.query('Events')
+        .ge('eventDate', new Date())
+        .find({ suppressAuth: true });
+    
+    let total = 0;
+    for (const event of upcomingEvents.items) {
+        const rsvps = await wixData.query('EventRSVPs')
+            .eq('eventId', event._id)
+            .eq('status', 'confirmed')
+            .count({ suppressAuth: true });
+        total += rsvps;
+    }
+    
+    return total;
+}
+
+async function getPendingActionsCount() {
+    let count = 0;
+    
+    try {
+        count += await wixData.query('MembershipRequests')
+            .eq('status', 'pending')
+            .count({ suppressAuth: true });
+    } catch {}
+    
+    try {
+        count += await wixData.query('Expenses')
+            .eq('status', 'pending')
+            .count({ suppressAuth: true });
+    } catch {}
+    
+    try {
+        count += await wixData.query('Photos')
+            .eq('status', 'pending')
+            .count({ suppressAuth: true });
+    } catch {}
+    
+    return count;
+}
+
+async function getPendingAdminActions() {
+    const actions = [];
+    
+    // Pending member approvals
+    try {
+        const pending = await wixData.query('MembershipRequests')
+            .eq('status', 'pending')
+            .find({ suppressAuth: true });
+        
+        for (const p of pending.items) {
+            actions.push({
+                type: 'member_approval',
+                label: `Approve: ${p.name}`,
+                id: p._id,
+                priority: 'high'
+            });
+        }
+    } catch {}
+    
+    // Pending expenses
+    try {
+        const expenses = await wixData.query('Expenses')
+            .eq('status', 'pending')
+            .find({ suppressAuth: true });
+        
+        for (const e of expenses.items) {
+            actions.push({
+                type: 'expense_approval',
+                label: `Review expense: ${e.description}`,
+                id: e._id,
+                priority: 'medium'
+            });
+        }
+    } catch {}
+    
+    // Pending photos
+    try {
+        const photos = await wixData.query('Photos')
+            .eq('status', 'pending')
+            .limit(5)
+            .find({ suppressAuth: true });
+        
+        if (photos.items.length > 0) {
+            actions.push({
+                type: 'photo_moderation',
+                label: `${photos.totalCount} photos pending approval`,
+                count: photos.totalCount,
+                priority: 'low'
+            });
+        }
+    } catch {}
+    
+    return actions;
+}
+
+async function getAdminActivityLog() {
+    // Would query an admin activity log collection
+    return [];
+}
+
+async function getMembershipStatus(memberId) {
+    try {
+        const membership = await wixData.query('Memberships')
+            .eq('memberId', memberId)
+            .descending('_createdDate')
+            .limit(1)
+            .find({ suppressAuth: true });
+        
+        if (membership.items.length > 0) {
+            const m = membership.items[0];
+            const isExpired = new Date(m.expiryDate) < new Date();
+            const daysRemaining = Math.ceil((new Date(m.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+            
+            return {
+                status: isExpired ? 'expired' : 'active',
+                type: m.membershipType,
+                expiryDate: m.expiryDate,
+                daysRemaining: Math.max(0, daysRemaining),
+                needsRenewal: daysRemaining <= 30
+            };
+        }
+        
+        return { status: 'none' };
+    } catch {
+        return { status: 'unknown' };
+    }
+}
+
+async function getVolunteerHours(memberId) {
+    try {
+        const volunteer = await wixData.query('Volunteers')
+            .eq('memberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (volunteer.items.length > 0) {
+            return volunteer.items[0].totalHours || 0;
+        }
+        return 0;
+    } catch {
+        return 0;
+    }
+}
+
+async function getUpcomingVolunteerTasks(memberId) {
+    try {
+        const tasks = await wixData.query('VolunteerAssignments')
+            .eq('volunteerId', memberId)
+            .eq('status', 'assigned')
+            .count({ suppressAuth: true });
+        return tasks;
+    } catch {
+        return 0;
+    }
+}
+
+async function getPendingSurveys(memberId) {
+    try {
+        const activeSurveys = await wixData.query('Surveys')
+            .eq('isActive', true)
+            .find({ suppressAuth: true });
+        
+        let pending = 0;
+        
+        for (const survey of activeSurveys.items) {
+            const responded = await wixData.query('SurveyResponses')
+                .eq('surveyId', survey._id)
+                .eq('memberId', memberId)
+                .count({ suppressAuth: true });
+            
+            if (responded === 0) pending++;
+        }
+        
+        return pending;
+    } catch {
+        return 0;
+    }
+}
+
+async function getUpcomingEventsForMember(memberId) {
+    try {
+        const rsvps = await wixData.query('EventRSVPs')
+            .eq('memberId', memberId)
+            .eq('status', 'confirmed')
+            .find({ suppressAuth: true });
+        
+        const eventIds = rsvps.items.map(r => r.eventId);
+        
+        if (eventIds.length === 0) return [];
+        
+        const events = await wixData.query('Events')
+            .hasSome('_id', eventIds)
+            .ge('eventDate', new Date())
+            .ascending('eventDate')
+            .limit(5)
+            .find({ suppressAuth: true });
+        
+        return events.items.map(e => ({
+            _id: e._id,
+            title: e.title,
+            eventDate: e.eventDate,
+            venue: e.venue
+        }));
+    } catch {
+        return [];
+    }
+}
+
+async function getRecentTaggedPhotos(memberId) {
+    try {
+        const photos = await wixData.query('Photos')
+            .contains('taggedMembers', memberId)
+            .eq('status', 'approved')
+            .descending('uploadedAt')
+            .limit(6)
+            .find({ suppressAuth: true });
+        
+        return photos.items.map(p => ({
+            _id: p._id,
+            thumbnailUrl: p.thumbnailUrl,
+            albumTitle: p.albumTitle
+        }));
+    } catch {
+        return [];
+    }
+}
+
+// Export constants
+export { ROLES, SERVICE_CATEGORIES };

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - BANF Jacksonville</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --saffron: #FF6B35;
+            --saffron-dark: #E85A24;
+            --bengal-green: #006A4E;
+            --burgundy: #8B0000;
+            --gold: #D4AF37;
+            --terracotta: #E2725B;
+            --navy: #1a1a2e;
+            --white: #ffffff;
+            --off-white: #f8f9fa;
+            --cream: #FFF8E7;
+            --gray-500: #6c757d;
+            --gradient-saffron: linear-gradient(135deg, #FF6B35 0%, #f7931e 100%);
+            --gradient-green: linear-gradient(135deg, #006A4E 0%, #00856F 100%);
+            --gradient-burgundy: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
+            --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+            --gradient-navy: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--off-white);
+            color: #495057;
+            line-height: 1.7;
+        }
+        h1, h2, h3, h4, h5 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            color: var(--navy);
+        }
+        .bengali-text { font-family: 'Hind Siliguri', sans-serif; }
+
+        /* Page Header */
+        .page-header {
+            background: var(--gradient-navy);
+            min-height: 350px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://static.wixstatic.com/media/c62f94_b2ca407644824da0bcb6399814ee8c32~mv2.jpg') center/cover;
+            opacity: 0.2;
+        }
+        .page-header-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: var(--white);
+        }
+        .page-header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .page-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .breadcrumb-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .breadcrumb-nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .breadcrumb-nav a:hover { color: var(--white); }
+        .breadcrumb-nav span { color: var(--saffron); }
+
+        /* Section Styles */
+        section { padding: 5rem 0; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        .section-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+        .section-header p {
+            color: var(--gray-500);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+        }
+        .filter-btn {
+            background: var(--white);
+            border: 2px solid #e9ecef;
+            color: var(--gray-500);
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--gradient-saffron);
+            border-color: var(--saffron);
+            color: var(--white);
+        }
+
+        /* Gallery Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .gallery-item {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s ease;
+        }
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .gallery-item:hover img {
+            transform: scale(1.1);
+        }
+        .gallery-item .year-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--white);
+            z-index: 2;
+        }
+        .gallery-item .overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1.5rem;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        .gallery-item h6 {
+            color: var(--white);
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        .gallery-item span {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.8rem;
+        }
+        .gallery-item .zoom-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255,107,53,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .gallery-item:hover .zoom-icon {
+            opacity: 1;
+        }
+
+        /* Video Cards */
+        .video-card {
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s ease;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .video-thumbnail {
+            position: relative;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-thumbnail .play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: rgba(255,107,53,0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .video-thumbnail .play-btn:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: var(--saffron);
+        }
+        .video-body {
+            padding: 1.25rem;
+        }
+        .video-body h5 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        .video-body p {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .lightbox.active {
+            display: flex;
+        }
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 12px;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .lightbox-caption {
+            text-align: center;
+            color: var(--white);
+            margin-top: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--navy);
+            color: var(--white);
+            padding: 3rem 0 1.5rem;
+        }
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .footer-bottom p {
+            color: rgba(255,255,255,0.5);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <div class="page-header-content">
+                <h1>Photo & Video Gallery</h1>
+                <p class="bengali-text">ছবি ও ভিডিও গ্যালারি • স্মৃতির ঝুলি</p>
+                <div class="breadcrumb-nav">
+                    <a href="/"><i class="fas fa-home me-1"></i>Home</a>
+                    <span>/</span>
+                    <span>Gallery</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Photo Gallery Section -->
+    <section class="bg-white">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Photo Gallery</h2>
+                <p>Capturing moments from our cultural celebrations and community events</p>
+            </div>
+            
+            <!-- Filter Tabs -->
+            <div class="filter-tabs" data-aos="fade-up">
+                <button class="filter-btn active" data-filter="all">All Photos</button>
+                <button class="filter-btn" data-filter="durga">Durga Puja</button>
+                <button class="filter-btn" data-filter="saraswati">Saraswati Puja</button>
+                <button class="filter-btn" data-filter="boishakh">Pohela Boishakh</button>
+                <button class="filter-btn" data-filter="cultural">Cultural Events</button>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div class="gallery-grid" id="photoGallery">
+                <!-- Durga Puja 2024 -->
+                <div class="gallery-item" data-category="durga" data-aos="zoom-in" onclick="openLightbox(this)">
+                    <img src="https://static.wixstatic.com/media/c62f94_b2ca407644824da0bcb6399814ee8c32~mv2.jpg" alt="Durga Puja 2024" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-saffron);">2024</span>
+                    <div class="overlay">
+                        <h6>Durga Puja 2024</h6>
+                        <span><i class="fas fa-map-marker-alt me-1"></i>Jacksonville, FL</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Saraswati Puja 2025 -->
+                <div class="gallery-item" data-category="saraswati" data-aos="zoom-in" data-aos-delay="100" onclick="openLightbox(this)">
+                    <img src="https://static.wixstatic.com/media/c62f94_fa6ca99f02614d71a90c72eb29664861~mv2.jpg" alt="Saraswati Puja 2025" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-gold);">2025</span>
+                    <div class="overlay">
+                        <h6>Saraswati Puja 2025</h6>
+                        <span><i class="fas fa-music me-1"></i>Cultural Celebration</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Basant Bahaar 2021 -->
+                <div class="gallery-item" data-category="cultural" data-aos="zoom-in" data-aos-delay="200" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/fNqu5XFMdZc/maxresdefault.jpg" alt="Basant Bahaar 2021" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-green);">2021</span>
+                    <div class="overlay">
+                        <h6>Basant Bahaar</h6>
+                        <span><i class="fas fa-leaf me-1"></i>Spring Celebration</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Poila Baishakh 2020 -->
+                <div class="gallery-item" data-category="boishakh" data-aos="zoom-in" data-aos-delay="300" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/4yqXCE0mJ9w/maxresdefault.jpg" alt="Poila Baishakh 2020" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-burgundy);">2020</span>
+                    <div class="overlay">
+                        <h6>Pohela Boishakh 1427</h6>
+                        <span><i class="fas fa-sun me-1"></i>Bengali New Year</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Mahalaya 2020 -->
+                <div class="gallery-item" data-category="durga" data-aos="zoom-in" data-aos-delay="400" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/MqcX-vFtWZk/maxresdefault.jpg" alt="Mahalaya 2020" loading="lazy">
+                    <span class="year-badge" style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);">2020</span>
+                    <div class="overlay">
+                        <h6>Mahalaya</h6>
+                        <span><i class="fas fa-pray me-1"></i>Sacred Ceremony</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- BANF Community -->
+                <div class="gallery-item" data-category="cultural" data-aos="zoom-in" data-aos-delay="500" onclick="openLightbox(this)">
+                    <img src="https://static.wixstatic.com/media/c62f94_9e58db92918340338d8902f14016a55f~mv2.jpg" alt="BANF Community" loading="lazy">
+                    <span class="year-badge" style="background: linear-gradient(135deg, #E2725B 0%, #D4654A 100%);">2024</span>
+                    <div class="overlay">
+                        <h6>BANF Family</h6>
+                        <span><i class="fas fa-users me-1"></i>Community Gathering</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Durga Puja Pandal -->
+                <div class="gallery-item" data-category="durga" data-aos="zoom-in" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/7h3yYJUi-fA/maxresdefault.jpg" alt="Durga Puja Pandal" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-saffron);">2019</span>
+                    <div class="overlay">
+                        <h6>Durga Puja Pandal</h6>
+                        <span><i class="fas fa-om me-1"></i>10th Anniversary</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Anandadhara -->
+                <div class="gallery-item" data-category="cultural" data-aos="zoom-in" data-aos-delay="100" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/g_Io6mMkLAA/maxresdefault.jpg" alt="Anandadhara" loading="lazy">
+                    <span class="year-badge" style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);">2019</span>
+                    <div class="overlay">
+                        <h6>Anandadhara 2019</h6>
+                        <span><i class="fas fa-theater-masks me-1"></i>Cultural Extravaganza</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+
+                <!-- Saraswati Puja Kids -->
+                <div class="gallery-item" data-category="saraswati" data-aos="zoom-in" data-aos-delay="200" onclick="openLightbox(this)">
+                    <img src="https://i.ytimg.com/vi/RClgJ-bVLwc/maxresdefault.jpg" alt="Saraswati Puja Kids" loading="lazy">
+                    <span class="year-badge" style="background: var(--gradient-gold);">2020</span>
+                    <div class="overlay">
+                        <h6>Hate Khori Ceremony</h6>
+                        <span><i class="fas fa-child me-1"></i>Children's Learning</span>
+                    </div>
+                    <div class="zoom-icon"><i class="fas fa-expand"></i></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Gallery Section -->
+    <section style="background: var(--gradient-navy); color: var(--white);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 style="color: var(--white);">Video Gallery</h2>
+                <p style="color: rgba(255,255,255,0.7);">Watch highlights from our events on YouTube</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/fNqu5XFMdZc/maxresdefault.jpg" alt="Basant Bahaar 2021">
+                            <a href="https://www.youtube.com/watch?v=fNqu5XFMdZc" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Basant Bahaar 2021</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/4yqXCE0mJ9w/maxresdefault.jpg" alt="Poila Baishakh 2020">
+                            <a href="https://www.youtube.com/watch?v=4yqXCE0mJ9w" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Poila Baishakh 1427 (2020)</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/MqcX-vFtWZk/maxresdefault.jpg" alt="Mahalaya 2020">
+                            <a href="https://www.youtube.com/watch?v=MqcX-vFtWZk" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Mahalaya 2020</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/7h3yYJUi-fA/maxresdefault.jpg" alt="Durga Puja 2019">
+                            <a href="https://www.youtube.com/watch?v=7h3yYJUi-fA" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Durga Puja 2019 - 10th Anniversary</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/g_Io6mMkLAA/maxresdefault.jpg" alt="Anandadhara 2019">
+                            <a href="https://www.youtube.com/watch?v=g_Io6mMkLAA" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Anandadhara 2019</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="https://i.ytimg.com/vi/RClgJ-bVLwc/maxresdefault.jpg" alt="Saraswati Puja 2020">
+                            <a href="https://www.youtube.com/watch?v=RClgJ-bVLwc" target="_blank" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        <div class="video-body">
+                            <h5>Saraswati Puja 2020</h5>
+                            <p><i class="fab fa-youtube me-1" style="color: #FF0000;"></i>BANF Jacksonville</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4" data-aos="fade-up">
+                <a href="https://www.youtube.com/@banfjacksonville" target="_blank" class="btn btn-light btn-lg px-4">
+                    <i class="fab fa-youtube me-2" style="color: #FF0000;"></i>View All Videos on YouTube
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Bengali Association of North Florida. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <img src="" alt="" id="lightbox-img">
+            <div class="lightbox-caption" id="lightbox-caption"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true, offset: 50 });
+
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                document.querySelectorAll('.gallery-item').forEach(item => {
+                    if (filter === 'all' || item.dataset.category === filter) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Lightbox functionality
+        function openLightbox(element) {
+            const img = element.querySelector('img');
+            const title = element.querySelector('h6').textContent;
+            const subtitle = element.querySelector('.overlay span').textContent;
+            
+            document.getElementById('lightbox-img').src = img.src;
+            document.getElementById('lightbox-caption').innerHTML = `<h5>${title}</h5><p>${subtitle}</p>`;
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close lightbox on click outside
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+
+        // Close lightbox on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+    </script>
+</body>
+</html>

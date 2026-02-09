@@ -1,0 +1,364 @@
+// backend/finance.jsw
+// BANF Financial Management - Wix Velo Backend
+
+import wixData from 'wix-data';
+
+const FINANCIAL_COLLECTION = 'FinancialRecords';
+const ZELLE_COLLECTION = 'ZellePayments';
+const MEMBER_FEES_COLLECTION = 'MemberFees';
+
+/**
+ * Record a financial transaction (admin only)
+ */
+export async function recordTransaction(transactionData, adminId) {
+    try {
+        const transaction = {
+            transactionType: transactionData.type, // 'income' or 'expense'
+            amount: parseFloat(transactionData.amount),
+            description: transactionData.description,
+            category: transactionData.category, // membership, sponsorship, event, donation, etc.
+            subCategory: transactionData.subCategory || '',
+            eventName: transactionData.eventName || '',
+            transactionDate: new Date(transactionData.date),
+            receiptNumber: transactionData.receiptNumber || generateReceiptNumber(),
+            paymentMethod: transactionData.paymentMethod || 'cash',
+            bankReference: transactionData.bankReference || '',
+            memberId: transactionData.memberId || null,
+            isApproved: false,
+            approvedBy: null,
+            approvedAt: null,
+            receiptFile: transactionData.receiptFile || '',
+            notes: transactionData.notes || '',
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert(FINANCIAL_COLLECTION, transaction);
+        return { success: true, transaction: result };
+    } catch (error) {
+        console.error('Error recording transaction:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all transactions with filtering
+ */
+export async function getTransactions(filters = {}, options = { limit: 100, skip: 0 }) {
+    try {
+        let query = wixData.query(FINANCIAL_COLLECTION);
+        
+        // Apply filters
+        if (filters.type) {
+            query = query.eq('transactionType', filters.type);
+        }
+        if (filters.category) {
+            query = query.eq('category', filters.category);
+        }
+        if (filters.startDate) {
+            query = query.ge('transactionDate', new Date(filters.startDate));
+        }
+        if (filters.endDate) {
+            query = query.le('transactionDate', new Date(filters.endDate));
+        }
+        if (filters.isApproved !== undefined) {
+            query = query.eq('isApproved', filters.isApproved);
+        }
+        
+        query = query
+            .descending('transactionDate')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find();
+        
+        return {
+            items: result.items,
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting transactions:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Approve a transaction (admin only)
+ */
+export async function approveTransaction(transactionId, adminId, notes = '') {
+    try {
+        const transaction = await wixData.get(FINANCIAL_COLLECTION, transactionId);
+        if (!transaction) {
+            return { success: false, error: 'Transaction not found' };
+        }
+        
+        transaction.isApproved = true;
+        transaction.approvedBy = adminId;
+        transaction.approvedAt = new Date();
+        transaction.notes = transaction.notes + '\nApproval: ' + notes;
+        transaction._updatedDate = new Date();
+        
+        await wixData.update(FINANCIAL_COLLECTION, transaction);
+        return { success: true };
+    } catch (error) {
+        console.error('Error approving transaction:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get financial summary for dashboard
+ */
+export async function getFinancialSummary(year = null) {
+    try {
+        const targetYear = year || new Date().getFullYear();
+        const startDate = new Date(targetYear, 0, 1);
+        const endDate = new Date(targetYear, 11, 31, 23, 59, 59);
+        
+        // Get all approved transactions for the year
+        const result = await wixData.query(FINANCIAL_COLLECTION)
+            .ge('transactionDate', startDate)
+            .le('transactionDate', endDate)
+            .eq('isApproved', true)
+            .find();
+        
+        const transactions = result.items;
+        
+        // Calculate totals
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        const incomeByCategory = {};
+        const expensesByCategory = {};
+        const monthlyData = {};
+        
+        transactions.forEach(t => {
+            const month = t.transactionDate.getMonth();
+            const monthKey = `${targetYear}-${String(month + 1).padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { income: 0, expenses: 0 };
+            }
+            
+            if (t.transactionType === 'income') {
+                totalIncome += t.amount;
+                incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + t.amount;
+                monthlyData[monthKey].income += t.amount;
+            } else {
+                totalExpenses += t.amount;
+                expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+                monthlyData[monthKey].expenses += t.amount;
+            }
+        });
+        
+        return {
+            year: targetYear,
+            totalIncome: totalIncome.toFixed(2),
+            totalExpenses: totalExpenses.toFixed(2),
+            netBalance: (totalIncome - totalExpenses).toFixed(2),
+            incomeByCategory,
+            expensesByCategory,
+            monthlyData,
+            transactionCount: transactions.length
+        };
+    } catch (error) {
+        console.error('Error getting financial summary:', error);
+        return null;
+    }
+}
+
+/**
+ * Record Zelle payment
+ */
+export async function recordZellePayment(paymentData) {
+    try {
+        // Check for duplicate
+        const existing = await wixData.query(ZELLE_COLLECTION)
+            .eq('zelleCode', paymentData.zelleCode)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Payment with this code already exists' };
+        }
+        
+        const payment = {
+            zelleCode: paymentData.zelleCode,
+            transactionId: paymentData.transactionId || '',
+            senderName: paymentData.senderName,
+            senderEmail: paymentData.senderEmail || '',
+            senderPhone: paymentData.senderPhone || '',
+            amount: parseFloat(paymentData.amount),
+            description: paymentData.description || '',
+            memberName: paymentData.memberName || '',
+            paymentType: paymentData.paymentType || 'membership', // membership, event, donation
+            isVerified: false,
+            memberId: paymentData.memberId || null,
+            registrationId: paymentData.registrationId || null,
+            verifiedBy: null,
+            verificationNotes: '',
+            paymentDate: new Date(paymentData.paymentDate || Date.now()),
+            _createdDate: new Date(),
+            verifiedAt: null
+        };
+        
+        const result = await wixData.insert(ZELLE_COLLECTION, payment);
+        return { success: true, paymentId: result._id };
+    } catch (error) {
+        console.error('Error recording Zelle payment:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Verify Zelle payment (admin only)
+ */
+export async function verifyZellePayment(paymentId, adminId, notes = '') {
+    try {
+        const payment = await wixData.get(ZELLE_COLLECTION, paymentId);
+        if (!payment) {
+            return { success: false, error: 'Payment not found' };
+        }
+        
+        payment.isVerified = true;
+        payment.verifiedBy = adminId;
+        payment.verifiedAt = new Date();
+        payment.verificationNotes = notes;
+        
+        await wixData.update(ZELLE_COLLECTION, payment);
+        
+        // Create corresponding financial record
+        await recordTransaction({
+            type: 'income',
+            amount: payment.amount,
+            description: `Zelle payment from ${payment.senderName} - ${payment.zelleCode}`,
+            category: payment.paymentType,
+            paymentMethod: 'zelle',
+            memberId: payment.memberId,
+            date: payment.paymentDate
+        }, adminId);
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error verifying Zelle payment:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get pending Zelle payments (admin)
+ */
+export async function getPendingZellePayments() {
+    try {
+        const result = await wixData.query(ZELLE_COLLECTION)
+            .eq('isVerified', false)
+            .descending('paymentDate')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting pending payments:', error);
+        return [];
+    }
+}
+
+/**
+ * Record member fee
+ */
+export async function recordMemberFee(feeData, adminId) {
+    try {
+        const fee = {
+            memberId: feeData.memberId,
+            amount: parseFloat(feeData.amount),
+            feeType: feeData.feeType, // monthly, annual, registration, event
+            description: feeData.description || '',
+            dueDate: new Date(feeData.dueDate),
+            paidDate: feeData.paidDate ? new Date(feeData.paidDate) : null,
+            paymentStatus: feeData.paidDate ? 'paid' : 'pending',
+            paymentMethod: feeData.paymentMethod || '',
+            receiptNumber: feeData.receiptNumber || '',
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert(MEMBER_FEES_COLLECTION, fee);
+        return { success: true, fee: result };
+    } catch (error) {
+        console.error('Error recording member fee:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member fees
+ */
+export async function getMemberFees(memberId) {
+    try {
+        const result = await wixData.query(MEMBER_FEES_COLLECTION)
+            .eq('memberId', memberId)
+            .descending('dueDate')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting member fees:', error);
+        return [];
+    }
+}
+
+/**
+ * Get overdue fees
+ */
+export async function getOverdueFees() {
+    try {
+        const today = new Date();
+        
+        const result = await wixData.query(MEMBER_FEES_COLLECTION)
+            .eq('paymentStatus', 'pending')
+            .lt('dueDate', today)
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting overdue fees:', error);
+        return [];
+    }
+}
+
+// Helper functions
+function generateReceiptNumber() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 5);
+    return `BANF-${timestamp}-${random}`.toUpperCase();
+}
+
+/**
+ * Get income by category breakdown
+ */
+export async function getIncomeCategoryBreakdown(year = null) {
+    try {
+        const summary = await getFinancialSummary(year);
+        if (!summary) return null;
+        
+        const categories = [
+            { name: 'Membership', key: 'membership', color: '#FF6B35' },
+            { name: 'Sponsorship', key: 'sponsorship', color: '#006A4E' },
+            { name: 'Events', key: 'event', color: '#8B0000' },
+            { name: 'Donations', key: 'donation', color: '#D4AF37' },
+            { name: 'Other', key: 'other', color: '#6c757d' }
+        ];
+        
+        return categories.map(cat => ({
+            name: cat.name,
+            amount: summary.incomeByCategory[cat.key] || 0,
+            color: cat.color,
+            percentage: summary.totalIncome > 0 
+                ? ((summary.incomeByCategory[cat.key] || 0) / parseFloat(summary.totalIncome) * 100).toFixed(1)
+                : 0
+        }));
+    } catch (error) {
+        console.error('Error getting category breakdown:', error);
+        return null;
+    }
+}

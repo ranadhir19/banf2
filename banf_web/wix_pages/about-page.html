@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - BANF Jacksonville</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --saffron: #FF6B35;
+            --saffron-dark: #E85A24;
+            --bengal-green: #006A4E;
+            --bengal-green-light: #00856F;
+            --burgundy: #8B0000;
+            --gold: #D4AF37;
+            --gold-light: #E5C158;
+            --terracotta: #E2725B;
+            --navy: #1a1a2e;
+            --white: #ffffff;
+            --off-white: #f8f9fa;
+            --cream: #FFF8E7;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            --gradient-saffron: linear-gradient(135deg, #FF6B35 0%, #f7931e 100%);
+            --gradient-green: linear-gradient(135deg, #006A4E 0%, #00856F 100%);
+            --gradient-burgundy: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
+            --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+            --gradient-navy: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--off-white);
+            color: var(--gray-700);
+            line-height: 1.7;
+        }
+        h1, h2, h3, h4, h5 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            color: var(--navy);
+        }
+        .bengali-text { font-family: 'Hind Siliguri', sans-serif; }
+
+        /* Page Header */
+        .page-header {
+            background: var(--gradient-green);
+            min-height: 350px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://static.wixstatic.com/media/c62f94_9e58db92918340338d8902f14016a55f~mv2.jpg') center/cover;
+            opacity: 0.15;
+        }
+        .page-header-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: var(--white);
+        }
+        .page-header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .page-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .breadcrumb-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .breadcrumb-nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .breadcrumb-nav a:hover { color: var(--white); }
+        .breadcrumb-nav span { color: var(--gold); }
+
+        /* Section Styles */
+        section { padding: 5rem 0; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        .section-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+        .section-header p {
+            color: var(--gray-500);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+        }
+
+        /* Mission & Vision Cards */
+        .mission-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2.5rem;
+            height: 100%;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s ease;
+            border-top: 5px solid;
+        }
+        .mission-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        .mission-card .icon-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--white);
+            margin-bottom: 1.5rem;
+        }
+        .mission-card h4 {
+            margin-bottom: 1rem;
+        }
+        .mission-card p {
+            color: var(--gray-500);
+            margin: 0;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            display: flex;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        .timeline-item:nth-child(odd) {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-right: 4rem;
+            margin-left: 0;
+        }
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-left: 4rem;
+        }
+        .timeline-content {
+            flex: 1;
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+        }
+        .timeline-year {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background: var(--gradient-saffron);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+        .timeline-content h5 {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .timeline-content p {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            background: var(--gradient-saffron);
+            padding: 4rem 0;
+        }
+        .stat-box {
+            text-align: center;
+            color: var(--white);
+        }
+        .stat-box .number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        .stat-box .label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* EC Members Grid */
+        .ec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+        .ec-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s ease;
+        }
+        .ec-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        .ec-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--white);
+            background: var(--gradient-saffron);
+        }
+        .ec-avatar-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 1rem;
+            border: 4px solid var(--saffron);
+        }
+        .ec-position {
+            display: inline-block;
+            background: var(--gradient-saffron);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .ec-card h6 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .ec-card small {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+        }
+
+        /* Past Committees Accordion */
+        .committee-accordion .accordion-item {
+            border: none;
+            background: var(--white);
+            border-radius: 12px !important;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+        .committee-accordion .accordion-button {
+            background: var(--white);
+            font-weight: 600;
+            color: var(--navy);
+            padding: 1.25rem 1.5rem;
+        }
+        .committee-accordion .accordion-button:not(.collapsed) {
+            background: var(--gradient-saffron);
+            color: var(--white);
+        }
+        .committee-accordion .accordion-button::after {
+            filter: brightness(0);
+        }
+        .committee-accordion .accordion-button:not(.collapsed)::after {
+            filter: brightness(10);
+        }
+        .committee-accordion .accordion-body {
+            padding: 1.5rem;
+        }
+        .committee-member {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .committee-member:last-child {
+            border-bottom: none;
+        }
+        .committee-member .role {
+            width: 180px;
+            font-weight: 600;
+            color: var(--saffron);
+            font-size: 0.9rem;
+        }
+        .committee-member .name {
+            color: var(--gray-700);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--navy);
+            color: var(--white);
+            padding: 3rem 0 1.5rem;
+        }
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .footer-bottom p {
+            color: rgba(255,255,255,0.5);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .timeline-container::before { left: 30px; }
+            .timeline-item {
+                flex-direction: row !important;
+                text-align: left !important;
+            }
+            .timeline-item .timeline-content {
+                margin-left: 4rem !important;
+                margin-right: 0 !important;
+            }
+            .timeline-year {
+                left: 30px;
+                width: 60px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <div class="page-header-content">
+                <h1>About BANF</h1>
+                <p class="bengali-text">নর্থ ফ্লোরিডার বাঙালি সমিতি • ১৭ বছরের গৌরবময় ঐতিহ্য</p>
+                <div class="breadcrumb-nav">
+                    <a href="/"><i class="fas fa-home me-1"></i>Home</a>
+                    <span>/</span>
+                    <span>About Us</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mission & Vision Section -->
+    <section class="bg-white">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Our Mission & Values</h2>
+                <p>Building bridges between generations and preserving our cultural heritage</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 mb-4" data-aos="fade-up">
+                    <div class="mission-card" style="border-color: var(--saffron);">
+                        <div class="icon-box" style="background: var(--gradient-saffron);">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h4>Our Mission</h4>
+                        <p>To preserve and promote Bengali literature, art, music, and cultural heritage while fostering a sense of community among Bengalis in North Florida.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="mission-card" style="border-color: var(--bengal-green);">
+                        <div class="icon-box" style="background: var(--gradient-green);">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h4>Our Vision</h4>
+                        <p>To be the leading cultural organization that bridges generations, preserves traditions, and creates a vibrant Bengali community experience in Jacksonville.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="mission-card" style="border-color: var(--gold);">
+                        <div class="icon-box" style="background: var(--gradient-gold);">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h4>Our Values</h4>
+                        <p>Unity, respect for tradition, cultural preservation, community service, and passing our rich heritage to future generations with love and pride.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="container">
+            <div class="row">
+                <div class="col-6 col-md-3 mb-3 mb-md-0" data-aos="fade-up">
+                    <div class="stat-box">
+                        <div class="number">17</div>
+                        <div class="label">Years of Heritage</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3 mb-md-0" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stat-box">
+                        <div class="number">200+</div>
+                        <div class="label">Active Members</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stat-box">
+                        <div class="number">100+</div>
+                        <div class="label">Events Organized</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stat-box">
+                        <div class="number">17</div>
+                        <div class="label">Past Committees</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Timeline Section -->
+    <section>
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Our Journey</h2>
+                <p>From humble beginnings to a thriving cultural community</p>
+            </div>
+            <div class="timeline-container">
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2008</span>
+                    <div class="timeline-content">
+                        <h5>BANF Founded</h5>
+                        <p>Bengali Association of North Florida was established as a 501(c)(3) non-profit organization in Jacksonville.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2009</span>
+                    <div class="timeline-content">
+                        <h5>First Durga Puja</h5>
+                        <p>Organized our inaugural Durga Puja celebration, bringing the Jacksonville Bengali community together.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2012</span>
+                    <div class="timeline-content">
+                        <h5>Community Growth</h5>
+                        <p>Membership grew to 100+ families. Expanded cultural programming with Saraswati Puja and Pohela Boishakh.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2015</span>
+                    <div class="timeline-content">
+                        <h5>Anandadhara Launched</h5>
+                        <p>Started our signature annual cultural extravaganza "Anandadhara" - Stream of Joy.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2019</span>
+                    <div class="timeline-content">
+                        <h5>10th Anniversary Durga Puja</h5>
+                        <p>Celebrated a decade of Durga Puja with record attendance and special cultural programs.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2020</span>
+                    <div class="timeline-content">
+                        <h5>Digital Adaptation</h5>
+                        <p>Pivoted to virtual events during the pandemic, keeping the community connected through online celebrations.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2022</span>
+                    <div class="timeline-content">
+                        <h5>Post-Pandemic Revival</h5>
+                        <p>Returned to in-person celebrations with renewed enthusiasm and community spirit.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-up">
+                    <span class="timeline-year">2025</span>
+                    <div class="timeline-content">
+                        <h5>New Era Begins</h5>
+                        <p>Launching modernized digital platform, expanding community outreach, and planning for future growth.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current EC Section -->
+    <section style="background: var(--cream);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Executive Committee 2025-26</h2>
+                <p>Meet the leadership team serving our community</p>
+            </div>
+            <div class="ec-grid">
+                <div class="ec-card" data-aos="fade-up">
+                    <img src="https://via.placeholder.com/90" alt="Dr Ranadhir Ghosh" class="ec-avatar-img">
+                    <span class="ec-position">President</span>
+                    <h6>Dr Ranadhir Ghosh</h6>
+                    <small>Strategic Planning</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="50">
+                    <img src="https://via.placeholder.com/90" alt="Partha Mukhopadhyay" class="ec-avatar-img">
+                    <span class="ec-position">Vice President</span>
+                    <h6>Partha Mukhopadhyay</h6>
+                    <small>Deputy Executive</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="ec-avatar">AC</div>
+                    <span class="ec-position">Treasurer</span>
+                    <h6>Amit Chandak</h6>
+                    <small>Financial Management</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="150">
+                    <img src="https://via.placeholder.com/90" alt="Dr Payel Banerjee" class="ec-avatar-img">
+                    <span class="ec-position">General Secretary</span>
+                    <h6>Dr Payel Banerjee</h6>
+                    <small>Community Outreach</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="200">
+                    <img src="https://via.placeholder.com/90" alt="Dr Moumita Ghosh" class="ec-avatar-img">
+                    <span class="ec-position">Cultural Secretary</span>
+                    <h6>Dr Moumita Ghosh</h6>
+                    <small>Cultural Programming</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="250">
+                    <div class="ec-avatar">BD</div>
+                    <span class="ec-position">Food Coordinator</span>
+                    <h6>Banty Dutta</h6>
+                    <small>Food & Catering</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="ec-avatar">RG</div>
+                    <span class="ec-position">Event Planner</span>
+                    <h6>Rajanya Ghosh</h6>
+                    <small>Event Planning</small>
+                </div>
+                <div class="ec-card" data-aos="fade-up" data-aos-delay="350">
+                    <div class="ec-avatar">RC</div>
+                    <span class="ec-position">Puja Coordinator</span>
+                    <h6>Rwiti Choudhury</h6>
+                    <small>Puja Coordination</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Past Committees Section -->
+    <section>
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Past Committees</h2>
+                <p>Honoring those who served our community</p>
+            </div>
+            <div class="accordion committee-accordion" id="pastCommittees" data-aos="fade-up">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ec2024">
+                            <i class="fas fa-users me-2"></i>2024-25 Executive Committee
+                        </button>
+                    </h2>
+                    <div id="ec2024" class="accordion-collapse collapse" data-bs-parent="#pastCommittees">
+                        <div class="accordion-body">
+                            <div class="committee-member"><span class="role">President</span><span class="name">Ritayan Gupta</span></div>
+                            <div class="committee-member"><span class="role">Vice President</span><span class="name">Priyanka Chatterjee</span></div>
+                            <div class="committee-member"><span class="role">Treasurer</span><span class="name">Avijit Bhuiyan</span></div>
+                            <div class="committee-member"><span class="role">General Secretary</span><span class="name">Debasmita Dey</span></div>
+                            <div class="committee-member"><span class="role">Cultural Secretary</span><span class="name">Shreyasee Dutta</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ec2023">
+                            <i class="fas fa-users me-2"></i>2023-24 Executive Committee
+                        </button>
+                    </h2>
+                    <div id="ec2023" class="accordion-collapse collapse" data-bs-parent="#pastCommittees">
+                        <div class="accordion-body">
+                            <div class="committee-member"><span class="role">President</span><span class="name">Soumyajit Banerjee</span></div>
+                            <div class="committee-member"><span class="role">Vice President</span><span class="name">Suchandra Roy</span></div>
+                            <div class="committee-member"><span class="role">Treasurer</span><span class="name">Aniruddha Das</span></div>
+                            <div class="committee-member"><span class="role">General Secretary</span><span class="name">Madhurima Sen</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ec2022">
+                            <i class="fas fa-users me-2"></i>2022-23 Executive Committee
+                        </button>
+                    </h2>
+                    <div id="ec2022" class="accordion-collapse collapse" data-bs-parent="#pastCommittees">
+                        <div class="accordion-body">
+                            <div class="committee-member"><span class="role">President</span><span class="name">Dipankar Ghosh</span></div>
+                            <div class="committee-member"><span class="role">Vice President</span><span class="name">Anindita Mukherjee</span></div>
+                            <div class="committee-member"><span class="role">Treasurer</span><span class="name">Sandip Chakraborty</span></div>
+                            <div class="committee-member"><span class="role">General Secretary</span><span class="name">Riya Sengupta</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact CTA -->
+    <section style="background: var(--gradient-navy); color: var(--white); text-align: center;">
+        <div class="container" data-aos="fade-up">
+            <h3 style="color: var(--white); margin-bottom: 1rem;">Want to Get Involved?</h3>
+            <p style="color: rgba(255,255,255,0.8); max-width: 600px; margin: 0 auto 2rem;">Join BANF and be part of our vibrant Bengali community in Jacksonville. Volunteer, participate, or lead!</p>
+            <a href="/membership" class="btn btn-lg px-4" style="background: var(--gradient-saffron); color: var(--white); border: none; border-radius: 50px; font-weight: 600;">
+                <i class="fas fa-user-plus me-2"></i>Become a Member
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Bengali Association of North Florida. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true, offset: 50 });
+    </script>
+</body>
+</html>

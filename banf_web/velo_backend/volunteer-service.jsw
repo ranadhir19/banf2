@@ -1,0 +1,761 @@
+/**
+ * BANF Volunteer Management Service
+ * ===================================
+ * Wix Velo Backend Module for volunteer coordination
+ * 
+ * Features:
+ * - Volunteer registration and skills tracking
+ * - Task assignment and scheduling
+ * - Shift management
+ * - Hours tracking and recognition
+ * - Communication and notifications
+ * 
+ * @module backend/volunteer-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+// =====================================================
+// VOLUNTEER SKILL CATEGORIES
+// =====================================================
+
+const SKILL_CATEGORIES = {
+    COOKING: { id: 'cooking', name: 'Cooking', icon: '👨‍🍳', tasks: ['food_prep', 'serving', 'kitchen_cleanup'] },
+    DECORATION: { id: 'decoration', name: 'Decoration', icon: '🎨', tasks: ['setup', 'decor', 'stage'] },
+    TECHNICAL: { id: 'technical', name: 'Technical', icon: '💻', tasks: ['av_setup', 'lighting', 'streaming'] },
+    REGISTRATION: { id: 'registration', name: 'Registration', icon: '📋', tasks: ['check_in', 'qr_scanning', 'badge'] },
+    SECURITY: { id: 'security', name: 'Security', icon: '🔒', tasks: ['parking', 'crowd_control', 'entry'] },
+    KIDS_ACTIVITY: { id: 'kids_activity', name: 'Kids Activity', icon: '🎈', tasks: ['games', 'supervision', 'crafts'] },
+    PHOTOGRAPHY: { id: 'photography', name: 'Photography', icon: '📷', tasks: ['photo', 'video', 'social_media'] },
+    EMCEE: { id: 'emcee', name: 'Emcee/Host', icon: '🎤', tasks: ['hosting', 'announcements', 'coordination'] },
+    CLEANUP: { id: 'cleanup', name: 'Cleanup', icon: '🧹', tasks: ['venue_cleanup', 'packing', 'disposal'] },
+    TRANSPORTATION: { id: 'transportation', name: 'Transportation', icon: '🚗', tasks: ['pickup', 'delivery', 'shuttle'] },
+    GENERAL: { id: 'general', name: 'General Help', icon: '🤝', tasks: ['assistance', 'any_task'] }
+};
+
+const VOLUNTEER_STATUS = {
+    REGISTERED: 'registered',
+    ACTIVE: 'active',
+    INACTIVE: 'inactive'
+};
+
+const TASK_STATUS = {
+    OPEN: 'open',
+    ASSIGNED: 'assigned',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled'
+};
+
+// =====================================================
+// VOLUNTEER REGISTRATION
+// =====================================================
+
+/**
+ * Register as a volunteer
+ * @param {Object} volunteerData
+ */
+export async function registerVolunteer(volunteerData) {
+    const member = await currentMember.getMember();
+    
+    try {
+        // Check if already registered
+        const existing = await wixData.query('Volunteers')
+            .eq('memberId', member?._id || volunteerData.email)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Already registered as volunteer' };
+        }
+        
+        const volunteer = await wixData.insert('Volunteers', {
+            memberId: member?._id || null,
+            
+            // Personal Info
+            firstName: volunteerData.firstName,
+            lastName: volunteerData.lastName,
+            email: volunteerData.email,
+            phone: volunteerData.phone,
+            
+            // Skills
+            skills: volunteerData.skills || ['general'],
+            skillDetails: volunteerData.skillDetails || '',
+            languages: volunteerData.languages || ['english', 'bengali'],
+            
+            // Availability
+            availability: volunteerData.availability || {
+                weekday_evening: false,
+                weekend_morning: true,
+                weekend_afternoon: true,
+                weekend_evening: true
+            },
+            
+            // Preferences
+            preferredTasks: volunteerData.preferredTasks || [],
+            restrictions: volunteerData.restrictions || '',
+            emergencyContact: volunteerData.emergencyContact || '',
+            
+            // Status
+            status: VOLUNTEER_STATUS.REGISTERED,
+            isVerified: false,
+            
+            // Stats
+            totalHours: 0,
+            eventsVolunteered: 0,
+            rating: 5.0,
+            badges: [],
+            
+            // Metadata
+            registeredAt: new Date(),
+            lastActive: new Date()
+        });
+        
+        // Send confirmation
+        await triggeredEmails.emailContact(
+            'volunteer_registration',
+            volunteerData.email,
+            {
+                variables: {
+                    name: volunteerData.firstName,
+                    skills: volunteerData.skills?.join(', ') || 'General Help'
+                }
+            }
+        );
+        
+        await logVolunteerActivity(volunteer._id, 'REGISTERED', 'New volunteer registration');
+        
+        return {
+            success: true,
+            volunteerId: volunteer._id,
+            message: 'Thank you for registering as a BANF volunteer!'
+        };
+        
+    } catch (error) {
+        console.error('Error registering volunteer:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update volunteer profile
+ * @param {string} volunteerId
+ * @param {Object} updates
+ */
+export async function updateVolunteerProfile(volunteerId, updates) {
+    const member = await currentMember.getMember();
+    
+    try {
+        const volunteer = await wixData.get('Volunteers', volunteerId);
+        
+        if (!volunteer) {
+            return { success: false, error: 'Volunteer not found' };
+        }
+        
+        // Verify ownership or admin
+        if (volunteer.memberId !== member?._id && !await isAdmin(member?._id)) {
+            return { success: false, error: 'Unauthorized' };
+        }
+        
+        // Apply updates
+        const allowedUpdates = ['phone', 'skills', 'skillDetails', 'languages', 
+            'availability', 'preferredTasks', 'restrictions', 'emergencyContact'];
+        
+        for (const key of allowedUpdates) {
+            if (updates[key] !== undefined) {
+                volunteer[key] = updates[key];
+            }
+        }
+        
+        volunteer.lastModified = new Date();
+        
+        await wixData.update('Volunteers', volunteer);
+        
+        return {
+            success: true,
+            message: 'Profile updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error updating volunteer:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// EVENT VOLUNTEER MANAGEMENT
+// =====================================================
+
+/**
+ * Create volunteer tasks for an event
+ * @param {string} eventId
+ * @param {Array} tasks
+ */
+export async function createEventTasks(eventId, tasks) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        const createdTasks = [];
+        
+        for (const task of tasks) {
+            const newTask = await wixData.insert('VolunteerTasks', {
+                eventId: eventId,
+                eventTitle: event.title,
+                eventDate: event.eventDate,
+                
+                // Task Details
+                taskName: task.name,
+                taskDescription: task.description || '',
+                category: task.category || 'general',
+                
+                // Timing
+                startTime: task.startTime,
+                endTime: task.endTime,
+                duration: calculateDuration(task.startTime, task.endTime),
+                
+                // Requirements
+                requiredSkills: task.requiredSkills || [],
+                volunteersNeeded: task.volunteersNeeded || 1,
+                volunteersAssigned: 0,
+                
+                // Location
+                location: task.location || event.venueName,
+                meetingPoint: task.meetingPoint || '',
+                
+                // Status
+                status: TASK_STATUS.OPEN,
+                
+                // Assignments
+                assignments: [],
+                
+                // Notes
+                instructions: task.instructions || '',
+                equipment: task.equipment || [],
+                
+                createdBy: member._id,
+                createdAt: new Date()
+            });
+            
+            createdTasks.push(newTask);
+        }
+        
+        await logVolunteerActivity(null, 'TASKS_CREATED', 
+            `Created ${createdTasks.length} tasks for ${event.title}`);
+        
+        return {
+            success: true,
+            createdCount: createdTasks.length,
+            tasks: createdTasks
+        };
+        
+    } catch (error) {
+        console.error('Error creating tasks:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Volunteer sign up for a task
+ * @param {string} taskId
+ * @param {Object} signupData
+ */
+export async function signUpForTask(taskId, signupData = {}) {
+    const member = await currentMember.getMember();
+    
+    try {
+        const task = await wixData.get('VolunteerTasks', taskId);
+        
+        if (!task) {
+            return { success: false, error: 'Task not found' };
+        }
+        
+        if (task.volunteersAssigned >= task.volunteersNeeded) {
+            return { success: false, error: 'Task is fully staffed' };
+        }
+        
+        // Get volunteer record
+        let volunteer;
+        if (member) {
+            const volunteers = await wixData.query('Volunteers')
+                .eq('memberId', member._id)
+                .find();
+            volunteer = volunteers.items[0];
+        }
+        
+        // Check for existing signup
+        const existingAssignment = task.assignments?.find(
+            a => a.volunteerId === volunteer?._id || a.email === signupData.email
+        );
+        
+        if (existingAssignment) {
+            return { success: false, error: 'Already signed up for this task' };
+        }
+        
+        // Create assignment
+        const assignment = {
+            assignmentId: `ASN_${Date.now()}`,
+            volunteerId: volunteer?._id || null,
+            volunteerName: volunteer 
+                ? `${volunteer.firstName} ${volunteer.lastName}`
+                : signupData.name,
+            email: volunteer?.email || signupData.email,
+            phone: volunteer?.phone || signupData.phone,
+            signedUpAt: new Date(),
+            status: 'confirmed',
+            checkedIn: false,
+            checkedOut: false
+        };
+        
+        // Update task
+        task.assignments = [...(task.assignments || []), assignment];
+        task.volunteersAssigned = (task.volunteersAssigned || 0) + 1;
+        
+        if (task.volunteersAssigned >= task.volunteersNeeded) {
+            task.status = TASK_STATUS.ASSIGNED;
+        }
+        
+        await wixData.update('VolunteerTasks', task);
+        
+        // Update volunteer stats
+        if (volunteer) {
+            volunteer.eventsVolunteered = (volunteer.eventsVolunteered || 0) + 1;
+            volunteer.lastActive = new Date();
+            await wixData.update('Volunteers', volunteer);
+        }
+        
+        // Send confirmation
+        await triggeredEmails.emailContact(
+            'volunteer_task_confirmation',
+            assignment.email,
+            {
+                variables: {
+                    name: assignment.volunteerName,
+                    taskName: task.taskName,
+                    eventTitle: task.eventTitle,
+                    eventDate: formatDate(task.eventDate),
+                    startTime: task.startTime,
+                    endTime: task.endTime,
+                    location: task.location,
+                    instructions: task.instructions
+                }
+            }
+        );
+        
+        await logVolunteerActivity(volunteer?._id, 'TASK_SIGNUP', 
+            `Signed up for ${task.taskName} at ${task.eventTitle}`);
+        
+        return {
+            success: true,
+            assignmentId: assignment.assignmentId,
+            message: `Successfully signed up for ${task.taskName}`
+        };
+        
+    } catch (error) {
+        console.error('Error signing up:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get available tasks for an event
+ * @param {string} eventId
+ * @param {Object} filters - { skills, date }
+ */
+export async function getAvailableTasks(eventId, filters = {}) {
+    try {
+        let query = wixData.query('VolunteerTasks')
+            .eq('eventId', eventId)
+            .eq('status', TASK_STATUS.OPEN);
+        
+        const tasks = await query.find();
+        
+        // Filter by skills if provided
+        let filteredTasks = tasks.items;
+        if (filters.skills?.length) {
+            filteredTasks = filteredTasks.filter(task => 
+                task.requiredSkills.some(skill => filters.skills.includes(skill)) ||
+                task.requiredSkills.length === 0
+            );
+        }
+        
+        return {
+            success: true,
+            tasks: filteredTasks.map(task => ({
+                _id: task._id,
+                name: task.taskName,
+                description: task.taskDescription,
+                category: task.category,
+                categoryIcon: SKILL_CATEGORIES[task.category.toUpperCase()]?.icon || '🤝',
+                startTime: task.startTime,
+                endTime: task.endTime,
+                duration: task.duration,
+                location: task.location,
+                spotsAvailable: task.volunteersNeeded - task.volunteersAssigned,
+                requiredSkills: task.requiredSkills
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting tasks:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// CHECK-IN / CHECK-OUT
+// =====================================================
+
+/**
+ * Check in volunteer for a task
+ * @param {string} taskId
+ * @param {string} assignmentId
+ */
+export async function checkInVolunteer(taskId, assignmentId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const task = await wixData.get('VolunteerTasks', taskId);
+        
+        if (!task) {
+            return { success: false, error: 'Task not found' };
+        }
+        
+        const assignment = task.assignments?.find(a => a.assignmentId === assignmentId);
+        
+        if (!assignment) {
+            return { success: false, error: 'Assignment not found' };
+        }
+        
+        assignment.checkedIn = true;
+        assignment.checkInTime = new Date();
+        assignment.checkedInBy = member._id;
+        
+        if (task.status === TASK_STATUS.ASSIGNED) {
+            task.status = TASK_STATUS.IN_PROGRESS;
+        }
+        
+        await wixData.update('VolunteerTasks', task);
+        
+        return {
+            success: true,
+            message: `${assignment.volunteerName} checked in`
+        };
+        
+    } catch (error) {
+        console.error('Error checking in:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Check out volunteer from a task
+ * @param {string} taskId
+ * @param {string} assignmentId
+ * @param {Object} checkoutData - { notes, rating }
+ */
+export async function checkOutVolunteer(taskId, assignmentId, checkoutData = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const task = await wixData.get('VolunteerTasks', taskId);
+        const assignment = task.assignments?.find(a => a.assignmentId === assignmentId);
+        
+        if (!assignment) {
+            return { success: false, error: 'Assignment not found' };
+        }
+        
+        assignment.checkedOut = true;
+        assignment.checkOutTime = new Date();
+        assignment.checkedOutBy = member._id;
+        assignment.notes = checkoutData.notes || '';
+        assignment.rating = checkoutData.rating || 5;
+        
+        // Calculate hours worked
+        if (assignment.checkInTime) {
+            const hours = (new Date() - new Date(assignment.checkInTime)) / (1000 * 60 * 60);
+            assignment.hoursWorked = Math.round(hours * 100) / 100;
+            
+            // Update volunteer total hours
+            if (assignment.volunteerId) {
+                const volunteer = await wixData.get('Volunteers', assignment.volunteerId);
+                if (volunteer) {
+                    volunteer.totalHours = (volunteer.totalHours || 0) + assignment.hoursWorked;
+                    
+                    // Check for badges
+                    const newBadges = checkForBadges(volunteer);
+                    if (newBadges.length > 0) {
+                        volunteer.badges = [...(volunteer.badges || []), ...newBadges];
+                    }
+                    
+                    await wixData.update('Volunteers', volunteer);
+                }
+            }
+        }
+        
+        // Check if all assignments completed
+        const allCompleted = task.assignments.every(a => a.checkedOut);
+        if (allCompleted) {
+            task.status = TASK_STATUS.COMPLETED;
+        }
+        
+        await wixData.update('VolunteerTasks', task);
+        
+        return {
+            success: true,
+            hoursWorked: assignment.hoursWorked,
+            message: `${assignment.volunteerName} checked out (${assignment.hoursWorked} hours)`
+        };
+        
+    } catch (error) {
+        console.error('Error checking out:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+function checkForBadges(volunteer) {
+    const newBadges = [];
+    const hours = volunteer.totalHours || 0;
+    const events = volunteer.eventsVolunteered || 0;
+    const existingBadges = volunteer.badges || [];
+    
+    // Hour-based badges
+    if (hours >= 100 && !existingBadges.includes('century_volunteer')) {
+        newBadges.push({ id: 'century_volunteer', name: 'Century Volunteer', icon: '💯', earnedAt: new Date() });
+    } else if (hours >= 50 && !existingBadges.includes('super_volunteer')) {
+        newBadges.push({ id: 'super_volunteer', name: 'Super Volunteer', icon: '⭐', earnedAt: new Date() });
+    } else if (hours >= 20 && !existingBadges.includes('dedicated_volunteer')) {
+        newBadges.push({ id: 'dedicated_volunteer', name: 'Dedicated Volunteer', icon: '🏅', earnedAt: new Date() });
+    }
+    
+    // Event-based badges
+    if (events >= 10 && !existingBadges.includes('event_regular')) {
+        newBadges.push({ id: 'event_regular', name: 'Event Regular', icon: '🎪', earnedAt: new Date() });
+    }
+    
+    return newBadges;
+}
+
+// =====================================================
+// VOLUNTEER ANALYTICS
+// =====================================================
+
+/**
+ * Get volunteer statistics for an event
+ * @param {string} eventId
+ */
+export async function getEventVolunteerStats(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const tasks = await wixData.query('VolunteerTasks')
+            .eq('eventId', eventId)
+            .find();
+        
+        const totalTasks = tasks.items.length;
+        const totalSpotsNeeded = tasks.items.reduce((sum, t) => sum + t.volunteersNeeded, 0);
+        const totalSpotsFilled = tasks.items.reduce((sum, t) => sum + t.volunteersAssigned, 0);
+        
+        const byCategory = {};
+        const byStatus = {};
+        
+        for (const task of tasks.items) {
+            byCategory[task.category] = (byCategory[task.category] || 0) + 1;
+            byStatus[task.status] = (byStatus[task.status] || 0) + 1;
+        }
+        
+        // Get all unique volunteers
+        const volunteerIds = new Set();
+        for (const task of tasks.items) {
+            for (const assignment of (task.assignments || [])) {
+                if (assignment.volunteerId) {
+                    volunteerIds.add(assignment.volunteerId);
+                }
+            }
+        }
+        
+        return {
+            success: true,
+            stats: {
+                summary: {
+                    totalTasks: totalTasks,
+                    totalSpotsNeeded: totalSpotsNeeded,
+                    totalSpotsFilled: totalSpotsFilled,
+                    fillRate: totalSpotsNeeded > 0 
+                        ? Math.round((totalSpotsFilled / totalSpotsNeeded) * 100) 
+                        : 0,
+                    uniqueVolunteers: volunteerIds.size
+                },
+                byCategory: byCategory,
+                byStatus: byStatus,
+                openTasks: tasks.items
+                    .filter(t => t.status === TASK_STATUS.OPEN)
+                    .map(t => ({
+                        name: t.taskName,
+                        category: t.category,
+                        spotsNeeded: t.volunteersNeeded - t.volunteersAssigned
+                    }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting volunteer stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get volunteer leaderboard
+ */
+export async function getVolunteerLeaderboard() {
+    try {
+        const volunteers = await wixData.query('Volunteers')
+            .eq('status', VOLUNTEER_STATUS.ACTIVE)
+            .descending('totalHours')
+            .limit(20)
+            .find();
+        
+        return {
+            success: true,
+            leaderboard: volunteers.items.map((v, index) => ({
+                rank: index + 1,
+                name: `${v.firstName} ${v.lastName}`,
+                totalHours: v.totalHours || 0,
+                eventsVolunteered: v.eventsVolunteered || 0,
+                badges: v.badges?.map(b => b.icon).join(' ') || '',
+                skills: v.skills?.slice(0, 3).map(s => SKILL_CATEGORIES[s.toUpperCase()]?.icon || '🤝').join(' ')
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting leaderboard:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// COMMUNICATION
+// =====================================================
+
+/**
+ * Send message to event volunteers
+ * @param {string} eventId
+ * @param {Object} messageData
+ */
+export async function messageEventVolunteers(eventId, messageData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const tasks = await wixData.query('VolunteerTasks')
+            .eq('eventId', eventId)
+            .find();
+        
+        // Collect unique volunteer emails
+        const emails = new Set();
+        for (const task of tasks.items) {
+            for (const assignment of (task.assignments || [])) {
+                if (assignment.email) {
+                    emails.add(assignment.email);
+                }
+            }
+        }
+        
+        let sentCount = 0;
+        for (const email of emails) {
+            await triggeredEmails.emailContact(
+                'volunteer_message',
+                email,
+                {
+                    variables: {
+                        subject: messageData.subject,
+                        message: messageData.message,
+                        eventTitle: tasks.items[0]?.eventTitle || 'BANF Event'
+                    }
+                }
+            );
+            sentCount++;
+        }
+        
+        return {
+            success: true,
+            sentCount: sentCount,
+            message: `Message sent to ${sentCount} volunteers`
+        };
+        
+    } catch (error) {
+        console.error('Error sending message:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function calculateDuration(startTime, endTime) {
+    // Simple duration calculation
+    // Assumes format like "10:00 AM" and "2:00 PM"
+    return `${startTime} - ${endTime}`;
+}
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+async function logVolunteerActivity(volunteerId, action, details) {
+    await wixData.insert('VolunteerActivityLog', {
+        volunteerId: volunteerId,
+        action: action,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+// Export constants
+export { SKILL_CATEGORIES, VOLUNTEER_STATUS, TASK_STATUS };

@@ -1,0 +1,391 @@
+// backend/events.jsw
+// BANF Event Management - Wix Velo Backend
+
+import wixData from 'wix-data';
+import { sendEmail } from 'backend/email.jsw';
+
+const EVENTS_COLLECTION = 'Events';
+const REGISTRATIONS_COLLECTION = 'EventRegistrations';
+const FEEDBACK_COLLECTION = 'EventFeedback';
+
+/**
+ * Get all upcoming events
+ */
+export async function getUpcomingEvents(options = { limit: 20 }) {
+    try {
+        const now = new Date();
+        
+        const result = await wixData.query(EVENTS_COLLECTION)
+            .ge('eventDate', now)
+            .eq('isActive', true)
+            .ascending('eventDate')
+            .limit(options.limit)
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting upcoming events:', error);
+        return [];
+    }
+}
+
+/**
+ * Get past events for archive
+ */
+export async function getPastEvents(options = { limit: 50, skip: 0 }) {
+    try {
+        const now = new Date();
+        
+        const result = await wixData.query(EVENTS_COLLECTION)
+            .lt('eventDate', now)
+            .descending('eventDate')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find();
+        
+        return {
+            items: result.items,
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting past events:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get single event by ID
+ */
+export async function getEventById(eventId) {
+    try {
+        return await wixData.get(EVENTS_COLLECTION, eventId);
+    } catch (error) {
+        console.error('Error getting event:', error);
+        return null;
+    }
+}
+
+/**
+ * Create a new event (admin only)
+ */
+export async function createEvent(eventData) {
+    try {
+        const event = {
+            title: eventData.title,
+            eventType: eventData.eventType, // durga_puja, saraswati_puja, pohela_boishakh, etc.
+            description: eventData.description,
+            eventDate: new Date(eventData.eventDate),
+            endDate: eventData.endDate ? new Date(eventData.endDate) : null,
+            registrationDeadline: eventData.registrationDeadline ? new Date(eventData.registrationDeadline) : null,
+            venueName: eventData.venueName,
+            venueAddress: eventData.venueAddress,
+            maxAttendees: eventData.maxAttendees || 500,
+            currentRegistrations: 0,
+            ticketPrice: eventData.ticketPrice || 0,
+            memberDiscount: eventData.memberDiscount || 0,
+            featuredImage: eventData.featuredImage || '',
+            galleryImages: eventData.galleryImages || [],
+            isActive: true,
+            isFeatured: eventData.isFeatured || false,
+            createdBy: eventData.adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert(EVENTS_COLLECTION, event);
+        return { success: true, event: result };
+    } catch (error) {
+        console.error('Error creating event:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update an event (admin only)
+ */
+export async function updateEvent(eventId, updateData) {
+    try {
+        const existing = await wixData.get(EVENTS_COLLECTION, eventId);
+        if (!existing) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Convert dates
+        if (updateData.eventDate) updateData.eventDate = new Date(updateData.eventDate);
+        if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
+        if (updateData.registrationDeadline) updateData.registrationDeadline = new Date(updateData.registrationDeadline);
+        
+        updateData._updatedDate = new Date();
+        
+        const updated = { ...existing, ...updateData };
+        const result = await wixData.update(EVENTS_COLLECTION, updated);
+        
+        return { success: true, event: result };
+    } catch (error) {
+        console.error('Error updating event:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Register member for an event
+ */
+export async function registerForEvent(eventId, memberId, attendees) {
+    try {
+        // Get event details
+        const event = await wixData.get(EVENTS_COLLECTION, eventId);
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Check if event is active
+        if (!event.isActive) {
+            return { success: false, error: 'Event is no longer accepting registrations' };
+        }
+        
+        // Check registration deadline
+        if (event.registrationDeadline && new Date() > event.registrationDeadline) {
+            return { success: false, error: 'Registration deadline has passed' };
+        }
+        
+        // Check capacity
+        const attendeeCount = attendees ? attendees.length : 1;
+        if (event.currentRegistrations + attendeeCount > event.maxAttendees) {
+            return { success: false, error: 'Event is at capacity' };
+        }
+        
+        // Check for existing registration
+        const existingReg = await wixData.query(REGISTRATIONS_COLLECTION)
+            .eq('eventId', eventId)
+            .eq('memberId', memberId)
+            .find();
+        
+        if (existingReg.items.length > 0) {
+            return { success: false, error: 'Already registered for this event' };
+        }
+        
+        // Create registration
+        const registration = {
+            eventId: eventId,
+            eventTitle: event.title,
+            memberId: memberId,
+            attendeeCount: attendeeCount,
+            attendeeDetails: JSON.stringify(attendees || []),
+            registrationDate: new Date(),
+            status: 'confirmed',
+            totalAmount: calculateEventCost(event, attendeeCount, true), // true = member
+            isPaid: false,
+            _createdDate: new Date()
+        };
+        
+        const regResult = await wixData.insert(REGISTRATIONS_COLLECTION, registration);
+        
+        // Update event count
+        event.currentRegistrations = event.currentRegistrations + attendeeCount;
+        event._updatedDate = new Date();
+        await wixData.update(EVENTS_COLLECTION, event);
+        
+        return { 
+            success: true, 
+            registrationId: regResult._id,
+            totalAmount: registration.totalAmount
+        };
+    } catch (error) {
+        console.error('Error registering for event:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Cancel event registration
+ */
+export async function cancelRegistration(registrationId, memberId) {
+    try {
+        const registration = await wixData.get(REGISTRATIONS_COLLECTION, registrationId);
+        if (!registration) {
+            return { success: false, error: 'Registration not found' };
+        }
+        
+        // Verify ownership
+        if (registration.memberId !== memberId) {
+            return { success: false, error: 'Unauthorized' };
+        }
+        
+        // Get event and update count
+        const event = await wixData.get(EVENTS_COLLECTION, registration.eventId);
+        if (event) {
+            event.currentRegistrations = Math.max(0, event.currentRegistrations - registration.attendeeCount);
+            await wixData.update(EVENTS_COLLECTION, event);
+        }
+        
+        // Update registration status
+        registration.status = 'cancelled';
+        registration.cancelledAt = new Date();
+        await wixData.update(REGISTRATIONS_COLLECTION, registration);
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error cancelling registration:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member's event registrations
+ */
+export async function getMemberRegistrations(memberId) {
+    try {
+        const result = await wixData.query(REGISTRATIONS_COLLECTION)
+            .eq('memberId', memberId)
+            .descending('registrationDate')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting registrations:', error);
+        return [];
+    }
+}
+
+/**
+ * Submit event feedback
+ */
+export async function submitEventFeedback(feedbackData) {
+    try {
+        // Calculate sentiment score
+        const sentimentScore = calculateSentiment(feedbackData.feedbackText);
+        
+        const feedback = {
+            eventId: feedbackData.eventId,
+            eventName: feedbackData.eventName,
+            eventDate: new Date(feedbackData.eventDate),
+            memberId: feedbackData.memberId || null,
+            memberName: feedbackData.isAnonymous ? 'Anonymous' : feedbackData.memberName,
+            isAnonymous: feedbackData.isAnonymous || false,
+            feedbackText: feedbackData.feedbackText,
+            experienceScore: feedbackData.experienceScore, // 1-5
+            overallRating: feedbackData.overallRating, // 1-10
+            sentimentScore: sentimentScore,
+            sentimentLabel: getSentimentLabel(sentimentScore),
+            organizationRating: feedbackData.organizationRating,
+            contentRating: feedbackData.contentRating,
+            venueRating: feedbackData.venueRating,
+            foodRating: feedbackData.foodRating,
+            wouldRecommend: feedbackData.wouldRecommend,
+            wouldAttendAgain: feedbackData.wouldAttendAgain,
+            suggestions: feedbackData.suggestions || '',
+            improvements: feedbackData.improvements || '',
+            submittedAt: new Date(),
+            processedAt: new Date(),
+            _createdDate: new Date()
+        };
+        
+        const result = await wixData.insert(FEEDBACK_COLLECTION, feedback);
+        return { success: true, feedbackId: result._id };
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get event feedback summary (admin)
+ */
+export async function getEventFeedbackSummary(eventId) {
+    try {
+        const feedbacks = await wixData.query(FEEDBACK_COLLECTION)
+            .eq('eventId', eventId)
+            .find();
+        
+        if (feedbacks.items.length === 0) {
+            return { totalFeedbacks: 0, averages: null };
+        }
+        
+        const items = feedbacks.items;
+        const total = items.length;
+        
+        // Calculate averages
+        const avgExperience = items.reduce((sum, f) => sum + (f.experienceScore || 0), 0) / total;
+        const avgOverall = items.reduce((sum, f) => sum + (f.overallRating || 0), 0) / total;
+        const avgOrganization = items.reduce((sum, f) => sum + (f.organizationRating || 0), 0) / total;
+        const avgContent = items.reduce((sum, f) => sum + (f.contentRating || 0), 0) / total;
+        const avgVenue = items.reduce((sum, f) => sum + (f.venueRating || 0), 0) / total;
+        const avgFood = items.reduce((sum, f) => sum + (f.foodRating || 0), 0) / total;
+        
+        // Sentiment distribution
+        const sentiments = {
+            positive: items.filter(f => f.sentimentLabel === 'positive').length,
+            neutral: items.filter(f => f.sentimentLabel === 'neutral').length,
+            negative: items.filter(f => f.sentimentLabel === 'negative').length
+        };
+        
+        // Recommendation rate
+        const recommendRate = (items.filter(f => f.wouldRecommend).length / total) * 100;
+        
+        return {
+            totalFeedbacks: total,
+            averages: {
+                experience: avgExperience.toFixed(1),
+                overall: avgOverall.toFixed(1),
+                organization: avgOrganization.toFixed(1),
+                content: avgContent.toFixed(1),
+                venue: avgVenue.toFixed(1),
+                food: avgFood.toFixed(1)
+            },
+            sentiments,
+            recommendationRate: recommendRate.toFixed(1)
+        };
+    } catch (error) {
+        console.error('Error getting feedback summary:', error);
+        return null;
+    }
+}
+
+// Helper functions
+function calculateEventCost(event, attendeeCount, isMember) {
+    const basePrice = event.ticketPrice || 0;
+    const discount = isMember ? (event.memberDiscount || 0) : 0;
+    const pricePerPerson = basePrice - discount;
+    return pricePerPerson * attendeeCount;
+}
+
+function calculateSentiment(text) {
+    if (!text) return 0;
+    
+    const lowerText = text.toLowerCase();
+    
+    const positiveWords = [
+        'excellent', 'amazing', 'wonderful', 'fantastic', 'great', 'good', 'best',
+        'love', 'enjoyed', 'perfect', 'outstanding', 'impressive', 'beautiful',
+        'brilliant', 'superb', 'awesome', 'pleased', 'happy', 'satisfied'
+    ];
+    
+    const negativeWords = [
+        'terrible', 'awful', 'horrible', 'bad', 'worst', 'hate', 'disappointed',
+        'poor', 'boring', 'annoying', 'frustrated', 'angry', 'dissatisfied',
+        'unorganized', 'chaotic', 'problems', 'issues', 'complaint'
+    ];
+    
+    let positiveCount = 0;
+    let negativeCount = 0;
+    
+    positiveWords.forEach(word => {
+        if (lowerText.includes(word)) positiveCount++;
+    });
+    
+    negativeWords.forEach(word => {
+        if (lowerText.includes(word)) negativeCount++;
+    });
+    
+    const totalWords = text.split(' ').length;
+    const score = (positiveCount - negativeCount) / Math.max(totalWords / 10, 1);
+    
+    return Math.max(-1, Math.min(1, score));
+}
+
+function getSentimentLabel(score) {
+    if (score > 0.2) return 'positive';
+    if (score < -0.2) return 'negative';
+    return 'neutral';
+}

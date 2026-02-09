@@ -1,0 +1,1111 @@
+/**
+ * BANF Sponsor Management Service
+ * =================================
+ * Wix Velo Backend Module for automated sponsorship management
+ * 
+ * Features:
+ * - Sponsorship tier management
+ * - Sponsor application & approval
+ * - Benefit tracking & fulfillment
+ * - Recognition automation
+ * - Sponsor portal
+ * 
+ * @module backend/sponsor-management.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+// =====================================================
+// SPONSORSHIP TIERS CONFIGURATION
+// =====================================================
+
+const SPONSORSHIP_TIERS = {
+    PLATINUM: {
+        name: 'Platinum Sponsor',
+        icon: '🏆',
+        minAmount: 5000,
+        maxSponsors: 1, // Exclusive
+        benefits: [
+            'Exclusive naming rights (e.g., "Durga Puja presented by [Sponsor]")',
+            'Premium logo placement on all materials',
+            'Full-page ad in souvenir magazine',
+            'Banner at main entrance',
+            'VIP seating for 10 guests',
+            'Social media spotlight (5 posts)',
+            'Recognition in all communications',
+            'Premium booth space (if desired)',
+            'Speaking opportunity at main event'
+        ],
+        logoSize: 'extra-large',
+        websitePosition: 1
+    },
+    GOLD: {
+        name: 'Gold Sponsor',
+        icon: '🥇',
+        minAmount: 2500,
+        maxSponsors: 3,
+        benefits: [
+            'Large logo on banners and materials',
+            'Half-page ad in souvenir magazine',
+            'Banner placement at event',
+            'VIP seating for 6 guests',
+            'Social media recognition (3 posts)',
+            'Recognition in email communications',
+            'Standard booth space (if desired)'
+        ],
+        logoSize: 'large',
+        websitePosition: 2
+    },
+    SILVER: {
+        name: 'Silver Sponsor',
+        icon: '🥈',
+        minAmount: 1000,
+        maxSponsors: 5,
+        benefits: [
+            'Medium logo on select materials',
+            'Quarter-page ad in souvenir magazine',
+            'Table banner at event',
+            'Reserved seating for 4 guests',
+            'Social media mention (2 posts)',
+            'Recognition on website'
+        ],
+        logoSize: 'medium',
+        websitePosition: 3
+    },
+    BRONZE: {
+        name: 'Bronze Sponsor',
+        icon: '🥉',
+        minAmount: 500,
+        maxSponsors: 10,
+        benefits: [
+            'Logo on sponsor recognition board',
+            'Business card ad in souvenir magazine',
+            'Reserved seating for 2 guests',
+            'Social media mention (1 post)',
+            'Recognition on website'
+        ],
+        logoSize: 'small',
+        websitePosition: 4
+    },
+    SUPPORTER: {
+        name: 'Community Supporter',
+        icon: '💝',
+        minAmount: 100,
+        maxSponsors: null, // Unlimited
+        benefits: [
+            'Name listed on supporter board',
+            'Recognition on website',
+            'Thank you in program'
+        ],
+        logoSize: 'text-only',
+        websitePosition: 5
+    }
+};
+
+const SPONSOR_STATUS = {
+    PENDING: 'pending',
+    APPROVED: 'approved',
+    ACTIVE: 'active',
+    COMPLETED: 'completed',
+    DECLINED: 'declined',
+    CANCELLED: 'cancelled'
+};
+
+const BENEFIT_STATUS = {
+    PENDING: 'pending',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    NOT_APPLICABLE: 'not_applicable'
+};
+
+// =====================================================
+// SPONSOR APPLICATION
+// =====================================================
+
+/**
+ * Submit sponsor application
+ * @param {Object} applicationData 
+ */
+export async function submitSponsorApplication(applicationData) {
+    try {
+        const tier = SPONSORSHIP_TIERS[applicationData.tier];
+        
+        if (!tier) {
+            return { success: false, error: 'Invalid sponsorship tier' };
+        }
+        
+        // Check tier availability for event
+        if (tier.maxSponsors) {
+            const existingSponsors = await wixData.query('Sponsors')
+                .eq('eventId', applicationData.eventId)
+                .eq('tier', applicationData.tier)
+                .ne('status', SPONSOR_STATUS.DECLINED)
+                .ne('status', SPONSOR_STATUS.CANCELLED)
+                .find();
+            
+            if (existingSponsors.items.length >= tier.maxSponsors) {
+                return { 
+                    success: false, 
+                    error: `${tier.name} tier is fully committed for this event` 
+                };
+            }
+        }
+        
+        // Validate amount
+        if (applicationData.amount < tier.minAmount) {
+            return { 
+                success: false, 
+                error: `Minimum amount for ${tier.name} is $${tier.minAmount}` 
+            };
+        }
+        
+        const member = await currentMember.getMember().catch(() => null);
+        
+        const sponsor = await wixData.insert('Sponsors', {
+            // Event
+            eventId: applicationData.eventId,
+            eventYear: applicationData.eventYear || new Date().getFullYear(),
+            
+            // Company Info
+            companyName: applicationData.companyName,
+            industry: applicationData.industry || '',
+            website: applicationData.website || '',
+            
+            // Contact Info
+            contactName: applicationData.contactName,
+            contactTitle: applicationData.contactTitle || '',
+            email: applicationData.email,
+            phone: applicationData.phone,
+            
+            // Address
+            address: applicationData.address || '',
+            city: applicationData.city || '',
+            state: applicationData.state || 'FL',
+            zip: applicationData.zip || '',
+            
+            // Sponsorship Details
+            tier: applicationData.tier,
+            tierName: tier.name,
+            pledgedAmount: applicationData.amount,
+            paidAmount: 0,
+            balance: applicationData.amount,
+            
+            // Benefits
+            benefits: tier.benefits.map(benefit => ({
+                description: benefit,
+                status: BENEFIT_STATUS.PENDING,
+                notes: ''
+            })),
+            
+            // Custom Benefits (if any)
+            customBenefits: applicationData.customBenefits || [],
+            
+            // Media
+            logo: applicationData.logo || '',
+            logoApproved: false,
+            adArtwork: '',
+            adArtworkApproved: false,
+            
+            // Social Media
+            socialMediaHandles: applicationData.socialMediaHandles || {},
+            
+            // Status
+            status: SPONSOR_STATUS.PENDING,
+            
+            // Payment
+            paymentStatus: 'pending',
+            invoiceSent: false,
+            
+            // Recognition
+            recognitionName: applicationData.recognitionName || applicationData.companyName,
+            
+            // Notes
+            specialRequests: applicationData.specialRequests || '',
+            adminNotes: '',
+            
+            // Metadata
+            applicationNumber: generateApplicationNumber('SPO'),
+            memberId: member?._id || null,
+            appliedAt: new Date(),
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        // Send confirmation email
+        await triggeredEmails.emailContact(
+            'sponsor_application_received',
+            applicationData.email,
+            {
+                variables: {
+                    contactName: applicationData.contactName,
+                    companyName: applicationData.companyName,
+                    tier: tier.name,
+                    amount: applicationData.amount,
+                    applicationNumber: sponsor.applicationNumber
+                }
+            }
+        );
+        
+        // Create admin task
+        await createAdminTask({
+            type: 'SPONSOR_APPLICATION_REVIEW',
+            title: `Review sponsor application: ${applicationData.companyName} (${tier.name})`,
+            sponsorId: sponsor._id,
+            priority: applicationData.tier === 'PLATINUM' ? 'high' : 'medium'
+        });
+        
+        await logSponsorActivity(sponsor._id, 'APPLICATION_SUBMITTED', 
+            `Sponsorship application submitted for ${tier.name} ($${applicationData.amount})`);
+        
+        return {
+            success: true,
+            sponsorId: sponsor._id,
+            applicationNumber: sponsor.applicationNumber,
+            message: 'Thank you for your sponsorship application! Our team will contact you shortly.'
+        };
+        
+    } catch (error) {
+        console.error('Error submitting sponsor application:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// SPONSOR APPROVAL WORKFLOW
+// =====================================================
+
+/**
+ * Approve sponsor application
+ * @param {string} sponsorId 
+ * @param {Object} approvalData 
+ */
+export async function approveSponsorApplication(sponsorId, approvalData = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        if (!sponsor) {
+            return { success: false, error: 'Sponsor not found' };
+        }
+        
+        if (sponsor.status !== SPONSOR_STATUS.PENDING) {
+            return { success: false, error: 'Application already processed' };
+        }
+        
+        sponsor.status = SPONSOR_STATUS.APPROVED;
+        sponsor.approvedAt = new Date();
+        sponsor.approvedBy = member._id;
+        sponsor.approvalNotes = approvalData.notes || '';
+        sponsor.lastModified = new Date();
+        
+        await wixData.update('Sponsors', sponsor);
+        
+        // Send approval email with invoice
+        await sendSponsorInvoice(sponsorId);
+        
+        await logSponsorActivity(sponsorId, 'APPLICATION_APPROVED', 
+            `Sponsorship approved by admin`);
+        
+        return {
+            success: true,
+            message: 'Sponsor application approved and invoice sent'
+        };
+        
+    } catch (error) {
+        console.error('Error approving sponsor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Decline sponsor application
+ * @param {string} sponsorId 
+ * @param {string} reason 
+ */
+export async function declineSponsorApplication(sponsorId, reason = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        sponsor.status = SPONSOR_STATUS.DECLINED;
+        sponsor.declinedAt = new Date();
+        sponsor.declinedBy = member._id;
+        sponsor.declineReason = reason;
+        sponsor.lastModified = new Date();
+        
+        await wixData.update('Sponsors', sponsor);
+        
+        // Send decline email
+        await triggeredEmails.emailContact(
+            'sponsor_application_declined',
+            sponsor.email,
+            {
+                variables: {
+                    contactName: sponsor.contactName,
+                    companyName: sponsor.companyName,
+                    reason: reason || 'We appreciate your interest but are unable to proceed at this time.'
+                }
+            }
+        );
+        
+        await logSponsorActivity(sponsorId, 'APPLICATION_DECLINED', reason);
+        
+        return {
+            success: true,
+            message: 'Application declined and sponsor notified'
+        };
+        
+    } catch (error) {
+        console.error('Error declining sponsor:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// SPONSOR PAYMENT
+// =====================================================
+
+/**
+ * Send invoice to sponsor
+ * @param {string} sponsorId 
+ */
+export async function sendSponsorInvoice(sponsorId) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        const event = await wixData.get('Events', sponsor.eventId);
+        
+        // Create invoice record
+        const invoice = await wixData.insert('SponsorInvoices', {
+            sponsorId: sponsorId,
+            eventId: sponsor.eventId,
+            invoiceNumber: generateInvoiceNumber(),
+            amount: sponsor.pledgedAmount,
+            tier: sponsor.tierName,
+            status: 'sent',
+            sentAt: new Date(),
+            dueDate: addDays(new Date(), 30),
+            createdAt: new Date()
+        });
+        
+        // Send invoice email
+        await triggeredEmails.emailContact(
+            'sponsor_invoice',
+            sponsor.email,
+            {
+                variables: {
+                    contactName: sponsor.contactName,
+                    companyName: sponsor.companyName,
+                    tier: sponsor.tierName,
+                    amount: sponsor.pledgedAmount,
+                    invoiceNumber: invoice.invoiceNumber,
+                    eventName: event.title,
+                    dueDate: formatDate(invoice.dueDate),
+                    paymentLink: `https://jaxbengali.org/sponsor-payment/${invoice._id}`
+                }
+            }
+        );
+        
+        sponsor.invoiceSent = true;
+        sponsor.invoiceSentDate = new Date();
+        sponsor.currentInvoiceId = invoice._id;
+        await wixData.update('Sponsors', sponsor);
+        
+        await logSponsorActivity(sponsorId, 'INVOICE_SENT', 
+            `Invoice #${invoice.invoiceNumber} for $${sponsor.pledgedAmount} sent`);
+        
+        return {
+            success: true,
+            invoiceId: invoice._id,
+            invoiceNumber: invoice.invoiceNumber
+        };
+        
+    } catch (error) {
+        console.error('Error sending invoice:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Process sponsor payment
+ * @param {string} sponsorId 
+ * @param {Object} paymentInfo 
+ */
+export async function processSponsorPayment(sponsorId, paymentInfo) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        // Create payment record
+        const payment = await wixData.insert('SponsorPayments', {
+            sponsorId: sponsorId,
+            eventId: sponsor.eventId,
+            invoiceId: sponsor.currentInvoiceId || null,
+            
+            amount: paymentInfo.amount,
+            paymentMethod: paymentInfo.method,
+            transactionId: paymentInfo.transactionId || '',
+            checkNumber: paymentInfo.checkNumber || '',
+            
+            status: 'completed',
+            processedAt: new Date(),
+            notes: paymentInfo.notes || ''
+        });
+        
+        // Update sponsor
+        sponsor.paidAmount = (sponsor.paidAmount || 0) + paymentInfo.amount;
+        sponsor.balance = sponsor.pledgedAmount - sponsor.paidAmount;
+        sponsor.paymentStatus = sponsor.balance <= 0 ? 'paid' : 'partial';
+        sponsor.lastPaymentDate = new Date();
+        
+        // Activate sponsor if fully paid
+        if (sponsor.balance <= 0 && sponsor.status === SPONSOR_STATUS.APPROVED) {
+            sponsor.status = SPONSOR_STATUS.ACTIVE;
+            sponsor.activatedAt = new Date();
+        }
+        
+        await wixData.update('Sponsors', sponsor);
+        
+        // Update invoice if exists
+        if (sponsor.currentInvoiceId) {
+            const invoice = await wixData.get('SponsorInvoices', sponsor.currentInvoiceId);
+            invoice.status = sponsor.balance <= 0 ? 'paid' : 'partial';
+            invoice.paidAmount = sponsor.paidAmount;
+            await wixData.update('SponsorInvoices', invoice);
+        }
+        
+        // Send receipt
+        await triggeredEmails.emailContact(
+            'sponsor_payment_receipt',
+            sponsor.email,
+            {
+                variables: {
+                    contactName: sponsor.contactName,
+                    companyName: sponsor.companyName,
+                    amount: paymentInfo.amount,
+                    totalPaid: sponsor.paidAmount,
+                    balance: sponsor.balance,
+                    transactionId: payment._id
+                }
+            }
+        );
+        
+        // If fully paid, send welcome package
+        if (sponsor.balance <= 0) {
+            await sendSponsorWelcomePackage(sponsorId);
+        }
+        
+        await logSponsorActivity(sponsorId, 'PAYMENT_RECEIVED', 
+            `Payment of $${paymentInfo.amount} received. Balance: $${sponsor.balance}`);
+        
+        return {
+            success: true,
+            paymentId: payment._id,
+            newBalance: sponsor.balance,
+            isFullyPaid: sponsor.balance <= 0
+        };
+        
+    } catch (error) {
+        console.error('Error processing sponsor payment:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// BENEFIT TRACKING
+// =====================================================
+
+/**
+ * Send sponsor welcome package
+ * @param {string} sponsorId 
+ */
+async function sendSponsorWelcomePackage(sponsorId) {
+    const sponsor = await wixData.get('Sponsors', sponsorId);
+    const event = await wixData.get('Events', sponsor.eventId);
+    const tier = SPONSORSHIP_TIERS[sponsor.tier];
+    
+    await triggeredEmails.emailContact(
+        'sponsor_welcome_package',
+        sponsor.email,
+        {
+            variables: {
+                contactName: sponsor.contactName,
+                companyName: sponsor.companyName,
+                tier: sponsor.tierName,
+                eventName: event.title,
+                eventDate: formatDate(event.eventDate),
+                benefits: tier.benefits.join('\n• '),
+                logoDeadline: formatDate(addDays(new Date(), 14)),
+                adArtworkDeadline: formatDate(addDays(new Date(), 21)),
+                sponsorPortalLink: `https://jaxbengali.org/sponsor-portal/${sponsor._id}`
+            }
+        }
+    );
+    
+    sponsor.welcomePackageSent = true;
+    sponsor.welcomePackageSentDate = new Date();
+    await wixData.update('Sponsors', sponsor);
+}
+
+/**
+ * Update benefit status
+ * @param {string} sponsorId 
+ * @param {number} benefitIndex 
+ * @param {string} status 
+ * @param {string} notes 
+ */
+export async function updateBenefitStatus(sponsorId, benefitIndex, status, notes = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        if (benefitIndex < 0 || benefitIndex >= sponsor.benefits.length) {
+            return { success: false, error: 'Invalid benefit index' };
+        }
+        
+        sponsor.benefits[benefitIndex].status = status;
+        sponsor.benefits[benefitIndex].notes = notes;
+        sponsor.benefits[benefitIndex].updatedAt = new Date();
+        sponsor.benefits[benefitIndex].updatedBy = member._id;
+        
+        sponsor.lastModified = new Date();
+        await wixData.update('Sponsors', sponsor);
+        
+        // Check if all benefits completed
+        const allCompleted = sponsor.benefits.every(
+            b => b.status === BENEFIT_STATUS.COMPLETED || b.status === BENEFIT_STATUS.NOT_APPLICABLE
+        );
+        
+        if (allCompleted && sponsor.status === SPONSOR_STATUS.ACTIVE) {
+            sponsor.status = SPONSOR_STATUS.COMPLETED;
+            sponsor.completedAt = new Date();
+            await wixData.update('Sponsors', sponsor);
+        }
+        
+        await logSponsorActivity(sponsorId, 'BENEFIT_UPDATED', 
+            `Benefit "${sponsor.benefits[benefitIndex].description}" marked as ${status}`);
+        
+        return {
+            success: true,
+            message: 'Benefit status updated'
+        };
+        
+    } catch (error) {
+        console.error('Error updating benefit:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Upload sponsor logo
+ * @param {string} sponsorId 
+ * @param {string} logoUrl 
+ */
+export async function uploadSponsorLogo(sponsorId, logoUrl) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        sponsor.logo = logoUrl;
+        sponsor.logoUploadedAt = new Date();
+        sponsor.logoApproved = false; // Needs admin approval
+        sponsor.lastModified = new Date();
+        
+        await wixData.update('Sponsors', sponsor);
+        
+        // Create admin task for logo review
+        await createAdminTask({
+            type: 'SPONSOR_LOGO_REVIEW',
+            title: `Review logo for ${sponsor.companyName}`,
+            sponsorId: sponsorId,
+            priority: 'low'
+        });
+        
+        await logSponsorActivity(sponsorId, 'LOGO_UPLOADED', 'Logo uploaded for review');
+        
+        return {
+            success: true,
+            message: 'Logo uploaded. Pending approval.'
+        };
+        
+    } catch (error) {
+        console.error('Error uploading logo:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Approve sponsor logo
+ * @param {string} sponsorId 
+ */
+export async function approveSponsorLogo(sponsorId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        
+        sponsor.logoApproved = true;
+        sponsor.logoApprovedAt = new Date();
+        sponsor.logoApprovedBy = member._id;
+        sponsor.lastModified = new Date();
+        
+        await wixData.update('Sponsors', sponsor);
+        
+        // Notify sponsor
+        await triggeredEmails.emailContact(
+            'sponsor_logo_approved',
+            sponsor.email,
+            {
+                variables: {
+                    contactName: sponsor.contactName,
+                    companyName: sponsor.companyName
+                }
+            }
+        );
+        
+        await logSponsorActivity(sponsorId, 'LOGO_APPROVED', 'Logo approved for use');
+        
+        return {
+            success: true,
+            message: 'Logo approved'
+        };
+        
+    } catch (error) {
+        console.error('Error approving logo:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// RECOGNITION & DISPLAY
+// =====================================================
+
+/**
+ * Get sponsors for public display
+ * @param {string} eventId 
+ */
+export async function getEventSponsors(eventId) {
+    try {
+        const sponsors = await wixData.query('Sponsors')
+            .eq('eventId', eventId)
+            .eq('status', SPONSOR_STATUS.ACTIVE)
+            .or(
+                wixData.query('Sponsors')
+                    .eq('eventId', eventId)
+                    .eq('status', SPONSOR_STATUS.COMPLETED)
+            )
+            .eq('logoApproved', true)
+            .find();
+        
+        // Group by tier
+        const groupedSponsors = {
+            platinum: [],
+            gold: [],
+            silver: [],
+            bronze: [],
+            supporter: []
+        };
+        
+        for (const sponsor of sponsors.items) {
+            const tier = sponsor.tier.toLowerCase();
+            if (groupedSponsors[tier]) {
+                groupedSponsors[tier].push({
+                    id: sponsor._id,
+                    companyName: sponsor.companyName,
+                    recognitionName: sponsor.recognitionName,
+                    logo: sponsor.logo,
+                    website: sponsor.website,
+                    tier: sponsor.tierName
+                });
+            }
+        }
+        
+        return {
+            success: true,
+            sponsors: groupedSponsors,
+            tiers: Object.keys(SPONSORSHIP_TIERS).map(key => ({
+                key: key,
+                ...SPONSORSHIP_TIERS[key]
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting event sponsors:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get sponsor wall data for display
+ * @param {string} eventId 
+ */
+export async function getSponsorWallData(eventId) {
+    try {
+        const result = await getEventSponsors(eventId);
+        
+        if (!result.success) {
+            return result;
+        }
+        
+        // Format for sponsor wall display
+        const wallData = Object.entries(result.sponsors)
+            .filter(([_, sponsors]) => sponsors.length > 0)
+            .map(([tier, sponsors]) => {
+                const tierConfig = SPONSORSHIP_TIERS[tier.toUpperCase()];
+                return {
+                    tier: tier,
+                    tierName: tierConfig.name,
+                    icon: tierConfig.icon,
+                    logoSize: tierConfig.logoSize,
+                    sponsors: sponsors
+                };
+            })
+            .sort((a, b) => {
+                const posA = SPONSORSHIP_TIERS[a.tier.toUpperCase()]?.websitePosition || 99;
+                const posB = SPONSORSHIP_TIERS[b.tier.toUpperCase()]?.websitePosition || 99;
+                return posA - posB;
+            });
+        
+        return {
+            success: true,
+            wallData: wallData
+        };
+        
+    } catch (error) {
+        console.error('Error getting sponsor wall data:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// REPORTING
+// =====================================================
+
+/**
+ * Get sponsorship report for event
+ * @param {string} eventId 
+ */
+export async function getSponsorshipReport(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const sponsors = await wixData.query('Sponsors')
+            .eq('eventId', eventId)
+            .find();
+        
+        const summary = {
+            totalSponsors: sponsors.items.length,
+            byTier: {},
+            totalPledged: 0,
+            totalPaid: 0,
+            totalOutstanding: 0,
+            byStatus: {}
+        };
+        
+        // Initialize tier counts
+        for (const tier of Object.keys(SPONSORSHIP_TIERS)) {
+            summary.byTier[tier] = { count: 0, pledged: 0, paid: 0 };
+        }
+        
+        // Initialize status counts
+        for (const status of Object.values(SPONSOR_STATUS)) {
+            summary.byStatus[status] = 0;
+        }
+        
+        // Process sponsors
+        for (const sponsor of sponsors.items) {
+            summary.totalPledged += sponsor.pledgedAmount;
+            summary.totalPaid += sponsor.paidAmount;
+            summary.totalOutstanding += sponsor.balance;
+            
+            if (summary.byTier[sponsor.tier]) {
+                summary.byTier[sponsor.tier].count++;
+                summary.byTier[sponsor.tier].pledged += sponsor.pledgedAmount;
+                summary.byTier[sponsor.tier].paid += sponsor.paidAmount;
+            }
+            
+            summary.byStatus[sponsor.status] = (summary.byStatus[sponsor.status] || 0) + 1;
+        }
+        
+        // Benefit fulfillment report
+        const benefitReport = [];
+        for (const sponsor of sponsors.items.filter(s => 
+            s.status === SPONSOR_STATUS.ACTIVE || s.status === SPONSOR_STATUS.COMPLETED)) {
+            
+            const completedBenefits = sponsor.benefits.filter(
+                b => b.status === BENEFIT_STATUS.COMPLETED
+            ).length;
+            
+            benefitReport.push({
+                companyName: sponsor.companyName,
+                tier: sponsor.tierName,
+                totalBenefits: sponsor.benefits.length,
+                completedBenefits: completedBenefits,
+                fulfillmentRate: Math.round((completedBenefits / sponsor.benefits.length) * 100)
+            });
+        }
+        
+        return {
+            success: true,
+            summary: summary,
+            sponsors: sponsors.items.map(s => ({
+                id: s._id,
+                companyName: s.companyName,
+                tier: s.tierName,
+                status: s.status,
+                pledgedAmount: s.pledgedAmount,
+                paidAmount: s.paidAmount,
+                balance: s.balance,
+                logoApproved: s.logoApproved
+            })),
+            benefitFulfillment: benefitReport
+        };
+        
+    } catch (error) {
+        console.error('Error getting sponsorship report:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get all sponsors (admin view)
+ * @param {Object} filters 
+ */
+export async function getAllSponsors(filters = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        let query = wixData.query('Sponsors');
+        
+        if (filters.eventId) {
+            query = query.eq('eventId', filters.eventId);
+        }
+        if (filters.tier) {
+            query = query.eq('tier', filters.tier);
+        }
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+        if (filters.year) {
+            query = query.eq('eventYear', parseInt(filters.year));
+        }
+        
+        const sponsors = await query
+            .descending('createdAt')
+            .find();
+        
+        return {
+            success: true,
+            sponsors: sponsors.items,
+            total: sponsors.items.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting sponsors:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Send thank you to all sponsors
+ * @param {string} eventId 
+ */
+export async function sendSponsorThankYou(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        const sponsors = await wixData.query('Sponsors')
+            .eq('eventId', eventId)
+            .eq('paymentStatus', 'paid')
+            .find();
+        
+        let sentCount = 0;
+        
+        for (const sponsor of sponsors.items) {
+            await triggeredEmails.emailContact(
+                'sponsor_thank_you',
+                sponsor.email,
+                {
+                    variables: {
+                        contactName: sponsor.contactName,
+                        companyName: sponsor.companyName,
+                        tier: sponsor.tierName,
+                        eventName: event.title,
+                        amount: sponsor.paidAmount
+                    }
+                }
+            );
+            
+            sponsor.thankYouSent = true;
+            sponsor.thankYouSentDate = new Date();
+            await wixData.update('Sponsors', sponsor);
+            
+            sentCount++;
+        }
+        
+        return {
+            success: true,
+            sentCount: sentCount,
+            message: `Thank you emails sent to ${sentCount} sponsors`
+        };
+        
+    } catch (error) {
+        console.error('Error sending thank you:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Generate application/invoice number
+ */
+function generateApplicationNumber(prefix = 'SPO') {
+    const year = new Date().getFullYear();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${year}-${random}`;
+}
+
+function generateInvoiceNumber() {
+    return generateApplicationNumber('INV');
+}
+
+/**
+ * Add days to date
+ */
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+/**
+ * Create admin task
+ */
+async function createAdminTask(taskData) {
+    await wixData.insert('AdminTasks', {
+        ...taskData,
+        status: 'pending',
+        createdAt: new Date()
+    });
+}
+
+/**
+ * Log sponsor activity
+ */
+async function logSponsorActivity(sponsorId, action, details) {
+    await wixData.insert('SponsorActivityLog', {
+        sponsorId: sponsorId,
+        action: action,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+/**
+ * Check if member is admin
+ */
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Get sponsorship tier information
+ */
+export function getSponsorshipTiers() {
+    return Object.entries(SPONSORSHIP_TIERS).map(([key, tier]) => ({
+        id: key,
+        ...tier
+    }));
+}

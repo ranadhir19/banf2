@@ -1,0 +1,1001 @@
+/**
+ * BANF E-Vite Service
+ * ====================
+ * Wix Velo Backend Module for digital invitations with RSVP tracking
+ * 
+ * Features:
+ * - Beautiful e-vite creation with templates
+ * - Multi-channel delivery (email, WhatsApp, SMS)
+ * - RSVP tracking with detailed attendee info
+ * - Real-time analytics dashboard
+ * - Dietary/accessibility requirement collection
+ * - Guest management and plus-ones
+ * 
+ * @module backend/evite-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import crypto from 'crypto';
+
+// =====================================================
+// EVITE TEMPLATES
+// =====================================================
+
+const EVITE_TEMPLATES = {
+    DURGA_PUJA: {
+        id: 'durga_puja',
+        name: 'Durga Puja Celebration',
+        theme: 'festive',
+        primaryColor: '#ff6b35',
+        secondaryColor: '#722f37',
+        backgroundImage: 'durga_puja_bg.jpg',
+        bengaliTitle: 'দুর্গা পূজা উৎসব',
+        defaultMessage: 'You are cordially invited to celebrate Durga Puja with BANF family!'
+    },
+    SARASWATI_PUJA: {
+        id: 'saraswati_puja',
+        name: 'Saraswati Puja',
+        theme: 'elegant',
+        primaryColor: '#fff5e6',
+        secondaryColor: '#daa520',
+        backgroundImage: 'saraswati_bg.jpg',
+        bengaliTitle: 'সরস্বতী পূজা',
+        defaultMessage: 'Join us in celebrating the goddess of knowledge and arts!'
+    },
+    CULTURAL_PROGRAM: {
+        id: 'cultural',
+        name: 'Cultural Program',
+        theme: 'artistic',
+        primaryColor: '#006A4E',
+        secondaryColor: '#f7931e',
+        backgroundImage: 'cultural_bg.jpg',
+        bengaliTitle: 'সাংস্কৃতিক অনুষ্ঠান',
+        defaultMessage: 'Experience the richness of Bengali culture!'
+    },
+    PICNIC: {
+        id: 'picnic',
+        name: 'Annual Picnic',
+        theme: 'casual',
+        primaryColor: '#4CAF50',
+        secondaryColor: '#FFC107',
+        backgroundImage: 'picnic_bg.jpg',
+        bengaliTitle: 'বার্ষিক পিকনিক',
+        defaultMessage: 'Fun, food, and friendship await!'
+    },
+    GENERAL: {
+        id: 'general',
+        name: 'General Event',
+        theme: 'modern',
+        primaryColor: '#ff6b35',
+        secondaryColor: '#1a1a2e',
+        backgroundImage: 'general_bg.jpg',
+        bengaliTitle: 'অনুষ্ঠান',
+        defaultMessage: 'You are invited to join us!'
+    }
+};
+
+const DIETARY_OPTIONS = [
+    { id: 'vegetarian', label: 'Vegetarian', labelBengali: 'নিরামিষ', icon: '🥬' },
+    { id: 'non_vegetarian', label: 'Non-Vegetarian', labelBengali: 'আমিষ', icon: '🍗' },
+    { id: 'vegan', label: 'Vegan', labelBengali: 'ভেগান', icon: '🌱' },
+    { id: 'gluten_free', label: 'Gluten-Free', labelBengali: 'গ্লুটেন-মুক্ত', icon: '🌾' },
+    { id: 'nut_allergy', label: 'Nut Allergy', labelBengali: 'বাদাম এলার্জি', icon: '🥜' },
+    { id: 'dairy_free', label: 'Dairy-Free', labelBengali: 'দুগ্ধ-মুক্ত', icon: '🥛' },
+    { id: 'halal', label: 'Halal', labelBengali: 'হালাল', icon: '☪️' },
+    { id: 'kosher', label: 'Kosher', labelBengali: 'কোশের', icon: '✡️' },
+    { id: 'no_restriction', label: 'No Restrictions', labelBengali: 'কোনো সীমাবদ্ধতা নেই', icon: '✅' }
+];
+
+const AGE_CATEGORIES = [
+    { id: 'adult', label: 'Adult (18+)', minAge: 18, maxAge: null },
+    { id: 'teen', label: 'Teen (13-17)', minAge: 13, maxAge: 17 },
+    { id: 'child', label: 'Child (5-12)', minAge: 5, maxAge: 12 },
+    { id: 'toddler', label: 'Toddler (2-4)', minAge: 2, maxAge: 4 },
+    { id: 'infant', label: 'Infant (0-1)', minAge: 0, maxAge: 1 }
+];
+
+const RSVP_STATUS = {
+    PENDING: 'pending',
+    ATTENDING: 'attending',
+    NOT_ATTENDING: 'not_attending',
+    MAYBE: 'maybe',
+    EXPIRED: 'expired'
+};
+
+// =====================================================
+// EVITE CREATION
+// =====================================================
+
+/**
+ * Create a new e-vite for an event
+ * @param {Object} eviteData
+ */
+export async function createEvite(eviteData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    
+    try {
+        const template = EVITE_TEMPLATES[eviteData.template] || EVITE_TEMPLATES.GENERAL;
+        const event = await wixData.get('Events', eviteData.eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        const evite = await wixData.insert('Evites', {
+            // Event Reference
+            eventId: eviteData.eventId,
+            eventTitle: event.title,
+            eventDate: event.eventDate,
+            eventTime: event.startTime,
+            eventLocation: event.venueName,
+            eventAddress: `${event.venueAddress}, ${event.venueCity}, ${event.venueState}`,
+            
+            // Template & Design
+            templateId: template.id,
+            templateName: template.name,
+            theme: template.theme,
+            primaryColor: eviteData.primaryColor || template.primaryColor,
+            secondaryColor: eviteData.secondaryColor || template.secondaryColor,
+            backgroundImage: eviteData.backgroundImage || template.backgroundImage,
+            customBanner: eviteData.customBanner || '',
+            
+            // Content
+            title: eviteData.title || event.title,
+            titleBengali: eviteData.titleBengali || template.bengaliTitle,
+            message: eviteData.message || template.defaultMessage,
+            messageBengali: eviteData.messageBengali || '',
+            hostName: eviteData.hostName || 'BANF Executive Committee',
+            
+            // RSVP Settings
+            rsvpEnabled: true,
+            rsvpDeadline: eviteData.rsvpDeadline || addDays(event.eventDate, -3),
+            allowPlusOnes: eviteData.allowPlusOnes !== false,
+            maxGuestsPerInvite: eviteData.maxGuestsPerInvite || 5,
+            collectDietary: eviteData.collectDietary !== false,
+            collectAgeInfo: eviteData.collectAgeInfo !== false,
+            collectAccessibility: eviteData.collectAccessibility !== false,
+            allowMaybeResponse: eviteData.allowMaybeResponse || false,
+            
+            // Custom Questions
+            customQuestions: eviteData.customQuestions || [],
+            
+            // Tracking
+            totalInvitesSent: 0,
+            totalViewed: 0,
+            totalResponded: 0,
+            
+            // Status
+            status: 'draft', // draft, active, closed
+            
+            // Metadata
+            createdBy: member._id,
+            createdAt: new Date(),
+            lastModified: new Date(),
+            
+            // Unique Link
+            publicLink: generatePublicLink()
+        });
+        
+        await logEviteActivity(evite._id, 'EVITE_CREATED', `E-vite created for ${event.title}`);
+        
+        return {
+            success: true,
+            eviteId: evite._id,
+            publicLink: evite.publicLink,
+            message: 'E-vite created successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error creating e-vite:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Add custom question to e-vite
+ * @param {string} eviteId
+ * @param {Object} question
+ */
+export async function addCustomQuestion(eviteId, question) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const evite = await wixData.get('Evites', eviteId);
+        
+        const newQuestion = {
+            id: `q_${Date.now()}`,
+            question: question.question,
+            questionBengali: question.questionBengali || '',
+            type: question.type || 'text', // text, select, multiselect, checkbox, number
+            options: question.options || [],
+            required: question.required || false,
+            order: (evite.customQuestions?.length || 0) + 1
+        };
+        
+        evite.customQuestions = [...(evite.customQuestions || []), newQuestion];
+        evite.lastModified = new Date();
+        
+        await wixData.update('Evites', evite);
+        
+        return {
+            success: true,
+            questionId: newQuestion.id,
+            message: 'Question added successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error adding question:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// SEND INVITATIONS
+// =====================================================
+
+/**
+ * Send e-vite to members
+ * @param {string} eviteId
+ * @param {Object} options - { memberIds, membershipTypes, sendToAll }
+ */
+export async function sendEvite(eviteId, options = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const evite = await wixData.get('Evites', eviteId);
+        
+        if (!evite) {
+            return { success: false, error: 'E-vite not found' };
+        }
+        
+        // Get recipients
+        let recipients = [];
+        
+        if (options.sendToAll) {
+            const members = await wixData.query('MemberProfiles')
+                .eq('membershipStatus', 'active')
+                .find();
+            recipients = members.items;
+        } else if (options.membershipTypes?.length) {
+            const members = await wixData.query('MemberProfiles')
+                .eq('membershipStatus', 'active')
+                .hasSome('membershipType', options.membershipTypes)
+                .find();
+            recipients = members.items;
+        } else if (options.memberIds?.length) {
+            for (const memberId of options.memberIds) {
+                const memberData = await wixData.get('MemberProfiles', memberId);
+                if (memberData) recipients.push(memberData);
+            }
+        }
+        
+        let sentCount = 0;
+        let failedCount = 0;
+        
+        for (const recipient of recipients) {
+            try {
+                // Create individual invitation
+                const invitation = await wixData.insert('EviteInvitations', {
+                    eviteId: eviteId,
+                    eventId: evite.eventId,
+                    memberId: recipient._id,
+                    memberName: `${recipient.firstName} ${recipient.lastName}`,
+                    email: recipient.email,
+                    phone: recipient.phone || '',
+                    
+                    // Unique token for this invitation
+                    inviteToken: generateInviteToken(),
+                    
+                    // Tracking
+                    sentAt: new Date(),
+                    sentVia: options.channel || 'email',
+                    viewed: false,
+                    viewedAt: null,
+                    responded: false,
+                    respondedAt: null,
+                    
+                    // Response
+                    rsvpStatus: RSVP_STATUS.PENDING,
+                    
+                    // Metadata
+                    membershipType: recipient.membershipType
+                });
+                
+                // Send via selected channel
+                if (options.channel === 'email' || !options.channel) {
+                    await sendEviteEmail(evite, invitation, recipient);
+                }
+                
+                sentCount++;
+                
+            } catch (err) {
+                console.error(`Failed to send to ${recipient.email}:`, err);
+                failedCount++;
+            }
+        }
+        
+        // Update evite stats
+        evite.totalInvitesSent = (evite.totalInvitesSent || 0) + sentCount;
+        evite.status = 'active';
+        evite.lastSentAt = new Date();
+        await wixData.update('Evites', evite);
+        
+        await logEviteActivity(eviteId, 'EVITE_SENT', 
+            `Sent to ${sentCount} recipients (${failedCount} failed)`);
+        
+        return {
+            success: true,
+            sentCount: sentCount,
+            failedCount: failedCount,
+            message: `E-vite sent to ${sentCount} recipients`
+        };
+        
+    } catch (error) {
+        console.error('Error sending e-vite:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send e-vite email
+ */
+async function sendEviteEmail(evite, invitation, recipient) {
+    const rsvpLink = `https://jaxbengali.org/rsvp/${invitation.inviteToken}`;
+    
+    await triggeredEmails.emailContact(
+        'evite_invitation',
+        recipient.email,
+        {
+            variables: {
+                recipientName: `${recipient.firstName} ${recipient.lastName}`,
+                eventTitle: evite.title,
+                eventTitleBengali: evite.titleBengali,
+                eventDate: formatDate(evite.eventDate),
+                eventTime: evite.eventTime,
+                eventLocation: evite.eventLocation,
+                eventAddress: evite.eventAddress,
+                message: evite.message,
+                messageBengali: evite.messageBengali,
+                hostName: evite.hostName,
+                rsvpLink: rsvpLink,
+                rsvpDeadline: formatDate(evite.rsvpDeadline)
+            }
+        }
+    );
+}
+
+/**
+ * Send e-vite via WhatsApp (using template message)
+ * @param {string} eviteId
+ * @param {Array} phoneNumbers
+ */
+export async function sendEviteWhatsApp(eviteId, phoneNumbers) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const evite = await wixData.get('Evites', eviteId);
+        
+        // Generate WhatsApp message
+        const message = `🎉 *${evite.title}*\n\n` +
+            `📅 ${formatDate(evite.eventDate)} at ${evite.eventTime}\n` +
+            `📍 ${evite.eventLocation}\n\n` +
+            `${evite.message}\n\n` +
+            `Please RSVP: https://jaxbengali.org/evite/${evite.publicLink}\n\n` +
+            `🙏 ${evite.hostName}`;
+        
+        // Store WhatsApp send records
+        for (const phone of phoneNumbers) {
+            await wixData.insert('WhatsAppQueue', {
+                eviteId: eviteId,
+                phone: phone,
+                message: message,
+                status: 'queued',
+                createdAt: new Date()
+            });
+        }
+        
+        return {
+            success: true,
+            queued: phoneNumbers.length,
+            message: `WhatsApp messages queued for ${phoneNumbers.length} recipients`,
+            previewMessage: message
+        };
+        
+    } catch (error) {
+        console.error('Error sending WhatsApp:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// RSVP PROCESSING
+// =====================================================
+
+/**
+ * Submit RSVP response
+ * @param {string} inviteToken
+ * @param {Object} rsvpData
+ */
+export async function submitRSVP(inviteToken, rsvpData) {
+    try {
+        // Find invitation
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('inviteToken', inviteToken)
+            .find();
+        
+        if (invitations.items.length === 0) {
+            return { success: false, error: 'Invalid invitation link' };
+        }
+        
+        const invitation = invitations.items[0];
+        const evite = await wixData.get('Evites', invitation.eviteId);
+        
+        // Check deadline
+        if (new Date() > new Date(evite.rsvpDeadline)) {
+            return { success: false, error: 'RSVP deadline has passed' };
+        }
+        
+        // Process main respondent
+        const mainAttendee = {
+            name: rsvpData.name || invitation.memberName,
+            email: rsvpData.email || invitation.email,
+            phone: rsvpData.phone || invitation.phone,
+            ageCategory: rsvpData.ageCategory || 'adult',
+            dietary: rsvpData.dietary || 'no_restriction',
+            dietaryNotes: rsvpData.dietaryNotes || '',
+            accessibilityNeeds: rsvpData.accessibilityNeeds || '',
+            customAnswers: rsvpData.customAnswers || {}
+        };
+        
+        // Process guests/plus-ones
+        const guests = [];
+        if (rsvpData.guests && evite.allowPlusOnes) {
+            for (const guest of rsvpData.guests.slice(0, evite.maxGuestsPerInvite - 1)) {
+                guests.push({
+                    name: guest.name,
+                    ageCategory: guest.ageCategory || 'adult',
+                    dietary: guest.dietary || 'no_restriction',
+                    dietaryNotes: guest.dietaryNotes || '',
+                    relationship: guest.relationship || 'family'
+                });
+            }
+        }
+        
+        // Create RSVP record
+        const rsvp = await wixData.insert('EviteRSVPs', {
+            eviteId: invitation.eviteId,
+            eventId: invitation.eventId,
+            invitationId: invitation._id,
+            memberId: invitation.memberId,
+            
+            // Response
+            rsvpStatus: rsvpData.attending ? RSVP_STATUS.ATTENDING : 
+                        (rsvpData.maybe ? RSVP_STATUS.MAYBE : RSVP_STATUS.NOT_ATTENDING),
+            
+            // Main Attendee
+            mainAttendee: mainAttendee,
+            
+            // Guests
+            guests: guests,
+            totalAttendees: rsvpData.attending ? 1 + guests.length : 0,
+            
+            // Counts by Category
+            adultCount: countByAgeCategory([mainAttendee, ...guests], 'adult'),
+            teenCount: countByAgeCategory([mainAttendee, ...guests], 'teen'),
+            childCount: countByAgeCategory([mainAttendee, ...guests], 'child'),
+            toddlerCount: countByAgeCategory([mainAttendee, ...guests], 'toddler'),
+            infantCount: countByAgeCategory([mainAttendee, ...guests], 'infant'),
+            
+            // Dietary Counts
+            vegetarianCount: countByDietary([mainAttendee, ...guests], 'vegetarian'),
+            nonVegCount: countByDietary([mainAttendee, ...guests], 'non_vegetarian'),
+            veganCount: countByDietary([mainAttendee, ...guests], 'vegan'),
+            glutenFreeCount: countByDietary([mainAttendee, ...guests], 'gluten_free'),
+            otherDietaryCount: countOtherDietary([mainAttendee, ...guests]),
+            
+            // Special Requirements
+            specialDietaryNotes: collectDietaryNotes([mainAttendee, ...guests]),
+            accessibilityNotes: collectAccessibilityNotes([mainAttendee, ...guests]),
+            
+            // Notes
+            generalNotes: rsvpData.notes || '',
+            
+            // Metadata
+            respondedAt: new Date(),
+            ipAddress: rsvpData.ipAddress || '',
+            userAgent: rsvpData.userAgent || ''
+        });
+        
+        // Update invitation
+        invitation.responded = true;
+        invitation.respondedAt = new Date();
+        invitation.rsvpStatus = rsvp.rsvpStatus;
+        invitation.rsvpId = rsvp._id;
+        await wixData.update('EviteInvitations', invitation);
+        
+        // Update evite stats
+        evite.totalResponded = (evite.totalResponded || 0) + 1;
+        await wixData.update('Evites', evite);
+        
+        // Send confirmation
+        if (rsvpData.attending) {
+            await triggeredEmails.emailContact(
+                'rsvp_confirmation',
+                mainAttendee.email,
+                {
+                    variables: {
+                        name: mainAttendee.name,
+                        eventTitle: evite.title,
+                        eventDate: formatDate(evite.eventDate),
+                        eventTime: evite.eventTime,
+                        eventLocation: evite.eventLocation,
+                        totalAttendees: rsvp.totalAttendees,
+                        guestNames: guests.map(g => g.name).join(', ') || 'None'
+                    }
+                }
+            );
+        }
+        
+        await logEviteActivity(invitation.eviteId, 'RSVP_RECEIVED', 
+            `${mainAttendee.name} responded: ${rsvp.rsvpStatus} (${rsvp.totalAttendees} attendees)`);
+        
+        return {
+            success: true,
+            rsvpId: rsvp._id,
+            status: rsvp.rsvpStatus,
+            totalAttendees: rsvp.totalAttendees,
+            message: rsvpData.attending 
+                ? `Thank you! Your RSVP for ${rsvp.totalAttendees} attendee(s) has been confirmed.`
+                : 'Thank you for letting us know. We hope to see you at future events!'
+        };
+        
+    } catch (error) {
+        console.error('Error submitting RSVP:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Track e-vite view
+ * @param {string} inviteToken
+ */
+export async function trackEviteView(inviteToken) {
+    try {
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('inviteToken', inviteToken)
+            .find();
+        
+        if (invitations.items.length > 0) {
+            const invitation = invitations.items[0];
+            
+            if (!invitation.viewed) {
+                invitation.viewed = true;
+                invitation.viewedAt = new Date();
+                await wixData.update('EviteInvitations', invitation);
+                
+                const evite = await wixData.get('Evites', invitation.eviteId);
+                evite.totalViewed = (evite.totalViewed || 0) + 1;
+                await wixData.update('Evites', evite);
+            }
+            
+            return { success: true, eviteId: invitation.eviteId };
+        }
+        
+        return { success: false };
+        
+    } catch (error) {
+        console.error('Error tracking view:', error);
+        return { success: false };
+    }
+}
+
+// =====================================================
+// ANALYTICS & INSIGHTS
+// =====================================================
+
+/**
+ * Get comprehensive RSVP analytics for an e-vite
+ * @param {string} eviteId
+ */
+export async function getEviteAnalytics(eviteId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const evite = await wixData.get('Evites', eviteId);
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eviteId', eviteId)
+            .find();
+        
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('eviteId', eviteId)
+            .find();
+        
+        // Response Summary
+        const attending = rsvps.items.filter(r => r.rsvpStatus === RSVP_STATUS.ATTENDING);
+        const notAttending = rsvps.items.filter(r => r.rsvpStatus === RSVP_STATUS.NOT_ATTENDING);
+        const maybe = rsvps.items.filter(r => r.rsvpStatus === RSVP_STATUS.MAYBE);
+        const pending = invitations.items.filter(i => !i.responded);
+        
+        // Attendance Totals
+        const totalAttending = attending.reduce((sum, r) => sum + r.totalAttendees, 0);
+        
+        // Age Demographics
+        const ageDemographics = {
+            adults: attending.reduce((sum, r) => sum + (r.adultCount || 0), 0),
+            teens: attending.reduce((sum, r) => sum + (r.teenCount || 0), 0),
+            children: attending.reduce((sum, r) => sum + (r.childCount || 0), 0),
+            toddlers: attending.reduce((sum, r) => sum + (r.toddlerCount || 0), 0),
+            infants: attending.reduce((sum, r) => sum + (r.infantCount || 0), 0)
+        };
+        
+        // Dietary Requirements
+        const dietaryBreakdown = {
+            vegetarian: attending.reduce((sum, r) => sum + (r.vegetarianCount || 0), 0),
+            nonVegetarian: attending.reduce((sum, r) => sum + (r.nonVegCount || 0), 0),
+            vegan: attending.reduce((sum, r) => sum + (r.veganCount || 0), 0),
+            glutenFree: attending.reduce((sum, r) => sum + (r.glutenFreeCount || 0), 0),
+            other: attending.reduce((sum, r) => sum + (r.otherDietaryCount || 0), 0)
+        };
+        
+        // Special Requirements
+        const specialDietaryNotes = attending
+            .filter(r => r.specialDietaryNotes)
+            .map(r => ({
+                member: r.mainAttendee.name,
+                notes: r.specialDietaryNotes
+            }));
+        
+        const accessibilityNeeds = attending
+            .filter(r => r.accessibilityNotes)
+            .map(r => ({
+                member: r.mainAttendee.name,
+                needs: r.accessibilityNotes
+            }));
+        
+        // Response Rate
+        const responseRate = invitations.items.length > 0 
+            ? Math.round((rsvps.items.length / invitations.items.length) * 100) 
+            : 0;
+        
+        // View Rate
+        const viewRate = invitations.items.length > 0
+            ? Math.round((invitations.items.filter(i => i.viewed).length / invitations.items.length) * 100)
+            : 0;
+        
+        // Membership Type Breakdown
+        const byMembershipType = {};
+        for (const rsvp of attending) {
+            const inv = invitations.items.find(i => i._id === rsvp.invitationId);
+            const type = inv?.membershipType || 'unknown';
+            byMembershipType[type] = (byMembershipType[type] || 0) + rsvp.totalAttendees;
+        }
+        
+        // Response Timeline
+        const responseTimeline = attending
+            .map(r => ({
+                date: new Date(r.respondedAt).toLocaleDateString(),
+                count: r.totalAttendees
+            }))
+            .reduce((acc, item) => {
+                const existing = acc.find(a => a.date === item.date);
+                if (existing) {
+                    existing.count += item.count;
+                } else {
+                    acc.push(item);
+                }
+                return acc;
+            }, []);
+        
+        return {
+            success: true,
+            analytics: {
+                // Summary
+                summary: {
+                    totalInvited: invitations.items.length,
+                    totalResponded: rsvps.items.length,
+                    responseRate: responseRate,
+                    viewRate: viewRate
+                },
+                
+                // Response Breakdown
+                responses: {
+                    attending: attending.length,
+                    notAttending: notAttending.length,
+                    maybe: maybe.length,
+                    pending: pending.length
+                },
+                
+                // Attendance
+                attendance: {
+                    totalHeadcount: totalAttending,
+                    byAge: ageDemographics,
+                    byMembershipType: byMembershipType
+                },
+                
+                // Food Planning
+                foodPlanning: {
+                    dietary: dietaryBreakdown,
+                    totalMealsNeeded: totalAttending,
+                    vegetarianMeals: dietaryBreakdown.vegetarian + dietaryBreakdown.vegan,
+                    nonVegMeals: dietaryBreakdown.nonVegetarian,
+                    specialRequirements: specialDietaryNotes
+                },
+                
+                // Age-Based Planning
+                agePlanning: {
+                    adultSeating: ageDemographics.adults,
+                    kidsArea: ageDemographics.children + ageDemographics.toddlers,
+                    highChairsNeeded: ageDemographics.infants + ageDemographics.toddlers,
+                    childrenActivities: ageDemographics.children
+                },
+                
+                // Accessibility
+                accessibility: {
+                    specialNeeds: accessibilityNeeds,
+                    totalWithNeeds: accessibilityNeeds.length
+                },
+                
+                // Timeline
+                responseTimeline: responseTimeline,
+                
+                // Raw Data for Export
+                attendeeList: attending.map(r => ({
+                    primaryName: r.mainAttendee.name,
+                    email: r.mainAttendee.email,
+                    phone: r.mainAttendee.phone,
+                    totalInParty: r.totalAttendees,
+                    dietary: r.mainAttendee.dietary,
+                    guests: r.guests?.map(g => g.name) || []
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting analytics:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Export attendee list for catering/planning
+ * @param {string} eviteId
+ * @param {string} format - 'json', 'csv'
+ */
+export async function exportAttendeeList(eviteId, format = 'json') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eviteId', eviteId)
+            .eq('rsvpStatus', RSVP_STATUS.ATTENDING)
+            .find();
+        
+        const attendees = [];
+        
+        for (const rsvp of rsvps.items) {
+            // Main attendee
+            attendees.push({
+                name: rsvp.mainAttendee.name,
+                email: rsvp.mainAttendee.email,
+                phone: rsvp.mainAttendee.phone,
+                ageCategory: rsvp.mainAttendee.ageCategory,
+                dietary: rsvp.mainAttendee.dietary,
+                dietaryNotes: rsvp.mainAttendee.dietaryNotes,
+                accessibility: rsvp.mainAttendee.accessibilityNeeds,
+                isGuest: false,
+                partyOf: rsvp.totalAttendees
+            });
+            
+            // Guests
+            for (const guest of (rsvp.guests || [])) {
+                attendees.push({
+                    name: guest.name,
+                    email: '',
+                    phone: '',
+                    ageCategory: guest.ageCategory,
+                    dietary: guest.dietary,
+                    dietaryNotes: guest.dietaryNotes,
+                    accessibility: '',
+                    isGuest: true,
+                    hostName: rsvp.mainAttendee.name
+                });
+            }
+        }
+        
+        if (format === 'csv') {
+            const headers = ['Name', 'Email', 'Phone', 'Age Category', 'Dietary', 'Dietary Notes', 'Accessibility', 'Is Guest', 'Host/Party Size'];
+            const rows = attendees.map(a => [
+                a.name, a.email, a.phone, a.ageCategory, a.dietary, 
+                a.dietaryNotes, a.accessibility, a.isGuest ? 'Yes' : 'No',
+                a.isGuest ? a.hostName : a.partyOf
+            ]);
+            
+            const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v || ''}"`).join(','))].join('\n');
+            
+            return {
+                success: true,
+                format: 'csv',
+                data: csv,
+                filename: `attendees_${eviteId}.csv`
+            };
+        }
+        
+        return {
+            success: true,
+            format: 'json',
+            data: attendees,
+            totalAttendees: attendees.length
+        };
+        
+    } catch (error) {
+        console.error('Error exporting:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// REMINDER SYSTEM
+// =====================================================
+
+/**
+ * Send RSVP reminders to non-responders
+ * @param {string} eviteId
+ */
+export async function sendRSVPReminders(eviteId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const evite = await wixData.get('Evites', eviteId);
+        
+        // Get non-responders
+        const invitations = await wixData.query('EviteInvitations')
+            .eq('eviteId', eviteId)
+            .eq('responded', false)
+            .find();
+        
+        let remindersSent = 0;
+        
+        for (const invitation of invitations.items) {
+            await triggeredEmails.emailContact(
+                'rsvp_reminder',
+                invitation.email,
+                {
+                    variables: {
+                        name: invitation.memberName,
+                        eventTitle: evite.title,
+                        eventDate: formatDate(evite.eventDate),
+                        rsvpDeadline: formatDate(evite.rsvpDeadline),
+                        rsvpLink: `https://jaxbengali.org/rsvp/${invitation.inviteToken}`
+                    }
+                }
+            );
+            
+            invitation.lastReminderSent = new Date();
+            invitation.reminderCount = (invitation.reminderCount || 0) + 1;
+            await wixData.update('EviteInvitations', invitation);
+            
+            remindersSent++;
+        }
+        
+        await logEviteActivity(eviteId, 'REMINDERS_SENT', 
+            `Sent ${remindersSent} RSVP reminders`);
+        
+        return {
+            success: true,
+            remindersSent: remindersSent,
+            message: `Reminders sent to ${remindersSent} non-responders`
+        };
+        
+    } catch (error) {
+        console.error('Error sending reminders:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function generatePublicLink() {
+    return crypto.randomBytes(8).toString('hex');
+}
+
+function generateInviteToken() {
+    return crypto.randomBytes(16).toString('hex');
+}
+
+function countByAgeCategory(attendees, category) {
+    return attendees.filter(a => a.ageCategory === category).length;
+}
+
+function countByDietary(attendees, dietary) {
+    return attendees.filter(a => a.dietary === dietary).length;
+}
+
+function countOtherDietary(attendees) {
+    const mainTypes = ['vegetarian', 'non_vegetarian', 'no_restriction'];
+    return attendees.filter(a => !mainTypes.includes(a.dietary)).length;
+}
+
+function collectDietaryNotes(attendees) {
+    return attendees
+        .filter(a => a.dietaryNotes)
+        .map(a => `${a.name}: ${a.dietaryNotes}`)
+        .join('; ');
+}
+
+function collectAccessibilityNotes(attendees) {
+    return attendees
+        .filter(a => a.accessibilityNeeds)
+        .map(a => `${a.name}: ${a.accessibilityNeeds}`)
+        .join('; ');
+}
+
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+async function logEviteActivity(eviteId, action, details) {
+    await wixData.insert('EviteActivityLog', {
+        eviteId: eviteId,
+        action: action,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+// Export constants
+export { EVITE_TEMPLATES, DIETARY_OPTIONS, AGE_CATEGORIES, RSVP_STATUS };

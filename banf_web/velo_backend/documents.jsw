@@ -1,0 +1,605 @@
+// backend/documents.jsw
+// BANF Document Storage & Management - Wix Velo Backend
+// Supports categorized document storage for expenses, bills, audits, etc.
+
+import wixData from 'wix-data';
+import { mediaManager } from 'wix-media-backend';
+
+// Document categories
+const DOCUMENT_CATEGORIES = {
+    // Financial Documents
+    EXPENSES: { 
+        name: 'Expenses', 
+        subcategories: ['event_expenses', 'venue_rental', 'food_catering', 'decorations', 'entertainment', 'supplies', 'miscellaneous'],
+        icon: '💰'
+    },
+    BILLS: { 
+        name: 'Bills & Invoices', 
+        subcategories: ['vendor_invoices', 'utility_bills', 'service_bills', 'equipment_rental'],
+        icon: '🧾'
+    },
+    RECEIPTS: { 
+        name: 'Receipts', 
+        subcategories: ['expense_receipts', 'donation_receipts', 'payment_confirmations'],
+        icon: '🧾'
+    },
+    AUDIT: { 
+        name: 'Audit Documents', 
+        subcategories: ['annual_audit', 'financial_statements', 'audit_reports', 'compliance'],
+        icon: '📊'
+    },
+    
+    // Organizational Documents
+    GOVERNANCE: { 
+        name: 'Governance', 
+        subcategories: ['bylaws', 'constitution', 'policies', 'procedures', 'resolutions'],
+        icon: '📜'
+    },
+    MEETING_DOCS: { 
+        name: 'Meeting Documents', 
+        subcategories: ['agendas', 'minutes', 'presentations', 'reports'],
+        icon: '📋'
+    },
+    MEMBERSHIP: { 
+        name: 'Membership Documents', 
+        subcategories: ['applications', 'renewals', 'member_lists', 'directories'],
+        icon: '👥'
+    },
+    
+    // Event Documents
+    EVENT_DOCS: { 
+        name: 'Event Documents', 
+        subcategories: ['event_plans', 'budgets', 'contracts', 'permits', 'insurance'],
+        icon: '🎉'
+    },
+    SPONSORSHIP_DOCS: { 
+        name: 'Sponsorship Documents', 
+        subcategories: ['agreements', 'invoices', 'artwork', 'portfolios'],
+        icon: '🤝'
+    },
+    VENDOR_CONTRACTS: { 
+        name: 'Vendor Contracts', 
+        subcategories: ['food_vendors', 'venue_agreements', 'service_contracts', 'equipment_rentals'],
+        icon: '📝'
+    },
+    
+    // Media & Communications
+    PHOTOS: { 
+        name: 'Event Photos', 
+        subcategories: ['durga_puja', 'kali_puja', 'saraswati_puja', 'nabo_borsho', 'spandan', 'other_events'],
+        icon: '📷'
+    },
+    MAGAZINE: { 
+        name: 'Magazine Archives', 
+        subcategories: ['published_issues', 'articles', 'artwork', 'archives'],
+        icon: '📰'
+    },
+    COMMUNICATIONS: { 
+        name: 'Communications', 
+        subcategories: ['newsletters', 'announcements', 'press_releases', 'templates'],
+        icon: '📧'
+    },
+    
+    // Legal & Insurance
+    LEGAL: { 
+        name: 'Legal Documents', 
+        subcategories: ['incorporation', 'tax_exemption', 'licenses', 'permits'],
+        icon: '⚖️'
+    },
+    INSURANCE: { 
+        name: 'Insurance', 
+        subcategories: ['liability_insurance', 'event_insurance', 'certificates'],
+        icon: '🛡️'
+    },
+    TAX: { 
+        name: 'Tax Documents', 
+        subcategories: ['990_filings', 'tax_returns', 'donation_records', 'compliance'],
+        icon: '📑'
+    }
+};
+
+// Document access levels
+const ACCESS_LEVELS = {
+    PUBLIC: 'public',           // Anyone can view
+    MEMBERS: 'members',         // Only members
+    ADMIN: 'admin',             // Only admins
+    EXECUTIVE: 'executive',     // Only EC members
+    CONFIDENTIAL: 'confidential' // Restricted access
+};
+
+/**
+ * Upload and create document record
+ */
+export async function uploadDocument(documentData, adminId) {
+    try {
+        const document = {
+            // Basic Info
+            title: documentData.title,
+            description: documentData.description || '',
+            
+            // Categorization
+            category: documentData.category,
+            subcategory: documentData.subcategory || '',
+            tags: JSON.stringify(documentData.tags || []),
+            
+            // File Info
+            fileUrl: documentData.fileUrl,
+            fileName: documentData.fileName,
+            fileType: documentData.fileType || getFileType(documentData.fileName),
+            fileSize: documentData.fileSize || 0,
+            
+            // Related Entities
+            relatedEventId: documentData.eventId || '',
+            relatedEventName: documentData.eventName || '',
+            relatedSponsorId: documentData.sponsorId || '',
+            relatedVendorId: documentData.vendorId || '',
+            fiscalYear: documentData.fiscalYear || getCurrentFiscalYear(),
+            
+            // Access Control
+            accessLevel: documentData.accessLevel || ACCESS_LEVELS.ADMIN,
+            
+            // Financial (if applicable)
+            documentAmount: documentData.amount || 0,
+            transactionDate: documentData.transactionDate ? new Date(documentData.transactionDate) : null,
+            
+            // Version Control
+            version: 1,
+            previousVersionId: null,
+            
+            // Status
+            isArchived: false,
+            isVerified: false,
+            verifiedBy: null,
+            verifiedAt: null,
+            
+            // Metadata
+            uploadedBy: adminId,
+            notes: documentData.notes || '',
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('Documents', document);
+        
+        // Log activity
+        await logDocumentActivity(result._id, 'upload', adminId, 'Document uploaded');
+        
+        return { 
+            success: true, 
+            documentId: result._id,
+            message: 'Document uploaded successfully'
+        };
+    } catch (error) {
+        console.error('Error uploading document:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get documents by category
+ */
+export async function getDocumentsByCategory(category, options = { limit: 50, skip: 0, subcategory: null, fiscalYear: null }) {
+    try {
+        let query = wixData.query('Documents')
+            .eq('category', category)
+            .eq('isArchived', false);
+        
+        if (options.subcategory) {
+            query = query.eq('subcategory', options.subcategory);
+        }
+        if (options.fiscalYear) {
+            query = query.eq('fiscalYear', options.fiscalYear);
+        }
+        
+        query = query
+            .descending('_createdDate')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find();
+        
+        return {
+            items: result.items.map(d => ({
+                ...d,
+                tags: JSON.parse(d.tags || '[]')
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting documents:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Search documents
+ */
+export async function searchDocuments(searchTerm, options = { category: null, fiscalYear: null, limit: 50 }) {
+    try {
+        let query = wixData.query('Documents')
+            .eq('isArchived', false)
+            .contains('title', searchTerm)
+            .or(wixData.query('Documents').contains('description', searchTerm))
+            .or(wixData.query('Documents').contains('fileName', searchTerm));
+        
+        if (options.category) {
+            query = query.eq('category', options.category);
+        }
+        if (options.fiscalYear) {
+            query = query.eq('fiscalYear', options.fiscalYear);
+        }
+        
+        query = query
+            .descending('_createdDate')
+            .limit(options.limit);
+        
+        const result = await query.find();
+        
+        return {
+            items: result.items.map(d => ({
+                ...d,
+                tags: JSON.parse(d.tags || '[]')
+            })),
+            totalCount: result.totalCount
+        };
+    } catch (error) {
+        console.error('Error searching documents:', error);
+        return { items: [], totalCount: 0 };
+    }
+}
+
+/**
+ * Get document by ID
+ */
+export async function getDocumentById(documentId) {
+    try {
+        const document = await wixData.get('Documents', documentId);
+        if (!document) return null;
+        
+        // Get activity log
+        const activityLog = await wixData.query('DocumentActivityLog')
+            .eq('documentId', documentId)
+            .descending('timestamp')
+            .limit(20)
+            .find();
+        
+        return {
+            ...document,
+            tags: JSON.parse(document.tags || '[]'),
+            activityLog: activityLog.items
+        };
+    } catch (error) {
+        console.error('Error getting document:', error);
+        return null;
+    }
+}
+
+/**
+ * Update document metadata
+ */
+export async function updateDocument(documentId, updateData, adminId) {
+    try {
+        const document = await wixData.get('Documents', documentId);
+        if (!document) {
+            return { success: false, error: 'Document not found' };
+        }
+        
+        const updatedDocument = {
+            ...document,
+            title: updateData.title || document.title,
+            description: updateData.description !== undefined ? updateData.description : document.description,
+            category: updateData.category || document.category,
+            subcategory: updateData.subcategory || document.subcategory,
+            tags: updateData.tags ? JSON.stringify(updateData.tags) : document.tags,
+            accessLevel: updateData.accessLevel || document.accessLevel,
+            notes: updateData.notes !== undefined ? updateData.notes : document.notes,
+            _updatedDate: new Date()
+        };
+        
+        await wixData.update('Documents', updatedDocument);
+        await logDocumentActivity(documentId, 'update', adminId, 'Document metadata updated');
+        
+        return { success: true, message: 'Document updated' };
+    } catch (error) {
+        console.error('Error updating document:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Upload new version of document
+ */
+export async function uploadNewVersion(documentId, newFileData, adminId) {
+    try {
+        const originalDoc = await wixData.get('Documents', documentId);
+        if (!originalDoc) {
+            return { success: false, error: 'Document not found' };
+        }
+        
+        // Archive old version
+        await wixData.update('Documents', {
+            ...originalDoc,
+            isArchived: true,
+            archivedAt: new Date(),
+            archivedBy: adminId
+        });
+        
+        // Create new version
+        const newDocument = {
+            ...originalDoc,
+            _id: undefined, // Let Wix generate new ID
+            fileUrl: newFileData.fileUrl,
+            fileName: newFileData.fileName,
+            fileSize: newFileData.fileSize || 0,
+            version: (originalDoc.version || 1) + 1,
+            previousVersionId: documentId,
+            isArchived: false,
+            uploadedBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('Documents', newDocument);
+        await logDocumentActivity(result._id, 'new_version', adminId, `Version ${newDocument.version} uploaded`);
+        
+        return { 
+            success: true, 
+            documentId: result._id,
+            version: newDocument.version
+        };
+    } catch (error) {
+        console.error('Error uploading new version:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Archive document
+ */
+export async function archiveDocument(documentId, adminId) {
+    try {
+        const document = await wixData.get('Documents', documentId);
+        if (!document) {
+            return { success: false, error: 'Document not found' };
+        }
+        
+        await wixData.update('Documents', {
+            ...document,
+            isArchived: true,
+            archivedAt: new Date(),
+            archivedBy: adminId,
+            _updatedDate: new Date()
+        });
+        
+        await logDocumentActivity(documentId, 'archive', adminId, 'Document archived');
+        
+        return { success: true, message: 'Document archived' };
+    } catch (error) {
+        console.error('Error archiving document:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get document statistics by category
+ */
+export async function getDocumentStats() {
+    try {
+        const stats = {
+            totalDocuments: 0,
+            byCategory: {},
+            byFiscalYear: {},
+            recentUploads: [],
+            storageUsed: 0
+        };
+        
+        // Get total count
+        stats.totalDocuments = await wixData.query('Documents')
+            .eq('isArchived', false)
+            .count();
+        
+        // Count by category
+        for (const [key, category] of Object.entries(DOCUMENT_CATEGORIES)) {
+            const count = await wixData.query('Documents')
+                .eq('category', key)
+                .eq('isArchived', false)
+                .count();
+            
+            stats.byCategory[key] = {
+                name: category.name,
+                icon: category.icon,
+                count: count
+            };
+        }
+        
+        // Get recent uploads
+        const recent = await wixData.query('Documents')
+            .eq('isArchived', false)
+            .descending('_createdDate')
+            .limit(10)
+            .find();
+        
+        stats.recentUploads = recent.items.map(d => ({
+            id: d._id,
+            title: d.title,
+            category: d.category,
+            uploadedAt: d._createdDate
+        }));
+        
+        // Calculate storage (approximate)
+        const allDocs = await wixData.query('Documents')
+            .eq('isArchived', false)
+            .limit(1000)
+            .find();
+        
+        stats.storageUsed = allDocs.items.reduce((sum, d) => sum + (d.fileSize || 0), 0);
+        
+        return stats;
+    } catch (error) {
+        console.error('Error getting document stats:', error);
+        return null;
+    }
+}
+
+/**
+ * Get expense documents with totals
+ */
+export async function getExpenseDocuments(fiscalYear = null, options = { limit: 100 }) {
+    try {
+        const year = fiscalYear || getCurrentFiscalYear();
+        
+        const result = await wixData.query('Documents')
+            .eq('category', 'EXPENSES')
+            .eq('fiscalYear', year)
+            .eq('isArchived', false)
+            .descending('transactionDate')
+            .limit(options.limit)
+            .find();
+        
+        const total = result.items.reduce((sum, d) => sum + (d.documentAmount || 0), 0);
+        
+        // Group by subcategory
+        const bySubcategory = {};
+        result.items.forEach(doc => {
+            const sub = doc.subcategory || 'miscellaneous';
+            if (!bySubcategory[sub]) {
+                bySubcategory[sub] = { count: 0, total: 0 };
+            }
+            bySubcategory[sub].count++;
+            bySubcategory[sub].total += doc.documentAmount || 0;
+        });
+        
+        return {
+            items: result.items,
+            totalAmount: total,
+            bySubcategory: bySubcategory,
+            documentCount: result.totalCount
+        };
+    } catch (error) {
+        console.error('Error getting expense documents:', error);
+        return { items: [], totalAmount: 0, bySubcategory: {}, documentCount: 0 };
+    }
+}
+
+/**
+ * Verify document (for audit purposes)
+ */
+export async function verifyDocument(documentId, adminId) {
+    try {
+        const document = await wixData.get('Documents', documentId);
+        if (!document) {
+            return { success: false, error: 'Document not found' };
+        }
+        
+        await wixData.update('Documents', {
+            ...document,
+            isVerified: true,
+            verifiedBy: adminId,
+            verifiedAt: new Date(),
+            _updatedDate: new Date()
+        });
+        
+        await logDocumentActivity(documentId, 'verify', adminId, 'Document verified');
+        
+        return { success: true, message: 'Document verified' };
+    } catch (error) {
+        console.error('Error verifying document:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get audit trail for document
+ */
+export async function getDocumentAuditTrail(documentId) {
+    try {
+        const result = await wixData.query('DocumentActivityLog')
+            .eq('documentId', documentId)
+            .descending('timestamp')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting audit trail:', error);
+        return [];
+    }
+}
+
+/**
+ * Bulk categorize documents
+ */
+export async function bulkCategorize(documentIds, category, subcategory, adminId) {
+    try {
+        let successCount = 0;
+        
+        for (const docId of documentIds) {
+            const document = await wixData.get('Documents', docId);
+            if (document) {
+                await wixData.update('Documents', {
+                    ...document,
+                    category: category,
+                    subcategory: subcategory || '',
+                    _updatedDate: new Date()
+                });
+                await logDocumentActivity(docId, 'categorize', adminId, `Moved to ${category}/${subcategory}`);
+                successCount++;
+            }
+        }
+        
+        return { 
+            success: true, 
+            message: `${successCount} documents categorized`,
+            count: successCount
+        };
+    } catch (error) {
+        console.error('Error bulk categorizing:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+async function logDocumentActivity(documentId, action, adminId, details) {
+    try {
+        await wixData.insert('DocumentActivityLog', {
+            documentId: documentId,
+            action: action,
+            performedBy: adminId,
+            details: details,
+            timestamp: new Date(),
+            _createdDate: new Date()
+        });
+    } catch (error) {
+        console.error('Error logging document activity:', error);
+    }
+}
+
+function getFileType(fileName) {
+    if (!fileName) return 'unknown';
+    const ext = fileName.split('.').pop().toLowerCase();
+    const typeMap = {
+        'pdf': 'pdf',
+        'doc': 'word', 'docx': 'word',
+        'xls': 'excel', 'xlsx': 'excel',
+        'ppt': 'powerpoint', 'pptx': 'powerpoint',
+        'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image',
+        'zip': 'archive', 'rar': 'archive',
+        'txt': 'text', 'csv': 'csv'
+    };
+    return typeMap[ext] || 'other';
+}
+
+function getCurrentFiscalYear() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    if (month >= 3) {
+        return `${year}-${year + 1}`;
+    }
+    return `${year - 1}-${year}`;
+}
+
+// Export constants
+export const DocumentCategories = DOCUMENT_CATEGORIES;
+export const AccessLevels = ACCESS_LEVELS;

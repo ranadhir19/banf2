@@ -1,0 +1,722 @@
+/**
+ * BANF Automation Framework - Master Orchestrator
+ * =================================================
+ * Central automation hub that coordinates all BANF automation services
+ * 
+ * This module serves as the master controller for:
+ * - Event Automation (event-automation.jsw)
+ * - Member Automation (member-automation.jsw)
+ * - Payment Automation (payment-automation.jsw)
+ * - Communication Automation
+ * - Scheduled Tasks
+ * - Workflow Triggers
+ * 
+ * @module backend/automation-framework.jsw
+ */
+
+import wixData from 'wix-data';
+import { triggeredEmails } from 'wix-crm-backend';
+import { currentMember } from 'wix-members-backend';
+
+// Import automation sub-modules
+import * as eventAutomation from 'backend/event-automation.jsw';
+import * as memberAutomation from 'backend/member-automation.jsw';
+import * as paymentAutomation from 'backend/payment-automation.jsw';
+import * as communicationHub from 'backend/communication-hub.jsw';
+import * as radioScheduler from 'backend/radio-scheduler.jsw';
+import * as streamingService from 'backend/streaming-service.jsw';
+
+// =====================================================
+// AUTOMATION FRAMEWORK CONFIGURATION
+// =====================================================
+
+const AUTOMATION_CONFIG = {
+    version: '1.0.0',
+    enabledModules: {
+        events: true,
+        members: true,
+        payments: true,
+        communications: true,
+        radio: true,
+        streaming: true
+    },
+    
+    // Scheduled task intervals (in hours)
+    schedules: {
+        memberRenewalCheck: 24,      // Daily
+        eventReminderCheck: 6,       // Every 6 hours
+        birthdayCheck: 24,           // Daily at midnight
+        paymentReminderCheck: 24,    // Daily
+        engagementScoreUpdate: 168,  // Weekly
+        dataCleanup: 168,            // Weekly
+        analyticsReport: 168         // Weekly
+    },
+    
+    // Notification settings
+    notifications: {
+        adminEmail: 'admin@banfjax.org',
+        enableSlack: false,
+        enableSMS: false
+    },
+    
+    // Bengali calendar events (Durga Puja, Saraswati Puja, etc.)
+    bengaliEvents: {
+        DURGA_PUJA: { month: 10, type: 'multi-day' },
+        KALI_PUJA: { month: 10, type: 'single-day' },
+        SARASWATI_PUJA: { month: 2, type: 'single-day' },
+        HOLI: { month: 3, type: 'single-day' },
+        POILA_BOISHAKH: { month: 4, type: 'single-day' },
+        RABINDRA_JAYANTI: { month: 5, type: 'single-day' },
+        MAHALAYA: { month: 9, type: 'special-broadcast' }
+    }
+};
+
+// =====================================================
+// WORKFLOW DEFINITIONS
+// =====================================================
+
+/**
+ * Predefined automation workflows that can be triggered
+ */
+const WORKFLOWS = {
+    // New Member Onboarding
+    NEW_MEMBER_ONBOARDING: {
+        id: 'new_member_onboarding',
+        name: 'New Member Onboarding',
+        trigger: 'member.created',
+        steps: [
+            { action: 'send_welcome_email', delay: 0 },
+            { action: 'add_to_newsletter', delay: 0 },
+            { action: 'create_member_profile', delay: 0 },
+            { action: 'send_getting_started_guide', delay: 24 * 60 }, // 24 hours
+            { action: 'send_first_event_invitation', delay: 72 * 60 }  // 3 days
+        ]
+    },
+    
+    // Event Registration Flow
+    EVENT_REGISTRATION: {
+        id: 'event_registration',
+        name: 'Event Registration Flow',
+        trigger: 'event.rsvp',
+        steps: [
+            { action: 'send_confirmation_email', delay: 0 },
+            { action: 'add_to_calendar', delay: 0 },
+            { action: 'send_reminder_48h', delay: -48 * 60 }, // 48 hours before event
+            { action: 'send_reminder_2h', delay: -2 * 60 },   // 2 hours before event
+            { action: 'send_checkin_qr', delay: -24 * 60 }    // 24 hours before event
+        ]
+    },
+    
+    // Payment Received
+    PAYMENT_RECEIVED: {
+        id: 'payment_received',
+        name: 'Payment Received Workflow',
+        trigger: 'payment.completed',
+        steps: [
+            { action: 'send_receipt', delay: 0 },
+            { action: 'update_member_status', delay: 0 },
+            { action: 'log_transaction', delay: 0 },
+            { action: 'send_thank_you', delay: 30 }  // 30 minutes
+        ]
+    },
+    
+    // Membership Renewal Reminder
+    RENEWAL_REMINDER: {
+        id: 'renewal_reminder',
+        name: 'Membership Renewal Reminder',
+        trigger: 'membership.expiring',
+        steps: [
+            { action: 'send_renewal_notice_30d', delay: -30 * 24 * 60 },
+            { action: 'send_renewal_notice_14d', delay: -14 * 24 * 60 },
+            { action: 'send_renewal_notice_7d', delay: -7 * 24 * 60 },
+            { action: 'send_renewal_notice_1d', delay: -24 * 60 },
+            { action: 'send_expiration_notice', delay: 0 }
+        ]
+    },
+    
+    // Puja Event Automation
+    PUJA_EVENT: {
+        id: 'puja_event',
+        name: 'Durga Puja Event Automation',
+        trigger: 'puja.scheduled',
+        steps: [
+            { action: 'create_volunteer_schedule', delay: -30 * 24 * 60 },
+            { action: 'send_sponsorship_requests', delay: -60 * 24 * 60 },
+            { action: 'activate_mahalaya_radio', delay: -7 * 24 * 60 },
+            { action: 'send_puja_schedule', delay: -3 * 24 * 60 },
+            { action: 'start_live_stream', delay: 0 },
+            { action: 'send_post_puja_survey', delay: 24 * 60 }
+        ]
+    }
+};
+
+// =====================================================
+// MASTER ORCHESTRATOR FUNCTIONS
+// =====================================================
+
+/**
+ * Initialize the automation framework
+ * Should be called on app startup
+ */
+export async function initializeFramework() {
+    console.log('🚀 Initializing BANF Automation Framework v' + AUTOMATION_CONFIG.version);
+    
+    const status = {
+        initialized: new Date().toISOString(),
+        modules: {}
+    };
+    
+    // Initialize each enabled module
+    if (AUTOMATION_CONFIG.enabledModules.events) {
+        try {
+            await eventAutomation.initialize?.();
+            status.modules.events = 'active';
+        } catch (e) {
+            status.modules.events = 'error: ' + e.message;
+        }
+    }
+    
+    if (AUTOMATION_CONFIG.enabledModules.members) {
+        try {
+            await memberAutomation.initialize?.();
+            status.modules.members = 'active';
+        } catch (e) {
+            status.modules.members = 'error: ' + e.message;
+        }
+    }
+    
+    if (AUTOMATION_CONFIG.enabledModules.payments) {
+        try {
+            await paymentAutomation.initialize?.();
+            status.modules.payments = 'active';
+        } catch (e) {
+            status.modules.payments = 'error: ' + e.message;
+        }
+    }
+    
+    // Log initialization
+    await logAutomationEvent('FRAMEWORK_INITIALIZED', status);
+    
+    return status;
+}
+
+/**
+ * Execute a specific workflow
+ * @param {string} workflowId - The workflow to execute
+ * @param {Object} context - Context data for the workflow
+ */
+export async function executeWorkflow(workflowId, context) {
+    const workflow = WORKFLOWS[workflowId];
+    
+    if (!workflow) {
+        throw new Error(`Workflow not found: ${workflowId}`);
+    }
+    
+    console.log(`🔄 Executing workflow: ${workflow.name}`);
+    
+    const execution = {
+        workflowId,
+        startedAt: new Date().toISOString(),
+        context,
+        steps: [],
+        status: 'running'
+    };
+    
+    try {
+        for (const step of workflow.steps) {
+            const stepResult = await executeWorkflowStep(step, context);
+            execution.steps.push({
+                action: step.action,
+                executedAt: new Date().toISOString(),
+                result: stepResult
+            });
+        }
+        
+        execution.status = 'completed';
+        execution.completedAt = new Date().toISOString();
+        
+    } catch (error) {
+        execution.status = 'failed';
+        execution.error = error.message;
+    }
+    
+    // Log workflow execution
+    await logWorkflowExecution(execution);
+    
+    return execution;
+}
+
+/**
+ * Execute a single workflow step
+ */
+async function executeWorkflowStep(step, context) {
+    const { action, delay } = step;
+    
+    // If delay is negative (before event), schedule for later
+    if (delay !== 0) {
+        return await scheduleDelayedAction(action, context, delay);
+    }
+    
+    // Execute immediately
+    return await executeAction(action, context);
+}
+
+/**
+ * Execute a specific action
+ */
+async function executeAction(action, context) {
+    console.log(`  ▶️ Executing action: ${action}`);
+    
+    switch (action) {
+        // Member actions
+        case 'send_welcome_email':
+            return await memberAutomation.sendWelcomeEmail?.(context.memberId);
+            
+        case 'add_to_newsletter':
+            return await memberAutomation.subscribeToNewsletter?.(context.memberId);
+            
+        case 'create_member_profile':
+            return await memberAutomation.createMemberProfile?.(context.memberId);
+            
+        case 'send_getting_started_guide':
+            return await communicationHub.sendGettingStartedGuide?.(context.memberId);
+            
+        // Event actions
+        case 'send_confirmation_email':
+            return await eventAutomation.sendRSVPConfirmation?.(context.eventId, context.memberId);
+            
+        case 'add_to_calendar':
+            return await eventAutomation.addToCalendar?.(context.eventId, context.memberId);
+            
+        case 'send_reminder_48h':
+        case 'send_reminder_2h':
+            return await eventAutomation.sendEventReminder?.(context.eventId, context.memberId);
+            
+        case 'send_checkin_qr':
+            return await eventAutomation.sendCheckInQR?.(context.eventId, context.memberId);
+            
+        // Payment actions
+        case 'send_receipt':
+            return await paymentAutomation.generateAndSendReceipt?.(context.paymentId);
+            
+        case 'update_member_status':
+            return await paymentAutomation.updateMembershipStatus?.(context.memberId, context.paymentType);
+            
+        case 'log_transaction':
+            return await paymentAutomation.logTransaction?.(context.paymentId);
+            
+        case 'send_thank_you':
+            return await communicationHub.sendThankYouMessage?.(context.memberId, context.paymentType);
+            
+        // Renewal actions
+        case 'send_renewal_notice_30d':
+        case 'send_renewal_notice_14d':
+        case 'send_renewal_notice_7d':
+        case 'send_renewal_notice_1d':
+        case 'send_expiration_notice':
+            return await memberAutomation.sendRenewalReminder?.(context.memberId, action);
+            
+        // Puja actions
+        case 'create_volunteer_schedule':
+            return await eventAutomation.createVolunteerSchedule?.(context.eventId);
+            
+        case 'send_sponsorship_requests':
+            return await paymentAutomation.sendSponsorshipRequests?.(context.eventId);
+            
+        case 'activate_mahalaya_radio':
+            return await radioScheduler.activateMahalayaMode?.();
+            
+        case 'send_puja_schedule':
+            return await eventAutomation.sendPujaSchedule?.(context.eventId);
+            
+        case 'start_live_stream':
+            return await streamingService.startScheduledStream?.(context.streamId);
+            
+        case 'send_post_puja_survey':
+            return await eventAutomation.sendPostEventSurvey?.(context.eventId);
+            
+        default:
+            console.warn(`Unknown action: ${action}`);
+            return { status: 'skipped', reason: 'unknown action' };
+    }
+}
+
+/**
+ * Schedule a delayed action
+ */
+async function scheduleDelayedAction(action, context, delayMinutes) {
+    const scheduledFor = new Date();
+    scheduledFor.setMinutes(scheduledFor.getMinutes() + Math.abs(delayMinutes));
+    
+    const scheduledTask = {
+        action,
+        context,
+        scheduledFor: scheduledFor.toISOString(),
+        status: 'scheduled',
+        createdAt: new Date().toISOString()
+    };
+    
+    // Store in scheduled tasks collection
+    await wixData.insert('ScheduledTasks', scheduledTask);
+    
+    return { status: 'scheduled', scheduledFor: scheduledTask.scheduledFor };
+}
+
+// =====================================================
+// SCHEDULED TASK RUNNER
+// =====================================================
+
+/**
+ * Run scheduled tasks (should be called by a job scheduler)
+ * This function checks for due tasks and executes them
+ */
+export async function runScheduledTasks() {
+    const now = new Date().toISOString();
+    
+    // Find all due tasks
+    const dueTasks = await wixData.query('ScheduledTasks')
+        .le('scheduledFor', now)
+        .eq('status', 'scheduled')
+        .find();
+    
+    console.log(`⏰ Found ${dueTasks.items.length} scheduled tasks to run`);
+    
+    const results = [];
+    
+    for (const task of dueTasks.items) {
+        try {
+            // Execute the task
+            const result = await executeAction(task.action, task.context);
+            
+            // Update task status
+            task.status = 'completed';
+            task.completedAt = new Date().toISOString();
+            task.result = result;
+            
+            await wixData.update('ScheduledTasks', task);
+            
+            results.push({ taskId: task._id, status: 'completed' });
+            
+        } catch (error) {
+            // Mark as failed
+            task.status = 'failed';
+            task.error = error.message;
+            
+            await wixData.update('ScheduledTasks', task);
+            
+            results.push({ taskId: task._id, status: 'failed', error: error.message });
+        }
+    }
+    
+    return results;
+}
+
+// =====================================================
+// DAILY AUTOMATION CHECKS
+// =====================================================
+
+/**
+ * Daily automation routine - should be scheduled to run daily
+ */
+export async function runDailyAutomation() {
+    console.log('📅 Running daily automation checks...');
+    
+    const results = {
+        date: new Date().toISOString(),
+        checks: {}
+    };
+    
+    // 1. Check membership renewals
+    if (AUTOMATION_CONFIG.enabledModules.members) {
+        results.checks.renewals = await memberAutomation.checkExpiringMemberships?.();
+    }
+    
+    // 2. Send birthday wishes
+    if (AUTOMATION_CONFIG.enabledModules.members) {
+        results.checks.birthdays = await memberAutomation.sendBirthdayWishes?.();
+    }
+    
+    // 3. Check upcoming events and send reminders
+    if (AUTOMATION_CONFIG.enabledModules.events) {
+        results.checks.eventReminders = await eventAutomation.sendUpcomingEventReminders?.();
+    }
+    
+    // 4. Check pending payments
+    if (AUTOMATION_CONFIG.enabledModules.payments) {
+        results.checks.paymentReminders = await paymentAutomation.sendPaymentReminders?.();
+    }
+    
+    // 5. Update radio schedule if special day
+    if (AUTOMATION_CONFIG.enabledModules.radio) {
+        results.checks.radioSchedule = await checkSpecialRadioSchedule();
+    }
+    
+    // 6. Run any scheduled tasks
+    results.checks.scheduledTasks = await runScheduledTasks();
+    
+    // Log daily automation run
+    await logAutomationEvent('DAILY_AUTOMATION', results);
+    
+    return results;
+}
+
+/**
+ * Weekly automation routine
+ */
+export async function runWeeklyAutomation() {
+    console.log('📊 Running weekly automation checks...');
+    
+    const results = {
+        date: new Date().toISOString(),
+        checks: {}
+    };
+    
+    // 1. Update engagement scores
+    if (AUTOMATION_CONFIG.enabledModules.members) {
+        results.checks.engagementScores = await memberAutomation.updateAllEngagementScores?.();
+    }
+    
+    // 2. Generate weekly analytics report
+    results.checks.analytics = await generateWeeklyAnalytics();
+    
+    // 3. Data cleanup
+    results.checks.cleanup = await performDataCleanup();
+    
+    // 4. Generate radio schedule for next week
+    if (AUTOMATION_CONFIG.enabledModules.radio) {
+        results.checks.radioSchedule = await radioScheduler.generateWeeklySchedule?.();
+    }
+    
+    // Log weekly automation run
+    await logAutomationEvent('WEEKLY_AUTOMATION', results);
+    
+    return results;
+}
+
+// =====================================================
+// SPECIAL EVENT AUTOMATION
+// =====================================================
+
+/**
+ * Check for special Bengali calendar events
+ */
+async function checkSpecialRadioSchedule() {
+    const today = new Date();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    
+    // Check for Mahalaya (early morning special broadcast)
+    if (month === 9 || month === 10) {
+        // Mahalaya is typically in late September
+        const mahalayaActive = await radioScheduler.isMahalayaActive?.();
+        if (mahalayaActive) {
+            return { status: 'mahalaya_active', message: 'Mahalaya broadcast mode enabled' };
+        }
+    }
+    
+    // Check for other special days
+    for (const [eventName, config] of Object.entries(AUTOMATION_CONFIG.bengaliEvents)) {
+        if (config.month === month) {
+            return { status: 'special_event', event: eventName };
+        }
+    }
+    
+    return { status: 'normal' };
+}
+
+/**
+ * Generate weekly analytics report
+ */
+async function generateWeeklyAnalytics() {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const analytics = {
+        period: {
+            start: weekAgo.toISOString(),
+            end: new Date().toISOString()
+        },
+        members: {
+            newMembers: 0,
+            renewals: 0,
+            expirations: 0
+        },
+        events: {
+            totalEvents: 0,
+            totalAttendance: 0,
+            averageRSVPRate: 0
+        },
+        payments: {
+            totalRevenue: 0,
+            donations: 0,
+            memberships: 0
+        }
+    };
+    
+    // Query data for the week
+    // (In real implementation, aggregate from respective collections)
+    
+    return analytics;
+}
+
+/**
+ * Perform data cleanup
+ */
+async function performDataCleanup() {
+    const results = {
+        oldLogsRemoved: 0,
+        orphanedRecordsRemoved: 0,
+        tempFilesCleared: 0
+    };
+    
+    // Remove automation logs older than 90 days
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    
+    const oldLogs = await wixData.query('AutomationLogs')
+        .lt('timestamp', ninetyDaysAgo.toISOString())
+        .find();
+    
+    for (const log of oldLogs.items) {
+        await wixData.remove('AutomationLogs', log._id);
+        results.oldLogsRemoved++;
+    }
+    
+    return results;
+}
+
+// =====================================================
+// LOGGING & MONITORING
+// =====================================================
+
+/**
+ * Log automation event
+ */
+async function logAutomationEvent(eventType, data) {
+    try {
+        await wixData.insert('AutomationLogs', {
+            eventType,
+            data: JSON.stringify(data),
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Failed to log automation event:', error);
+    }
+}
+
+/**
+ * Log workflow execution
+ */
+async function logWorkflowExecution(execution) {
+    try {
+        await wixData.insert('WorkflowExecutions', {
+            workflowId: execution.workflowId,
+            status: execution.status,
+            startedAt: execution.startedAt,
+            completedAt: execution.completedAt,
+            stepsCount: execution.steps.length,
+            error: execution.error,
+            details: JSON.stringify(execution)
+        });
+    } catch (error) {
+        console.error('Failed to log workflow execution:', error);
+    }
+}
+
+/**
+ * Get automation status dashboard
+ */
+export async function getAutomationStatus() {
+    const status = {
+        framework: {
+            version: AUTOMATION_CONFIG.version,
+            enabledModules: AUTOMATION_CONFIG.enabledModules
+        },
+        recentActivity: [],
+        scheduledTasks: [],
+        errors: []
+    };
+    
+    // Get recent automation logs
+    const recentLogs = await wixData.query('AutomationLogs')
+        .descending('timestamp')
+        .limit(10)
+        .find();
+    status.recentActivity = recentLogs.items;
+    
+    // Get pending scheduled tasks
+    const pendingTasks = await wixData.query('ScheduledTasks')
+        .eq('status', 'scheduled')
+        .ascending('scheduledFor')
+        .limit(20)
+        .find();
+    status.scheduledTasks = pendingTasks.items;
+    
+    // Get recent errors
+    const recentErrors = await wixData.query('AutomationLogs')
+        .contains('eventType', 'ERROR')
+        .descending('timestamp')
+        .limit(5)
+        .find();
+    status.errors = recentErrors.items;
+    
+    return status;
+}
+
+// =====================================================
+// TRIGGER HANDLERS
+// =====================================================
+
+/**
+ * Handle new member trigger
+ * Should be called from member creation hook
+ */
+export async function onMemberCreated(memberId, memberData) {
+    return await executeWorkflow('NEW_MEMBER_ONBOARDING', {
+        memberId,
+        memberData
+    });
+}
+
+/**
+ * Handle RSVP trigger
+ * Should be called from RSVP submission
+ */
+export async function onEventRSVP(eventId, memberId) {
+    return await executeWorkflow('EVENT_REGISTRATION', {
+        eventId,
+        memberId
+    });
+}
+
+/**
+ * Handle payment completion trigger
+ * Should be called from payment webhook
+ */
+export async function onPaymentCompleted(paymentId, paymentData) {
+    return await executeWorkflow('PAYMENT_RECEIVED', {
+        paymentId,
+        memberId: paymentData.memberId,
+        paymentType: paymentData.type,
+        amount: paymentData.amount
+    });
+}
+
+/**
+ * Handle Puja event scheduling
+ */
+export async function onPujaScheduled(eventId, streamId) {
+    return await executeWorkflow('PUJA_EVENT', {
+        eventId,
+        streamId
+    });
+}
+
+// =====================================================
+// EXPORTS
+// =====================================================
+
+export {
+    AUTOMATION_CONFIG,
+    WORKFLOWS
+};

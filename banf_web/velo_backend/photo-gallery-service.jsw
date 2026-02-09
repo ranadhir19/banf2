@@ -1,0 +1,735 @@
+/**
+ * BANF Photo Gallery & Media Service
+ * =====================================
+ * Wix Velo Backend Module for event photo management
+ * 
+ * Features:
+ * - Event photo galleries
+ * - Member photo uploads
+ * - Photo tagging and approval
+ * - Album organization
+ * - Slideshow generation
+ * 
+ * @module backend/photo-gallery-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { mediaManager } from 'wix-media-backend';
+
+// =====================================================
+// GALLERY CONFIGURATION
+// =====================================================
+
+const PHOTO_STATUS = {
+    PENDING: 'pending',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+    FEATURED: 'featured'
+};
+
+const ALBUM_TYPES = {
+    EVENT: 'event',
+    GENERAL: 'general',
+    MEMBER_SPOTLIGHT: 'member_spotlight',
+    THROWBACK: 'throwback'
+};
+
+// =====================================================
+// ALBUM MANAGEMENT
+// =====================================================
+
+/**
+ * Create a photo album
+ * @param {Object} albumData
+ */
+export async function createAlbum(albumData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const album = await wixData.insert('PhotoAlbums', {
+            // Basic Info
+            title: albumData.title,
+            description: albumData.description || '',
+            albumType: albumData.albumType || ALBUM_TYPES.GENERAL,
+            
+            // Event association
+            eventId: albumData.eventId || null,
+            eventTitle: albumData.eventTitle || null,
+            eventDate: albumData.eventDate || null,
+            
+            // Cover
+            coverImage: albumData.coverImage || null,
+            
+            // Settings
+            isPublic: albumData.isPublic !== false,
+            allowMemberUploads: albumData.allowMemberUploads || false,
+            requireApproval: albumData.requireApproval !== false,
+            
+            // Stats
+            photoCount: 0,
+            viewCount: 0,
+            
+            // Status
+            status: 'active',
+            
+            // Metadata
+            createdBy: member._id,
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        return {
+            success: true,
+            albumId: album._id,
+            message: 'Album created successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error creating album:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Create album for an event
+ * @param {string} eventId
+ */
+export async function createEventAlbum(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Check if album already exists
+        const existing = await wixData.query('PhotoAlbums')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0) {
+            return { 
+                success: true, 
+                albumId: existing.items[0]._id,
+                message: 'Album already exists for this event'
+            };
+        }
+        
+        return await createAlbum({
+            title: `${event.title} - Photo Gallery`,
+            description: `Photos from ${event.title} held on ${formatDate(event.eventDate)}`,
+            albumType: ALBUM_TYPES.EVENT,
+            eventId: eventId,
+            eventTitle: event.title,
+            eventDate: event.eventDate,
+            allowMemberUploads: true,
+            requireApproval: true
+        });
+        
+    } catch (error) {
+        console.error('Error creating event album:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// PHOTO UPLOAD & MANAGEMENT
+// =====================================================
+
+/**
+ * Upload photos to an album
+ * @param {string} albumId
+ * @param {Array} photos - Array of photo data
+ */
+export async function uploadPhotos(albumId, photos) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in to upload photos');
+    }
+    
+    try {
+        const album = await wixData.get('PhotoAlbums', albumId);
+        
+        if (!album) {
+            return { success: false, error: 'Album not found' };
+        }
+        
+        // Check if member uploads allowed
+        const isAdminUser = await isAdmin(member._id);
+        if (!album.allowMemberUploads && !isAdminUser) {
+            return { success: false, error: 'Member uploads not allowed for this album' };
+        }
+        
+        const uploadedPhotos = [];
+        
+        for (const photoData of photos) {
+            const photo = await wixData.insert('Photos', {
+                albumId: albumId,
+                albumTitle: album.title,
+                eventId: album.eventId,
+                
+                // Photo data
+                imageUrl: photoData.imageUrl,
+                thumbnailUrl: photoData.thumbnailUrl || photoData.imageUrl,
+                originalFileName: photoData.fileName || 'photo.jpg',
+                
+                // Metadata
+                caption: photoData.caption || '',
+                tags: photoData.tags || [],
+                taggedMembers: photoData.taggedMembers || [],
+                
+                // Location
+                location: photoData.location || album.eventTitle,
+                
+                // Dimensions
+                width: photoData.width || 0,
+                height: photoData.height || 0,
+                
+                // Status
+                status: isAdminUser ? PHOTO_STATUS.APPROVED : PHOTO_STATUS.PENDING,
+                
+                // Stats
+                viewCount: 0,
+                likeCount: 0,
+                downloadCount: 0,
+                
+                // Uploader
+                uploadedBy: member._id,
+                uploaderName: `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim(),
+                uploadedAt: new Date()
+            });
+            
+            uploadedPhotos.push(photo._id);
+        }
+        
+        // Update album photo count
+        album.photoCount = (album.photoCount || 0) + uploadedPhotos.length;
+        album.lastModified = new Date();
+        await wixData.update('PhotoAlbums', album);
+        
+        return {
+            success: true,
+            uploadedCount: uploadedPhotos.length,
+            photoIds: uploadedPhotos,
+            needsApproval: !isAdminUser && album.requireApproval,
+            message: isAdminUser 
+                ? `${uploadedPhotos.length} photos uploaded successfully`
+                : `${uploadedPhotos.length} photos uploaded and pending approval`
+        };
+        
+    } catch (error) {
+        console.error('Error uploading photos:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Approve or reject a photo
+ * @param {string} photoId
+ * @param {string} action - 'approve', 'reject', or 'feature'
+ * @param {string} reason - Reason for rejection
+ */
+export async function moderatePhoto(photoId, action, reason = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const photo = await wixData.get('Photos', photoId);
+        
+        if (!photo) {
+            return { success: false, error: 'Photo not found' };
+        }
+        
+        switch (action) {
+            case 'approve':
+                photo.status = PHOTO_STATUS.APPROVED;
+                photo.approvedBy = member._id;
+                photo.approvedAt = new Date();
+                break;
+                
+            case 'reject':
+                photo.status = PHOTO_STATUS.REJECTED;
+                photo.rejectedBy = member._id;
+                photo.rejectedAt = new Date();
+                photo.rejectionReason = reason;
+                break;
+                
+            case 'feature':
+                photo.status = PHOTO_STATUS.FEATURED;
+                photo.featuredBy = member._id;
+                photo.featuredAt = new Date();
+                break;
+        }
+        
+        photo.lastModified = new Date();
+        await wixData.update('Photos', photo);
+        
+        // Update album count if rejected
+        if (action === 'reject') {
+            const album = await wixData.get('PhotoAlbums', photo.albumId);
+            if (album) {
+                album.photoCount = Math.max(0, (album.photoCount || 0) - 1);
+                await wixData.update('PhotoAlbums', album);
+            }
+        }
+        
+        return {
+            success: true,
+            message: `Photo ${action}d successfully`
+        };
+        
+    } catch (error) {
+        console.error('Error moderating photo:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Bulk approve photos
+ * @param {Array} photoIds
+ */
+export async function bulkApprovePhotos(photoIds) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        let approvedCount = 0;
+        
+        for (const photoId of photoIds) {
+            const result = await moderatePhoto(photoId, 'approve');
+            if (result.success) approvedCount++;
+        }
+        
+        return {
+            success: true,
+            approvedCount: approvedCount,
+            message: `${approvedCount} photos approved`
+        };
+        
+    } catch (error) {
+        console.error('Error bulk approving:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// PHOTO RETRIEVAL
+// =====================================================
+
+/**
+ * Get album with photos
+ * @param {string} albumId
+ * @param {Object} options - { page, limit, status }
+ */
+export async function getAlbumPhotos(albumId, options = {}) {
+    try {
+        const album = await wixData.get('PhotoAlbums', albumId);
+        
+        if (!album) {
+            return { success: false, error: 'Album not found' };
+        }
+        
+        // Update view count
+        album.viewCount = (album.viewCount || 0) + 1;
+        await wixData.update('PhotoAlbums', album);
+        
+        const page = options.page || 1;
+        const limit = options.limit || 50;
+        const skip = (page - 1) * limit;
+        
+        let query = wixData.query('Photos')
+            .eq('albumId', albumId);
+        
+        // For public view, only show approved/featured
+        if (!options.showAll) {
+            query = query.hasSome('status', [PHOTO_STATUS.APPROVED, PHOTO_STATUS.FEATURED]);
+        }
+        
+        const photos = await query
+            .descending('uploadedAt')
+            .skip(skip)
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            album: {
+                _id: album._id,
+                title: album.title,
+                description: album.description,
+                eventTitle: album.eventTitle,
+                eventDate: album.eventDate,
+                photoCount: album.photoCount,
+                coverImage: album.coverImage
+            },
+            photos: photos.items.map(p => ({
+                _id: p._id,
+                imageUrl: p.imageUrl,
+                thumbnailUrl: p.thumbnailUrl,
+                caption: p.caption,
+                tags: p.tags,
+                uploaderName: p.uploaderName,
+                uploadedAt: p.uploadedAt,
+                likeCount: p.likeCount,
+                status: p.status,
+                isFeatured: p.status === PHOTO_STATUS.FEATURED
+            })),
+            pagination: {
+                page: page,
+                limit: limit,
+                total: photos.totalCount,
+                hasMore: photos.hasNext()
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting album photos:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all public albums
+ * @param {Object} options
+ */
+export async function getPublicAlbums(options = {}) {
+    try {
+        let query = wixData.query('PhotoAlbums')
+            .eq('isPublic', true)
+            .eq('status', 'active');
+        
+        if (options.albumType) {
+            query = query.eq('albumType', options.albumType);
+        }
+        
+        const albums = await query
+            .descending('createdAt')
+            .limit(options.limit || 20)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            albums: albums.items.map(a => ({
+                _id: a._id,
+                title: a.title,
+                description: a.description,
+                albumType: a.albumType,
+                eventTitle: a.eventTitle,
+                eventDate: a.eventDate,
+                coverImage: a.coverImage,
+                photoCount: a.photoCount,
+                createdAt: a.createdAt
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting albums:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get photos pending approval
+ */
+export async function getPendingPhotos() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const photos = await wixData.query('Photos')
+            .eq('status', PHOTO_STATUS.PENDING)
+            .ascending('uploadedAt')
+            .limit(50)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            photos: photos.items.map(p => ({
+                _id: p._id,
+                imageUrl: p.imageUrl,
+                thumbnailUrl: p.thumbnailUrl,
+                caption: p.caption,
+                albumId: p.albumId,
+                albumTitle: p.albumTitle,
+                uploaderName: p.uploaderName,
+                uploadedAt: p.uploadedAt
+            })),
+            totalPending: photos.totalCount
+        };
+        
+    } catch (error) {
+        console.error('Error getting pending photos:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// PHOTO INTERACTIONS
+// =====================================================
+
+/**
+ * Like a photo
+ * @param {string} photoId
+ */
+export async function likePhoto(photoId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in to like photos');
+    }
+    
+    try {
+        // Check if already liked
+        const existing = await wixData.query('PhotoLikes')
+            .eq('photoId', photoId)
+            .eq('memberId', member._id)
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0) {
+            // Unlike
+            await wixData.remove('PhotoLikes', existing.items[0]._id);
+            
+            const photo = await wixData.get('Photos', photoId);
+            photo.likeCount = Math.max(0, (photo.likeCount || 0) - 1);
+            await wixData.update('Photos', photo);
+            
+            return { success: true, liked: false, likeCount: photo.likeCount };
+        }
+        
+        // Like
+        await wixData.insert('PhotoLikes', {
+            photoId: photoId,
+            memberId: member._id,
+            likedAt: new Date()
+        });
+        
+        const photo = await wixData.get('Photos', photoId);
+        photo.likeCount = (photo.likeCount || 0) + 1;
+        await wixData.update('Photos', photo);
+        
+        return { success: true, liked: true, likeCount: photo.likeCount };
+        
+    } catch (error) {
+        console.error('Error liking photo:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Tag members in a photo
+ * @param {string} photoId
+ * @param {Array} memberIds
+ */
+export async function tagMembers(photoId, memberIds) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in to tag photos');
+    }
+    
+    try {
+        const photo = await wixData.get('Photos', photoId);
+        
+        if (!photo) {
+            return { success: false, error: 'Photo not found' };
+        }
+        
+        // Get member names for display
+        const members = await wixData.query('Members/PrivateMembersData')
+            .hasSome('_id', memberIds)
+            .find({ suppressAuth: true });
+        
+        const taggedMembers = members.items.map(m => ({
+            memberId: m._id,
+            name: `${m.firstName || ''} ${m.lastName || ''}`.trim()
+        }));
+        
+        photo.taggedMembers = [
+            ...(photo.taggedMembers || []),
+            ...taggedMembers
+        ];
+        
+        // Dedupe
+        const seen = new Set();
+        photo.taggedMembers = photo.taggedMembers.filter(t => {
+            if (seen.has(t.memberId)) return false;
+            seen.add(t.memberId);
+            return true;
+        });
+        
+        await wixData.update('Photos', photo);
+        
+        return {
+            success: true,
+            taggedMembers: photo.taggedMembers,
+            message: `${taggedMembers.length} members tagged`
+        };
+        
+    } catch (error) {
+        console.error('Error tagging members:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// SLIDESHOW GENERATION
+// =====================================================
+
+/**
+ * Generate slideshow data for an album
+ * @param {string} albumId
+ * @param {Object} options
+ */
+export async function generateSlideshow(albumId, options = {}) {
+    try {
+        const album = await wixData.get('PhotoAlbums', albumId);
+        
+        if (!album) {
+            return { success: false, error: 'Album not found' };
+        }
+        
+        let query = wixData.query('Photos')
+            .eq('albumId', albumId)
+            .hasSome('status', [PHOTO_STATUS.APPROVED, PHOTO_STATUS.FEATURED]);
+        
+        // Featured first, then by upload date
+        const photos = await query
+            .descending('status')
+            .descending('uploadedAt')
+            .limit(options.maxPhotos || 100)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            slideshow: {
+                title: album.title,
+                eventTitle: album.eventTitle,
+                eventDate: album.eventDate,
+                photos: photos.items.map(p => ({
+                    imageUrl: p.imageUrl,
+                    caption: p.caption,
+                    uploaderName: p.uploaderName,
+                    isFeatured: p.status === PHOTO_STATUS.FEATURED
+                })),
+                settings: {
+                    autoPlay: options.autoPlay !== false,
+                    interval: options.interval || 5000,
+                    transition: options.transition || 'fade',
+                    showCaptions: options.showCaptions !== false
+                }
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error generating slideshow:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// GALLERY STATISTICS
+// =====================================================
+
+/**
+ * Get gallery statistics
+ */
+export async function getGalleryStats() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const totalAlbums = await wixData.query('PhotoAlbums')
+            .count({ suppressAuth: true });
+        
+        const totalPhotos = await wixData.query('Photos')
+            .eq('status', PHOTO_STATUS.APPROVED)
+            .count({ suppressAuth: true });
+        
+        const pendingPhotos = await wixData.query('Photos')
+            .eq('status', PHOTO_STATUS.PENDING)
+            .count({ suppressAuth: true });
+        
+        const featuredPhotos = await wixData.query('Photos')
+            .eq('status', PHOTO_STATUS.FEATURED)
+            .count({ suppressAuth: true });
+        
+        // Top uploaders
+        const allPhotos = await wixData.query('Photos')
+            .find({ suppressAuth: true });
+        
+        const uploaderCounts = {};
+        for (const p of allPhotos.items) {
+            uploaderCounts[p.uploaderName] = (uploaderCounts[p.uploaderName] || 0) + 1;
+        }
+        
+        const topUploaders = Object.entries(uploaderCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, count]) => ({ name, count }));
+        
+        return {
+            success: true,
+            stats: {
+                totalAlbums: totalAlbums,
+                totalPhotos: totalPhotos,
+                pendingPhotos: pendingPhotos,
+                featuredPhotos: featuredPhotos,
+                topUploaders: topUploaders
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting gallery stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { PHOTO_STATUS, ALBUM_TYPES };

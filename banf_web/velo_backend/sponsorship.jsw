@@ -1,0 +1,576 @@
+// backend/sponsorship.jsw
+// BANF Sponsorship & Vendor Management - Wix Velo Backend
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// Sponsorship tier constants (based on BANF's structure)
+const SPONSORSHIP_TIERS = {
+    PLATINUM: { name: 'Platinum', minAmount: 2000, benefits: ['Title Sponsor recognition', 'Back cover ad', 'Banner at all events', 'VIP seating'] },
+    GOLD: { name: 'Gold', minAmount: 1000, benefits: ['Full page + inside cover ad', 'Name on all promo materials', 'Event recognition'] },
+    SILVER: { name: 'Silver', minAmount: 500, benefits: ['Full page ad', 'Website feature', 'Event recognition'] },
+    BRONZE: { name: 'Bronze', minAmount: 250, benefits: ['Half page ad', 'Social media mention'] },
+    SUPPORTER: { name: 'Supporter', minAmount: 100, benefits: ['Quarter page ad', 'Newsletter mention'] }
+};
+
+// Magazine advertisement rates
+const MAGAZINE_AD_RATES = {
+    QUARTER_PAGE: { name: 'Quarter Page', price: 125 },
+    HALF_PAGE: { name: 'Half Page', price: 250 },
+    FULL_PAGE: { name: 'Full Page', price: 400 },
+    CENTER_PAGES: { name: '2 Full Center Pages', price: 450, slots: 1 },
+    INSIDE_COVER: { name: 'Front or Back Inside Cover', price: 500, slots: 2 },
+    BACK_COVER: { name: 'Back Cover', price: 700, slots: 1 }
+};
+
+// Food sponsorship categories
+const FOOD_SPONSORSHIP_TYPES = {
+    MISHTI: { name: 'Mishti/Sweets', minAmount: 200, maxAmount: 400 },
+    LUNCH: { name: 'Lunch', minAmount: 400, maxAmount: 600 },
+    DINNER: { name: 'Dinner', minAmount: 500, maxAmount: 800 },
+    TEA_SNACKS: { name: 'Tea/Snacks', minAmount: 150, maxAmount: 300 },
+    FRUITS: { name: 'Puja Fruits', minAmount: 100, maxAmount: 200 },
+    FLOWERS: { name: 'Puja Flowers', minAmount: 100, maxAmount: 200 },
+    SPECIAL_ITEMS: { name: 'Special Items', minAmount: 100, maxAmount: 500 }
+};
+
+// Sponsor status
+const SPONSOR_STATUS = {
+    PROSPECT: 'prospect',
+    CONTACTED: 'contacted',
+    PLEDGED: 'pledged',
+    RECEIVED: 'received',
+    DECLINED: 'declined'
+};
+
+/**
+ * Create new sponsor record
+ */
+export async function createSponsor(sponsorData, adminId) {
+    try {
+        // Determine tier based on amount
+        const tier = determineTier(sponsorData.amount);
+        
+        const sponsor = {
+            // Basic Info
+            sponsorName: sponsorData.name,
+            businessName: sponsorData.businessName || '',
+            contactPerson: sponsorData.contactPerson || sponsorData.name,
+            email: sponsorData.email,
+            phone: sponsorData.phone || '',
+            address: sponsorData.address || '',
+            website: sponsorData.website || '',
+            
+            // Sponsorship Details
+            sponsorType: sponsorData.type || 'general', // general, food, vendor, event_title
+            sponsorshipTier: tier,
+            pledgedAmount: sponsorData.amount || 0,
+            receivedAmount: 0,
+            
+            // Magazine Ad
+            magazineAdType: sponsorData.magazineAdType || '',
+            magazineAdRate: MAGAZINE_AD_RATES[sponsorData.magazineAdType]?.price || 0,
+            adArtworkUrl: sponsorData.artworkUrl || '',
+            
+            // Food Sponsorship (if applicable)
+            foodSponsorshipType: sponsorData.foodType || '',
+            foodItemDescription: sponsorData.foodDescription || '',
+            targetEvent: sponsorData.targetEvent || '',
+            
+            // Internet Promotion Package
+            hasInternetPromotion: sponsorData.internetPromotion || false,
+            internetPromotionFee: sponsorData.internetPromotion ? 250 : 0,
+            
+            // Status & Tracking
+            status: SPONSOR_STATUS.PROSPECT,
+            fiscalYear: sponsorData.fiscalYear || getCurrentFiscalYear(),
+            notes: sponsorData.notes || '',
+            
+            // History
+            contactHistory: JSON.stringify([{
+                date: new Date().toISOString(),
+                action: 'created',
+                by: adminId,
+                notes: 'Sponsor record created'
+            }]),
+            
+            // Flags
+            isRecurring: sponsorData.isRecurring || false,
+            isMember: sponsorData.isMember || false,
+            memberId: sponsorData.memberId || '',
+            
+            // Metadata
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('Sponsors', sponsor);
+        
+        return {
+            success: true,
+            sponsorId: result._id,
+            tier: tier,
+            message: `Sponsor "${sponsorData.name}" created as ${tier} tier`
+        };
+    } catch (error) {
+        console.error('Error creating sponsor:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all sponsors with filters
+ */
+export async function getSponsors(options = { limit: 50, skip: 0, fiscalYear: null, status: null, tier: null }) {
+    try {
+        let query = wixData.query('Sponsors');
+        
+        if (options.fiscalYear) {
+            query = query.eq('fiscalYear', options.fiscalYear);
+        }
+        if (options.status) {
+            query = query.eq('status', options.status);
+        }
+        if (options.tier) {
+            query = query.eq('sponsorshipTier', options.tier);
+        }
+        
+        query = query
+            .descending('pledgedAmount')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find();
+        
+        return {
+            items: result.items.map(s => ({
+                ...s,
+                contactHistory: JSON.parse(s.contactHistory || '[]')
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting sponsors:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get sponsor by ID
+ */
+export async function getSponsorById(sponsorId) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        if (!sponsor) return null;
+        
+        return {
+            ...sponsor,
+            contactHistory: JSON.parse(sponsor.contactHistory || '[]')
+        };
+    } catch (error) {
+        console.error('Error getting sponsor:', error);
+        return null;
+    }
+}
+
+/**
+ * Update sponsor status and record payment
+ */
+export async function updateSponsorStatus(sponsorId, updateData, adminId) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        if (!sponsor) {
+            return { success: false, error: 'Sponsor not found' };
+        }
+        
+        // Parse contact history
+        let contactHistory = JSON.parse(sponsor.contactHistory || '[]');
+        
+        // Add history entry
+        contactHistory.push({
+            date: new Date().toISOString(),
+            action: updateData.action || 'update',
+            by: adminId,
+            notes: updateData.notes || '',
+            previousStatus: sponsor.status,
+            newStatus: updateData.status || sponsor.status
+        });
+        
+        const updatedSponsor = {
+            ...sponsor,
+            status: updateData.status || sponsor.status,
+            receivedAmount: updateData.receivedAmount !== undefined 
+                ? updateData.receivedAmount 
+                : sponsor.receivedAmount,
+            paymentDate: updateData.paymentDate ? new Date(updateData.paymentDate) : sponsor.paymentDate,
+            paymentMethod: updateData.paymentMethod || sponsor.paymentMethod,
+            receiptNumber: updateData.receiptNumber || sponsor.receiptNumber,
+            notes: updateData.notes || sponsor.notes,
+            contactHistory: JSON.stringify(contactHistory),
+            _updatedDate: new Date()
+        };
+        
+        await wixData.update('Sponsors', updatedSponsor);
+        
+        return { success: true, message: 'Sponsor updated successfully' };
+    } catch (error) {
+        console.error('Error updating sponsor:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Record sponsorship payment
+ */
+export async function recordSponsorPayment(sponsorId, paymentData, adminId) {
+    try {
+        const sponsor = await wixData.get('Sponsors', sponsorId);
+        if (!sponsor) {
+            return { success: false, error: 'Sponsor not found' };
+        }
+        
+        const newReceivedAmount = (sponsor.receivedAmount || 0) + paymentData.amount;
+        const newStatus = newReceivedAmount >= sponsor.pledgedAmount 
+            ? SPONSOR_STATUS.RECEIVED 
+            : sponsor.status;
+        
+        // Update sponsor
+        await updateSponsorStatus(sponsorId, {
+            status: newStatus,
+            receivedAmount: newReceivedAmount,
+            paymentDate: paymentData.date,
+            paymentMethod: paymentData.method,
+            receiptNumber: paymentData.receiptNumber,
+            action: 'payment',
+            notes: `Payment of $${paymentData.amount} received via ${paymentData.method}`
+        }, adminId);
+        
+        // Create financial record
+        await wixData.insert('FinancialRecords', {
+            transactionId: `SPO-${Date.now()}`,
+            transactionType: 'income',
+            category: 'sponsorship',
+            subcategory: sponsor.sponsorType,
+            amount: paymentData.amount,
+            description: `Sponsorship from ${sponsor.sponsorName}`,
+            transactionDate: new Date(paymentData.date),
+            paymentMethod: paymentData.method,
+            sponsorId: sponsorId,
+            memberName: sponsor.sponsorName,
+            receiptUrl: paymentData.receiptUrl || '',
+            fiscalYear: sponsor.fiscalYear,
+            isApproved: true,
+            approvedBy: adminId,
+            approvedAt: new Date(),
+            createdBy: adminId,
+            _createdDate: new Date()
+        });
+        
+        return { 
+            success: true, 
+            message: 'Payment recorded',
+            totalReceived: newReceivedAmount,
+            status: newStatus
+        };
+    } catch (error) {
+        console.error('Error recording payment:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get sponsorship summary by fiscal year
+ */
+export async function getSponsorshipSummary(fiscalYear = null) {
+    try {
+        const year = fiscalYear || getCurrentFiscalYear();
+        
+        const allSponsors = await wixData.query('Sponsors')
+            .eq('fiscalYear', year)
+            .limit(1000)
+            .find();
+        
+        const summary = {
+            fiscalYear: year,
+            totalSponsors: allSponsors.totalCount,
+            byTier: {},
+            byStatus: {},
+            byType: {},
+            totalPledged: 0,
+            totalReceived: 0,
+            magazineAdRevenue: 0,
+            foodSponsorships: 0,
+            internetPromotionRevenue: 0
+        };
+        
+        // Initialize tier counts
+        Object.keys(SPONSORSHIP_TIERS).forEach(tier => {
+            summary.byTier[tier] = { count: 0, pledged: 0, received: 0 };
+        });
+        
+        // Initialize status counts
+        Object.values(SPONSOR_STATUS).forEach(status => {
+            summary.byStatus[status] = 0;
+        });
+        
+        // Process sponsors
+        allSponsors.items.forEach(sponsor => {
+            summary.totalPledged += sponsor.pledgedAmount || 0;
+            summary.totalReceived += sponsor.receivedAmount || 0;
+            summary.magazineAdRevenue += sponsor.magazineAdRate || 0;
+            
+            if (sponsor.hasInternetPromotion) {
+                summary.internetPromotionRevenue += 250;
+            }
+            
+            if (sponsor.sponsorType === 'food') {
+                summary.foodSponsorships += sponsor.pledgedAmount || 0;
+            }
+            
+            // Count by tier
+            const tier = sponsor.sponsorshipTier || 'SUPPORTER';
+            if (summary.byTier[tier]) {
+                summary.byTier[tier].count++;
+                summary.byTier[tier].pledged += sponsor.pledgedAmount || 0;
+                summary.byTier[tier].received += sponsor.receivedAmount || 0;
+            }
+            
+            // Count by status
+            const status = sponsor.status || 'prospect';
+            summary.byStatus[status] = (summary.byStatus[status] || 0) + 1;
+            
+            // Count by type
+            const type = sponsor.sponsorType || 'general';
+            if (!summary.byType[type]) {
+                summary.byType[type] = { count: 0, amount: 0 };
+            }
+            summary.byType[type].count++;
+            summary.byType[type].amount += sponsor.receivedAmount || 0;
+        });
+        
+        summary.collectionRate = summary.totalPledged > 0 
+            ? Math.round((summary.totalReceived / summary.totalPledged) * 100) 
+            : 0;
+        
+        return summary;
+    } catch (error) {
+        console.error('Error getting sponsorship summary:', error);
+        return null;
+    }
+}
+
+// ==================== VENDOR MANAGEMENT ====================
+
+/**
+ * Create vendor record
+ */
+export async function createVendor(vendorData, adminId) {
+    try {
+        const vendor = {
+            vendorName: vendorData.name,
+            businessName: vendorData.businessName || vendorData.name,
+            contactPerson: vendorData.contactPerson || '',
+            email: vendorData.email || '',
+            phone: vendorData.phone,
+            address: vendorData.address || '',
+            website: vendorData.website || '',
+            
+            vendorType: vendorData.type || 'food', // food, supplies, services, venue, entertainment
+            cuisineType: vendorData.cuisineType || '', // For food vendors: Bengali, Indian, etc.
+            specialties: JSON.stringify(vendorData.specialties || []),
+            
+            // Pricing
+            pricingInfo: vendorData.pricingInfo || '',
+            averageOrderSize: vendorData.averageOrderSize || 0,
+            minimumOrder: vendorData.minimumOrder || 0,
+            
+            // Quality & Service
+            rating: 0,
+            totalOrders: 0,
+            reliabilityScore: 0,
+            
+            // Payment
+            paymentTerms: vendorData.paymentTerms || 'on_delivery',
+            acceptsCard: vendorData.acceptsCard || false,
+            acceptsCheck: vendorData.acceptsCheck || true,
+            acceptsCash: vendorData.acceptsCash || true,
+            
+            // Documents
+            contractUrl: vendorData.contractUrl || '',
+            insuranceUrl: vendorData.insuranceUrl || '',
+            licenseUrl: vendorData.licenseUrl || '',
+            
+            // Status
+            isActive: true,
+            isPreferred: vendorData.isPreferred || false,
+            isBengaliOwned: vendorData.bengaliOwned || false,
+            
+            notes: vendorData.notes || '',
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('Vendors', vendor);
+        
+        return { success: true, vendorId: result._id };
+    } catch (error) {
+        console.error('Error creating vendor:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get vendors with filters
+ */
+export async function getVendors(options = { type: null, isPreferred: null, isActive: true }) {
+    try {
+        let query = wixData.query('Vendors');
+        
+        if (options.isActive !== null) {
+            query = query.eq('isActive', options.isActive);
+        }
+        if (options.type) {
+            query = query.eq('vendorType', options.type);
+        }
+        if (options.isPreferred !== null) {
+            query = query.eq('isPreferred', options.isPreferred);
+        }
+        
+        query = query.ascending('vendorName');
+        
+        const result = await query.find();
+        
+        return result.items.map(v => ({
+            ...v,
+            specialties: JSON.parse(v.specialties || '[]')
+        }));
+    } catch (error) {
+        console.error('Error getting vendors:', error);
+        return [];
+    }
+}
+
+/**
+ * Record vendor order
+ */
+export async function recordVendorOrder(orderData, adminId) {
+    try {
+        const order = {
+            vendorId: orderData.vendorId,
+            eventId: orderData.eventId || '',
+            eventName: orderData.eventName || '',
+            
+            orderDate: new Date(orderData.orderDate),
+            deliveryDate: orderData.deliveryDate ? new Date(orderData.deliveryDate) : null,
+            
+            items: JSON.stringify(orderData.items || []),
+            itemDescription: orderData.description || '',
+            
+            quantity: orderData.quantity || '',
+            totalAmount: orderData.amount,
+            paidAmount: orderData.paidAmount || 0,
+            
+            paymentStatus: orderData.paidAmount >= orderData.amount ? 'paid' : 'pending',
+            paymentMethod: orderData.paymentMethod || '',
+            
+            deliveryStatus: 'pending', // pending, delivered, cancelled
+            qualityRating: null,
+            
+            notes: orderData.notes || '',
+            createdBy: adminId,
+            _createdDate: new Date()
+        };
+        
+        const result = await wixData.insert('VendorOrders', order);
+        
+        // Update vendor total orders
+        const vendor = await wixData.get('Vendors', orderData.vendorId);
+        if (vendor) {
+            await wixData.update('Vendors', {
+                ...vendor,
+                totalOrders: (vendor.totalOrders || 0) + 1,
+                _updatedDate: new Date()
+            });
+        }
+        
+        return { success: true, orderId: result._id };
+    } catch (error) {
+        console.error('Error recording vendor order:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Rate vendor after order
+ */
+export async function rateVendor(vendorId, orderId, rating, feedback, adminId) {
+    try {
+        // Update order with rating
+        const order = await wixData.get('VendorOrders', orderId);
+        if (order) {
+            await wixData.update('VendorOrders', {
+                ...order,
+                qualityRating: rating,
+                qualityFeedback: feedback,
+                ratedBy: adminId,
+                ratedAt: new Date()
+            });
+        }
+        
+        // Recalculate vendor average rating
+        const allOrders = await wixData.query('VendorOrders')
+            .eq('vendorId', vendorId)
+            .isNotEmpty('qualityRating')
+            .find();
+        
+        const totalRating = allOrders.items.reduce((sum, o) => sum + (o.qualityRating || 0), 0);
+        const avgRating = allOrders.items.length > 0 
+            ? (totalRating / allOrders.items.length).toFixed(1)
+            : 0;
+        
+        // Update vendor
+        const vendor = await wixData.get('Vendors', vendorId);
+        if (vendor) {
+            await wixData.update('Vendors', {
+                ...vendor,
+                rating: parseFloat(avgRating),
+                _updatedDate: new Date()
+            });
+        }
+        
+        return { success: true, newRating: avgRating };
+    } catch (error) {
+        console.error('Error rating vendor:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+function determineTier(amount) {
+    if (amount >= 2000) return 'PLATINUM';
+    if (amount >= 1000) return 'GOLD';
+    if (amount >= 500) return 'SILVER';
+    if (amount >= 250) return 'BRONZE';
+    return 'SUPPORTER';
+}
+
+function getCurrentFiscalYear() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    // BANF fiscal year runs from April to March
+    if (month >= 3) { // April onwards
+        return `${year}-${year + 1}`;
+    }
+    return `${year - 1}-${year}`;
+}
+
+// Export constants
+export const SponsorshipTiers = SPONSORSHIP_TIERS;
+export const MagazineAdRates = MAGAZINE_AD_RATES;
+export const FoodSponsorshipTypes = FOOD_SPONSORSHIP_TYPES;
+export const SponsorStatus = SPONSOR_STATUS;

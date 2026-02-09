@@ -1,0 +1,356 @@
+/**
+ * BANF Payment Processing Backend Module
+ * Handles credit card payments with fee pass-through to members
+ * 
+ * File: backend/payment-processing.jsw
+ * Deploy to: Wix Velo Backend
+ */
+
+import wixData from 'wix-data';
+import wixPay from 'wix-pay-backend';
+import { currentMember } from 'wix-members-backend';
+
+// Credit Card Processing Fees (Stripe/Square standard rates)
+const CC_FEE_PERCENTAGE = 2.9;  // 2.9%
+const CC_FEE_FIXED = 0.30;      // $0.30 per transaction
+
+/**
+ * Calculate the total amount including CC processing fee
+ * Fee is passed to the member as per BANF policy
+ * @param {number} baseAmount - Original payment amount
+ * @returns {object} - Breakdown of fees and total
+ */
+export function calculatePaymentWithFee(baseAmount) {
+    const baseFee = (baseAmount * CC_FEE_PERCENTAGE / 100) + CC_FEE_FIXED;
+    // Account for fee on the fee itself (fee is charged on total)
+    const totalWithFee = (baseAmount + CC_FEE_FIXED) / (1 - CC_FEE_PERCENTAGE / 100);
+    const actualFee = totalWithFee - baseAmount;
+    
+    return {
+        baseAmount: parseFloat(baseAmount.toFixed(2)),
+        processingFee: parseFloat(actualFee.toFixed(2)),
+        totalAmount: parseFloat(totalWithFee.toFixed(2)),
+        feePercentage: CC_FEE_PERCENTAGE,
+        fixedFee: CC_FEE_FIXED,
+        feeBreakdown: `${CC_FEE_PERCENTAGE}% + $${CC_FEE_FIXED.toFixed(2)}`
+    };
+}
+
+/**
+ * BANF Membership Pricing Tiers (from Excel data)
+ */
+export const MEMBERSHIP_TIERS = {
+    'EB-Family': { price: 340, description: 'Executive Board Family Membership' },
+    'EB-Couple': { price: 300, description: 'Executive Board Couple Membership' },
+    'EB-Individual': { price: 190, description: 'Executive Board Individual Membership' },
+    'EB-Student': { price: 150, description: 'Executive Board Student Membership' },
+    'Reg-Family': { price: 215, description: 'Regular Family Membership' },
+    'Reg-Couple': { price: 200, description: 'Regular Couple Membership' },
+    'Reg-Individual': { price: 150, description: 'Regular Individual Membership' },
+    'Reg-Student': { price: 100, description: 'Regular Student Membership' }
+};
+
+/**
+ * Get membership pricing with CC fee included
+ * @param {string} tierType - Membership tier type
+ * @returns {object} - Pricing breakdown
+ */
+export function getMembershipPricing(tierType) {
+    const tier = MEMBERSHIP_TIERS[tierType];
+    if (!tier) {
+        throw new Error(`Invalid membership tier: ${tierType}`);
+    }
+    
+    const pricing = calculatePaymentWithFee(tier.price);
+    return {
+        ...pricing,
+        tierType,
+        tierDescription: tier.description
+    };
+}
+
+/**
+ * Create a payment request for Wix Pay
+ * @param {object} paymentDetails - Payment information
+ * @returns {object} - Wix Pay payment object
+ */
+export async function createPaymentRequest(paymentDetails) {
+    const { amount, paymentType, description, memberId, memberEmail, memberName } = paymentDetails;
+    
+    // Calculate total with CC fee
+    const pricing = calculatePaymentWithFee(amount);
+    
+    // Create payment item for Wix Pay
+    const paymentItem = {
+        name: paymentType,
+        price: pricing.totalAmount,
+        quantity: 1
+    };
+    
+    // Create the payment
+    const paymentInfo = {
+        items: [paymentItem],
+        amount: {
+            subtotal: pricing.baseAmount,
+            shipping: 0,
+            tax: 0,
+            discount: 0,
+            total: pricing.totalAmount,
+            currency: "USD"
+        },
+        userInfo: {
+            email: memberEmail,
+            firstName: memberName.split(' ')[0],
+            lastName: memberName.split(' ').slice(1).join(' ') || ''
+        }
+    };
+    
+    try {
+        const payment = await wixPay.createPayment(paymentInfo);
+        
+        // Log the payment request to Transactions collection
+        await logTransaction({
+            transactionType: 'payment_initiated',
+            paymentType,
+            baseAmount: pricing.baseAmount,
+            processingFee: pricing.processingFee,
+            totalAmount: pricing.totalAmount,
+            memberId,
+            memberEmail,
+            memberName,
+            description,
+            status: 'pending',
+            paymentId: payment.id,
+            createdAt: new Date()
+        });
+        
+        return {
+            success: true,
+            payment,
+            pricing
+        };
+    } catch (error) {
+        console.error('Payment creation failed:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Process completed payment and update records
+ * @param {object} paymentResult - Wix Pay result
+ * @returns {object} - Processing result
+ */
+export async function processPaymentCompletion(paymentResult) {
+    const { paymentId, status, transactionId } = paymentResult;
+    
+    try {
+        // Update transaction record
+        const transactions = await wixData.query('Transactions')
+            .eq('paymentId', paymentId)
+            .find();
+        
+        if (transactions.items.length > 0) {
+            const transaction = transactions.items[0];
+            
+            await wixData.update('Transactions', {
+                ...transaction,
+                status: status === 'Successful' ? 'completed' : 'failed',
+                transactionId,
+                completedAt: new Date(),
+                updatedAt: new Date()
+            });
+            
+            // If successful, create income record in FinancialRecords
+            if (status === 'Successful') {
+                await createIncomeRecord({
+                    amount: transaction.totalAmount,
+                    baseAmount: transaction.baseAmount,
+                    processingFee: transaction.processingFee,
+                    category: transaction.paymentType,
+                    description: transaction.description,
+                    memberId: transaction.memberId,
+                    memberName: transaction.memberName,
+                    paymentMethod: 'Credit Card',
+                    transactionId,
+                    receiptNumber: `BANF-${Date.now()}`
+                });
+                
+                // Update member's payment status if membership payment
+                if (transaction.paymentType.includes('Membership')) {
+                    await updateMembershipStatus(transaction.memberId, transaction.paymentType);
+                }
+            }
+            
+            return { success: true, status };
+        }
+        
+        return { success: false, error: 'Transaction not found' };
+    } catch (error) {
+        console.error('Payment processing failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Log transaction to database
+ * @param {object} transactionData - Transaction details
+ */
+async function logTransaction(transactionData) {
+    try {
+        await wixData.insert('Transactions', {
+            ...transactionData,
+            _id: undefined // Let Wix generate ID
+        });
+    } catch (error) {
+        console.error('Failed to log transaction:', error);
+    }
+}
+
+/**
+ * Create income record in FinancialRecords
+ * @param {object} incomeData - Income details
+ */
+async function createIncomeRecord(incomeData) {
+    try {
+        await wixData.insert('FinancialRecords', {
+            transactionType: 'income',
+            amount: incomeData.amount,
+            netAmount: incomeData.baseAmount,
+            processingFee: incomeData.processingFee,
+            category: incomeData.category,
+            subcategory: 'Online Payment',
+            description: incomeData.description,
+            memberId: incomeData.memberId,
+            memberName: incomeData.memberName,
+            paymentMethod: incomeData.paymentMethod,
+            transactionDate: new Date(),
+            receiptNumber: incomeData.receiptNumber,
+            externalTransactionId: incomeData.transactionId,
+            isApproved: true, // Auto-approved for online payments
+            approvedAt: new Date(),
+            createdAt: new Date()
+        });
+    } catch (error) {
+        console.error('Failed to create income record:', error);
+    }
+}
+
+/**
+ * Update member's membership status after payment
+ * @param {string} memberId - Member ID
+ * @param {string} membershipType - Type of membership paid
+ */
+async function updateMembershipStatus(memberId, membershipType) {
+    try {
+        const members = await wixData.query('Members')
+            .eq('_id', memberId)
+            .find();
+        
+        if (members.items.length > 0) {
+            const member = members.items[0];
+            const now = new Date();
+            const expiryDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+            
+            await wixData.update('Members', {
+                ...member,
+                membershipStatus: 'active',
+                membershipType,
+                membershipPaidDate: now,
+                membershipExpiryDate: expiryDate,
+                updatedAt: now
+            });
+        }
+    } catch (error) {
+        console.error('Failed to update membership status:', error);
+    }
+}
+
+/**
+ * Record a Zelle payment (manual verification required)
+ * @param {object} zelleData - Zelle payment details
+ */
+export async function recordZellePayment(zelleData) {
+    const { confirmationCode, amount, paymentType, memberId, memberName, memberEmail, senderName } = zelleData;
+    
+    try {
+        // Check for duplicate confirmation code
+        const existing = await wixData.query('ZellePayments')
+            .eq('confirmationCode', confirmationCode)
+            .find();
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'This confirmation code has already been used' };
+        }
+        
+        // Create Zelle payment record
+        const payment = await wixData.insert('ZellePayments', {
+            confirmationCode,
+            amount: parseFloat(amount),
+            paymentType,
+            memberId,
+            memberName,
+            memberEmail,
+            senderName: senderName || memberName,
+            status: 'pending_verification',
+            submittedAt: new Date(),
+            createdAt: new Date()
+        });
+        
+        // Log to transactions
+        await logTransaction({
+            transactionType: 'zelle_submitted',
+            paymentType,
+            baseAmount: parseFloat(amount),
+            processingFee: 0, // No fee for Zelle
+            totalAmount: parseFloat(amount),
+            memberId,
+            memberEmail,
+            memberName,
+            description: `Zelle payment - ${confirmationCode}`,
+            status: 'pending_verification',
+            paymentId: payment._id,
+            createdAt: new Date()
+        });
+        
+        return { 
+            success: true, 
+            message: 'Payment submitted for verification',
+            referenceNumber: `ZELLE-${payment._id.substring(0, 8).toUpperCase()}`
+        };
+    } catch (error) {
+        console.error('Zelle payment recording failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get payment history for a member
+ * @param {string} memberId - Member ID
+ * @returns {array} - Payment history
+ */
+export async function getMemberPaymentHistory(memberId) {
+    try {
+        const transactions = await wixData.query('Transactions')
+            .eq('memberId', memberId)
+            .descending('createdAt')
+            .limit(50)
+            .find();
+        
+        return {
+            success: true,
+            payments: transactions.items.map(t => ({
+                id: t._id,
+                date: t.createdAt,
+                type: t.paymentType,
+                amount: t.totalAmount,
+                status: t.status,
+                method: t.transactionType.includes('zelle') ? 'Zelle' : 'Credit Card'
+            }))
+        };
+    } catch (error) {
+        return { success: false, error: error.message, payments: [] };
+    }
+}

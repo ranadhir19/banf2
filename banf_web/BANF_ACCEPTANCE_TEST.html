@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF Website - Comprehensive Acceptance Test Document</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --saffron: #FF6B35;
+            --saffron-light: #FF8B5C;
+            --saffron-dark: #E55A2B;
+            --bengal-green: #006A4E;
+            --bengal-green-light: #008A64;
+            --burgundy: #8B0000;
+            --burgundy-light: #A50000;
+            --gold: #D4AF37;
+            --gold-light: #E5C158;
+            --cream: #FFF8F0;
+            --cream-dark: #F5EDE0;
+            --charcoal: #2C2C2C;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555;
+            --text-muted: #888;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--cream);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--burgundy) 0%, var(--saffron-dark) 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 130px;
+            z-index: 999;
+        }
+
+        .nav-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            background: var(--cream-dark);
+            border: 2px solid transparent;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            background: var(--saffron-light);
+            color: white;
+        }
+
+        .nav-tab.active {
+            background: var(--saffron);
+            color: white;
+            border-color: var(--burgundy);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Section */
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--saffron);
+        }
+
+        .card h2 {
+            color: var(--burgundy);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: var(--saffron);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--saffron) 0%, var(--burgundy) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        /* Role Hierarchy */
+        .role-hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .role-level {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .role-box {
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 150px;
+            font-weight: 500;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+
+        .role-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .role-super { background: linear-gradient(135deg, #1a1a1a 0%, #333 100%); color: white; }
+        .role-president { background: linear-gradient(135deg, var(--burgundy) 0%, #a50000 100%); color: white; }
+        .role-treasurer { background: linear-gradient(135deg, var(--bengal-green) 0%, #008a64 100%); color: white; }
+        .role-vp { background: linear-gradient(135deg, var(--saffron) 0%, #ff8b5c 100%); color: white; }
+        .role-secretary { background: linear-gradient(135deg, #5c6bc0 0%, #7986cb 100%); color: white; }
+        .role-ec { background: linear-gradient(135deg, #26a69a 0%, #4db6ac 100%); color: white; }
+        .role-moderator { background: linear-gradient(135deg, #7e57c2 0%, #9575cd 100%); color: white; }
+        .role-member { background: linear-gradient(135deg, var(--gold) 0%, #e5c158 100%); color: var(--charcoal); }
+        .role-visitor { background: linear-gradient(135deg, #78909c 0%, #90a4ae 100%); color: white; }
+
+        /* Feature Table */
+        .feature-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+        }
+
+        .feature-table th, .feature-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .feature-table th {
+            background: var(--charcoal);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 200px;
+        }
+
+        .feature-table th:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        .feature-table th:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        .feature-table tr:hover {
+            background-color: #f8f8f8;
+        }
+
+        .feature-table .check { color: var(--success); font-weight: bold; }
+        .feature-table .cross { color: var(--danger); }
+        .feature-table .view { color: var(--info); }
+        .feature-table .approval { color: var(--warning); }
+
+        /* Workflow Diagrams */
+        .workflow-diagram {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .workflow-step {
+            display: inline-block;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .workflow-step.start { background: var(--success); color: white; }
+        .workflow-step.process { background: var(--saffron); color: white; }
+        .workflow-step.decision { background: var(--warning); color: var(--charcoal); }
+        .workflow-step.approval { background: var(--burgundy); color: white; }
+        .workflow-step.end { background: var(--bengal-green); color: white; }
+
+        .workflow-arrow {
+            display: inline-block;
+            font-size: 24px;
+            color: var(--charcoal);
+            margin: 0 10px;
+        }
+
+        /* Test Checklist */
+        .test-checklist {
+            list-style: none;
+        }
+
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .test-item:hover {
+            border-color: var(--saffron);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .test-item.passed {
+            border-color: var(--success);
+            background: #f0fff0;
+        }
+
+        .test-item.failed {
+            border-color: var(--danger);
+            background: #fff0f0;
+        }
+
+        .test-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .test-item.passed .test-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .test-item.failed .test-checkbox {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        .test-info {
+            flex: 1;
+        }
+
+        .test-id {
+            font-weight: 600;
+            color: var(--burgundy);
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        .test-description {
+            color: var(--text-primary);
+        }
+
+        .test-expected {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Module Cards Grid */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .module-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .module-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .module-header {
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .module-header i {
+            font-size: 2em;
+        }
+
+        .module-header h3 {
+            margin: 0;
+        }
+
+        .module-body {
+            padding: 20px;
+        }
+
+        .module-body ul {
+            list-style: none;
+        }
+
+        .module-body li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .module-body li:last-child {
+            border-bottom: none;
+        }
+
+        /* Different module colors */
+        .module-membership .module-header { background: linear-gradient(135deg, var(--saffron) 0%, var(--saffron-dark) 100%); }
+        .module-events .module-header { background: linear-gradient(135deg, var(--burgundy) 0%, var(--burgundy-light) 100%); }
+        .module-finance .module-header { background: linear-gradient(135deg, var(--bengal-green) 0%, var(--bengal-green-light) 100%); }
+        .module-magazine .module-header { background: linear-gradient(135deg, #5c6bc0 0%, #7986cb 100%); }
+        .module-guide .module-header { background: linear-gradient(135deg, #26a69a 0%, #4db6ac 100%); }
+        .module-radio .module-header { background: linear-gradient(135deg, #ef5350 0%, #e57373 100%); }
+        .module-surveys .module-header { background: linear-gradient(135deg, #ab47bc 0%, #ba68c8 100%); }
+        .module-complaints .module-header { background: linear-gradient(135deg, #ff7043 0%, #ff8a65 100%); }
+        .module-sponsors .module-header { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); }
+        .module-vendors .module-header { background: linear-gradient(135deg, #78909c 0%, #90a4ae 100%); }
+        .module-volunteers .module-header { background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%); }
+        .module-documents .module-header { background: linear-gradient(135deg, #42a5f5 0%, #64b5f6 100%); }
+
+        /* Progress Indicator */
+        .progress-container {
+            background: #eee;
+            border-radius: 10px;
+            height: 30px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--bengal-green) 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Print Styles */
+        @media print {
+            .nav-container, .header {
+                position: relative !important;
+                top: auto !important;
+            }
+            
+            .section {
+                display: block !important;
+                page-break-inside: avoid;
+            }
+            
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .feature-table {
+                font-size: 0.85em;
+            }
+
+            .feature-table th, .feature-table td {
+                padding: 8px;
+            }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--charcoal);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            z-index: 100;
+        }
+
+        /* Benefits Section */
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .benefit-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border-top: 4px solid var(--saffron);
+        }
+
+        .benefit-card i {
+            font-size: 3em;
+            color: var(--saffron);
+            margin-bottom: 15px;
+        }
+
+        .benefit-card h4 {
+            color: var(--burgundy);
+            margin-bottom: 10px;
+        }
+
+        .benefit-card .percentage {
+            font-size: 2em;
+            color: var(--success);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>🪷 BANF Website Acceptance Test Document</h1>
+        <p>Bengali Association of North Florida | Comprehensive Feature & Workflow Documentation</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-section="overview">📋 Overview</div>
+            <div class="nav-tab" data-section="roles">👥 Role Hierarchy</div>
+            <div class="nav-tab" data-section="features">✨ Features Matrix</div>
+            <div class="nav-tab" data-section="workflows">🔄 Workflows</div>
+            <div class="nav-tab" data-section="modules">📦 All Modules</div>
+            <div class="nav-tab" data-section="tests">✅ Test Checklist</div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <!-- Section: Overview -->
+        <section id="overview" class="section active">
+            <div class="card">
+                <h2><i class="fas fa-landmark"></i> About BANF</h2>
+                <p>The <strong>Bengali Association of North Florida (BANF)</strong> is a vibrant cultural organization established to preserve and promote Bengali heritage, language, and traditions in the Jacksonville, Florida area. Founded with a mission to unite Bengali families and individuals, BANF has grown to become one of the most active cultural organizations in North Florida.</p>
+                
+                <h3 style="margin-top: 20px; color: var(--burgundy);">Mission Statement</h3>
+                <blockquote style="background: var(--cream-dark); padding: 20px; border-radius: 10px; font-style: italic; margin: 15px 0;">
+                    "To preserve, promote, and celebrate Bengali culture, heritage, and language while fostering a sense of community among Bengali families and individuals in North Florida."
+                </blockquote>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>150+</h3>
+                    <p>Active Families</p>
+                </div>
+                <div class="stat-card">
+                    <h3>25+</h3>
+                    <p>Annual Events</p>
+                </div>
+                <div class="stat-card">
+                    <h3>500+</h3>
+                    <p>Community Members</p>
+                </div>
+                <div class="stat-card">
+                    <h3>15+</h3>
+                    <p>Years of Service</p>
+                </div>
+            </div>
+
+            <!-- Purpose -->
+            <div class="card">
+                <h2><i class="fas fa-bullseye"></i> Purpose of Digital Platform</h2>
+                <p>Transform BANF's operations from manual, paper-based processes to a fully integrated digital ecosystem that enhances member experience, streamlines administrative tasks, and enables transparent governance.</p>
+                
+                <h3 style="margin-top: 20px; color: var(--burgundy);"><i class="fas fa-rocket"></i> Benefits of Digitization</h3>
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <i class="fas fa-clock"></i>
+                        <h4>Time Efficiency</h4>
+                        <p>Online registration vs paper forms</p>
+                        <div class="percentage">90% faster</div>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-check-double"></i>
+                        <h4>Payment Accuracy</h4>
+                        <p>Automated reconciliation</p>
+                        <div class="percentage">95% accurate</div>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-users-cog"></i>
+                        <h4>Event Check-in</h4>
+                        <p>QR-based attendance</p>
+                        <div class="percentage">80% time saved</div>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-book-open"></i>
+                        <h4>Audit Ready</h4>
+                        <p>Real-time accounting</p>
+                        <div class="percentage">100% compliant</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend Services -->
+            <div class="card">
+                <h2><i class="fas fa-server"></i> Backend Services Overview</h2>
+                <p><strong>42 Backend Modules</strong> built with Wix Velo covering all functionality:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px;">
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">📊 accounting-ledger.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">🔐 admin-auth.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">💰 budget-finance-service.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">📧 communication-hub.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">📋 complaints.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">🎫 events.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">📚 magazine.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">👥 members.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">💳 payment-processing.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">🤝 sponsor-management.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">📻 radio.jsw</span>
+                    <span style="background: var(--cream-dark); padding: 8px 12px; border-radius: 5px; font-size: 0.9em;">🛍️ vendor-management.jsw</span>
+                    <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 5px; font-size: 0.9em; border: 1px solid #4caf50;">🎭 specialized-admin-roles.jsw</span>
+                    <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 5px; font-size: 0.9em; border: 1px solid #4caf50;">📈 reporting-module.jsw</span>
+                    <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 5px; font-size: 0.9em; border: 1px solid #4caf50;">📊 insights-analytics.jsw</span>
+                    <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 5px; font-size: 0.9em; border: 1px solid #4caf50;">🏘️ community-engagement.jsw</span>
+                    <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 5px; font-size: 0.9em; border: 1px solid #4caf50;">📺 ad-management.jsw</span>
+                </div>
+                <p style="margin-top: 15px; color: var(--text-muted);"><i class="fas fa-plus"></i> Plus 25 more modules...</p>
+            </div>
+        </section>
+
+        <!-- Section: Role Hierarchy -->
+        <section id="roles" class="section">
+            <div class="card">
+                <h2><i class="fas fa-sitemap"></i> Administrative Role Hierarchy</h2>
+                <div class="role-hierarchy">
+                    <div class="role-level">
+                        <div class="role-box role-super">
+                            <i class="fas fa-crown"></i><br>
+                            <strong>SUPER ADMIN</strong><br>
+                            <small>IT Administrator</small><br>
+                            <small>Full System Access</small>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: var(--text-muted);">▼</div>
+                    <div class="role-level">
+                        <div class="role-box role-president">
+                            <i class="fas fa-gavel"></i><br>
+                            <strong>PRESIDENT</strong><br>
+                            <small>Full Access</small><br>
+                            <small>+ All Approvals</small>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: var(--text-muted);">▼</div>
+                    <div class="role-level">
+                        <div class="role-box role-treasurer">
+                            <i class="fas fa-money-bill"></i><br>
+                            <strong>TREASURER</strong><br>
+                            <small>Financial Access</small><br>
+                            <small>+ Payment Verify</small>
+                        </div>
+                        <div class="role-box role-vp">
+                            <i class="fas fa-user-tie"></i><br>
+                            <strong>VICE PRESIDENT</strong><br>
+                            <small>Operations</small><br>
+                            <small>- Sensitive</small>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: var(--text-muted);">▼</div>
+                    <div class="role-level">
+                        <div class="role-box role-secretary">
+                            <i class="fas fa-pen"></i><br>
+                            <strong>SECRETARY</strong><br>
+                            <small>Minutes & Comms</small>
+                        </div>
+                        <div class="role-box role-ec">
+                            <i class="fas fa-users"></i><br>
+                            <strong>EC MEMBER</strong><br>
+                            <small>Limited Admin</small>
+                        </div>
+                        <div class="role-box role-moderator">
+                            <i class="fas fa-shield-alt"></i><br>
+                            <strong>MODERATOR</strong><br>
+                            <small>Content Only</small>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: var(--text-muted);">▼</div>
+                    <div class="role-level">
+                        <div class="role-box role-member">
+                            <i class="fas fa-id-card"></i><br>
+                            <strong>MEMBER</strong><br>
+                            <small>Self-Service</small>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: var(--text-muted);">▼</div>
+                    <div class="role-level">
+                        <div class="role-box role-visitor">
+                            <i class="fas fa-eye"></i><br>
+                            <strong>VISITOR</strong><br>
+                            <small>Public Only</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Details -->
+            <div class="card">
+                <h2><i class="fas fa-key"></i> Sensitive Workflow Access</h2>
+                <p>The following workflows require elevated permissions from President, Treasurer, or Vice President:</p>
+                
+                <table class="feature-table">
+                    <thead>
+                        <tr>
+                            <th>Sensitive Workflow</th>
+                            <th>Treasurer</th>
+                            <th>VP</th>
+                            <th>President</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💳 Verify Zelle Payments</td>
+                            <td class="check">✅</td>
+                            <td class="cross">❌</td>
+                            <td class="check">✅</td>
+                        </tr>
+                        <tr>
+                            <td>💰 Approve Expense (&lt;$500)</td>
+                            <td class="check">✅</td>
+                            <td class="cross">❌</td>
+                            <td class="check">✅</td>
+                        </tr>
+                        <tr>
+                            <td>💰 Approve Expense ($500-$1000)</td>
+                            <td class="approval">🔐 + VP</td>
+                            <td class="approval">🔐 + Treas</td>
+                            <td class="check">✅</td>
+                        </tr>
+                        <tr>
+                            <td>💰 Approve Expense (&gt;$1000)</td>
+                            <td class="cross">❌</td>
+                            <td class="cross">❌</td>
+                            <td class="check">✅ (Required)</td>
+                        </tr>
+                        <tr>
+                            <td>📊 Generate Tax Documents</td>
+                            <td class="check">✅</td>
+                            <td class="cross">❌</td>
+                            <td class="check">✅</td>
+                        </tr>
+                        <tr>
+                            <td>👤 Suspend Member</td>
+                            <td class="cross">❌</td>
+                            <td class="approval">🔐 Recommend</td>
+                            <td class="check">✅ (Required)</td>
+                        </tr>
+                        <tr>
+                            <td>🤝 Approve Gold+ Sponsor</td>
+                            <td class="view">👁️ Payment Only</td>
+                            <td class="approval">🔐 Recommend</td>
+                            <td class="check">✅ (Required)</td>
+                        </tr>
+                        <tr>
+                            <td>📝 Finalize Budget</td>
+                            <td class="check">✅ Prepare</td>
+                            <td class="view">👁️ View</td>
+                            <td class="check">✅ (Final)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section: Features Matrix -->
+        <section id="features" class="section">
+            <div class="card">
+                <h2><i class="fas fa-th"></i> Complete Feature Access Matrix</h2>
+                <p><strong>Legend:</strong> 
+                    <span class="check">✅ Full</span> | 
+                    <span class="view">👁️ View</span> | 
+                    <span class="approval">🔐 Approval</span> | 
+                    <span class="cross">❌ None</span>
+                </p>
+
+                <div style="overflow-x: auto;">
+                    <table class="feature-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Visitor</th>
+                                <th>Member</th>
+                                <th>Moderator</th>
+                                <th>EC</th>
+                                <th>Secretary</th>
+                                <th>VP</th>
+                                <th>Treasurer</th>
+                                <th>President</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Membership -->
+                            <tr style="background: var(--cream-dark);">
+                                <td colspan="9"><strong>🪪 MEMBERSHIP</strong></td>
+                            </tr>
+                            <tr>
+                                <td>View membership info</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Register as member</td>
+                                <td class="check">✅</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Update own profile</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>View member directory</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Manage all members</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="view">👁️</td>
+                                <td class="check">✅</td>
+                                <td class="view">👁️</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Suspend members</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="approval">🔐</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            
+                            <!-- Events -->
+                            <tr style="background: var(--cream-dark);">
+                                <td colspan="9"><strong>🎉 EVENTS</strong></td>
+                            </tr>
+                            <tr>
+                                <td>View events</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Register for events</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Create/Edit events</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="approval">🔐</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>QR Check-in</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                            </tr>
+
+                            <!-- Finance -->
+                            <tr style="background: var(--cream-dark);">
+                                <td colspan="9"><strong>💰 FINANCE</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Pay own fees</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Verify payments</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Record transactions</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Generate reports</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="view">👁️</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+
+                            <!-- Sponsors -->
+                            <tr style="background: var(--cream-dark);">
+                                <td colspan="9"><strong>🤝 SPONSORS</strong></td>
+                            </tr>
+                            <tr>
+                                <td>View sponsors</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Manage sponsors</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Approve Gold+</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="approval">🔐</td>
+                                <td class="view">👁️</td>
+                                <td class="check">✅</td>
+                            </tr>
+
+                            <!-- Complaints -->
+                            <tr style="background: var(--cream-dark);">
+                                <td colspan="9"><strong>📢 COMPLAINTS</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Submit anonymous</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                                <td class="check">✅</td>
+                            </tr>
+                            <tr>
+                                <td>Respond to complaints</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="cross">❌</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                                <td class="cross">❌</td>
+                                <td class="check">✅</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Workflows -->
+        <section id="workflows" class="section">
+            <div class="card">
+                <h2><i class="fas fa-project-diagram"></i> Key Approval Workflows</h2>
+                
+                <!-- Payment Workflow -->
+                <h3 style="color: var(--burgundy); margin-top: 25px;"><i class="fas fa-credit-card"></i> 1. Payment Approval Workflow</h3>
+                <div class="workflow-diagram">
+                    <div class="workflow-step start"><i class="fas fa-play"></i> Payment Submitted</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step process"><i class="fas fa-search"></i> Treasurer Review</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step decision"><i class="fas fa-question"></i> Amount Check</div>
+                    <br><br>
+                    <div style="display: flex; justify-content: center; gap: 50px; flex-wrap: wrap;">
+                        <div>
+                            <small style="color: var(--text-muted);">≤$500</small><br>
+                            <span class="workflow-arrow">↓</span><br>
+                            <div class="workflow-step approval"><i class="fas fa-check"></i> Treasurer Approves</div>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-muted);">$500-$1000</small><br>
+                            <span class="workflow-arrow">↓</span><br>
+                            <div class="workflow-step approval"><i class="fas fa-user-friends"></i> Treas + VP Approve</div>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-muted)">&gt;$1000</small><br>
+                            <span class="workflow-arrow">↓</span><br>
+                            <div class="workflow-step approval"><i class="fas fa-gavel"></i> President Required</div>
+                        </div>
+                    </div>
+                    <br>
+                    <span class="workflow-arrow">↓</span><br>
+                    <div class="workflow-step end"><i class="fas fa-check-circle"></i> Payment Recorded</div>
+                </div>
+
+                <!-- Member Approval -->
+                <h3 style="color: var(--burgundy); margin-top: 25px;"><i class="fas fa-user-plus"></i> 2. New Member Approval Workflow</h3>
+                <div class="workflow-diagram">
+                    <div class="workflow-step start"><i class="fas fa-file-alt"></i> Registration Submitted</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step process"><i class="fas fa-robot"></i> Auto Checks</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step decision"><i class="fas fa-credit-card"></i> Payment Pending</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step approval"><i class="fas fa-money-check"></i> Treasurer Verifies</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step approval"><i class="fas fa-user-check"></i> VP/President Approves</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step end"><i class="fas fa-star"></i> Member Active</div>
+                </div>
+
+                <!-- Sponsor Approval -->
+                <h3 style="color: var(--burgundy); margin-top: 25px;"><i class="fas fa-handshake"></i> 3. Sponsor Approval Workflow</h3>
+                <div class="workflow-diagram">
+                    <div class="workflow-step start"><i class="fas fa-building"></i> Sponsor Application</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step process"><i class="fas fa-search-plus"></i> VP Initial Review</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step decision"><i class="fas fa-layer-group"></i> Tier Check</div>
+                    <br><br>
+                    <div style="display: flex; justify-content: center; gap: 50px; flex-wrap: wrap;">
+                        <div>
+                            <small style="color: var(--text-muted);">Bronze/Silver</small><br>
+                            <span class="workflow-arrow">↓</span><br>
+                            <div class="workflow-step approval"><i class="fas fa-check"></i> VP Approves</div>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-muted);">Gold/Platinum</small><br>
+                            <span class="workflow-arrow">↓</span><br>
+                            <div class="workflow-step approval"><i class="fas fa-gavel"></i> President Required</div>
+                        </div>
+                    </div>
+                    <br>
+                    <span class="workflow-arrow">↓</span><br>
+                    <div class="workflow-step process"><i class="fas fa-file-invoice-dollar"></i> Treasurer Records Payment</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step end"><i class="fas fa-medal"></i> Sponsor Active</div>
+                </div>
+
+                <!-- Vendor Approval -->
+                <h3 style="color: var(--burgundy); margin-top: 25px;"><i class="fas fa-store"></i> 4. Vendor Approval Workflow</h3>
+                <div class="workflow-diagram">
+                    <div class="workflow-step start"><i class="fas fa-clipboard-list"></i> Vendor Application</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step decision"><i class="fas fa-utensils"></i> Food Vendor?</div>
+                    <br><br>
+                    <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+                        <div>
+                            <small style="color: var(--success);">✅ Health Permit</small><br>
+                            <span class="workflow-arrow">↓</span>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="workflow-step process"><i class="fas fa-user-tie"></i> VP Reviews</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step approval"><i class="fas fa-money-check"></i> Treasurer Confirms Payment</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step process"><i class="fas fa-map-pin"></i> Booth Assigned</div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step end"><i class="fas fa-thumbs-up"></i> Vendor Approved</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Modules -->
+        <section id="modules" class="section">
+            <div class="card">
+                <h2><i class="fas fa-cubes"></i> All Platform Modules</h2>
+            </div>
+
+            <div class="module-grid">
+                <!-- Membership -->
+                <div class="module-card module-membership">
+                    <div class="module-header">
+                        <i class="fas fa-id-card"></i>
+                        <h3>Membership</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Online registration</li>
+                            <li><i class="fas fa-check text-success"></i> 8 membership tiers</li>
+                            <li><i class="fas fa-check text-success"></i> Family member management</li>
+                            <li><i class="fas fa-check text-success"></i> Auto renewal reminders</li>
+                            <li><i class="fas fa-check text-success"></i> Payment history</li>
+                            <li><i class="fas fa-check text-success"></i> Receipt downloads</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Events -->
+                <div class="module-card module-events">
+                    <div class="module-header">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h3>Events</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Event calendar</li>
+                            <li><i class="fas fa-check text-success"></i> Online registration</li>
+                            <li><i class="fas fa-check text-success"></i> QR code tickets</li>
+                            <li><i class="fas fa-check text-success"></i> Budget management</li>
+                            <li><i class="fas fa-check text-success"></i> Attendance tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Feedback collection</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Finance -->
+                <div class="module-card module-finance">
+                    <div class="module-header">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Finance</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> CC fee pass-through</li>
+                            <li><i class="fas fa-check text-success"></i> Zelle verification</li>
+                            <li><i class="fas fa-check text-success"></i> Accounting ledger</li>
+                            <li><i class="fas fa-check text-success"></i> Budget vs actual</li>
+                            <li><i class="fas fa-check text-success"></i> Receipt generation</li>
+                            <li><i class="fas fa-check text-success"></i> Financial reports</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Magazine -->
+                <div class="module-card module-magazine">
+                    <div class="module-header">
+                        <i class="fas fa-book-open"></i>
+                        <h3>E-Magazine</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Article submission</li>
+                            <li><i class="fas fa-check text-success"></i> Editorial review</li>
+                            <li><i class="fas fa-check text-success"></i> Issue publishing</li>
+                            <li><i class="fas fa-check text-success"></i> Category browsing</li>
+                            <li><i class="fas fa-check text-success"></i> Author profiles</li>
+                            <li><i class="fas fa-check text-success"></i> Archive access</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Guide -->
+                <div class="module-card module-guide">
+                    <div class="module-header">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <h3>Jax Guide</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Place listings</li>
+                            <li><i class="fas fa-check text-success"></i> Category search</li>
+                            <li><i class="fas fa-check text-success"></i> User reviews</li>
+                            <li><i class="fas fa-check text-success"></i> Bengali-friendly tags</li>
+                            <li><i class="fas fa-check text-success"></i> Submission portal</li>
+                            <li><i class="fas fa-check text-success"></i> Map integration</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Radio -->
+                <div class="module-card module-radio">
+                    <div class="module-header">
+                        <i class="fas fa-broadcast-tower"></i>
+                        <h3>Community Radio</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Live streaming</li>
+                            <li><i class="fas fa-check text-success"></i> Show schedule</li>
+                            <li><i class="fas fa-check text-success"></i> Song requests</li>
+                            <li><i class="fas fa-check text-success"></i> Listener stats</li>
+                            <li><i class="fas fa-check text-success"></i> Auto-DJ mode</li>
+                            <li><i class="fas fa-check text-success"></i> Playlist management</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Surveys -->
+                <div class="module-card module-surveys">
+                    <div class="module-header">
+                        <i class="fas fa-poll"></i>
+                        <h3>Surveys</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Survey builder</li>
+                            <li><i class="fas fa-check text-success"></i> Multiple question types</li>
+                            <li><i class="fas fa-check text-success"></i> Anonymous option</li>
+                            <li><i class="fas fa-check text-success"></i> Results analytics</li>
+                            <li><i class="fas fa-check text-success"></i> Export responses</li>
+                            <li><i class="fas fa-check text-success"></i> Template library</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Complaints -->
+                <div class="module-card module-complaints">
+                    <div class="module-header">
+                        <i class="fas fa-comment-alt"></i>
+                        <h3>Complaints</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Anonymous submission</li>
+                            <li><i class="fas fa-check text-success"></i> Tracking ID system</li>
+                            <li><i class="fas fa-check text-success"></i> Status checking</li>
+                            <li><i class="fas fa-check text-success"></i> Admin responses</li>
+                            <li><i class="fas fa-check text-success"></i> Priority levels</li>
+                            <li><i class="fas fa-check text-success"></i> Resolution tracking</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Sponsors -->
+                <div class="module-card module-sponsors">
+                    <div class="module-header">
+                        <i class="fas fa-hands-helping"></i>
+                        <h3>Sponsors</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> 5 tier system</li>
+                            <li><i class="fas fa-check text-success"></i> Benefit tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Online application</li>
+                            <li><i class="fas fa-check text-success"></i> Logo management</li>
+                            <li><i class="fas fa-check text-success"></i> Payment tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Sponsor portal</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Vendors -->
+                <div class="module-card module-vendors">
+                    <div class="module-header">
+                        <i class="fas fa-store"></i>
+                        <h3>Vendors</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> 7 vendor types</li>
+                            <li><i class="fas fa-check text-success"></i> Online application</li>
+                            <li><i class="fas fa-check text-success"></i> Booth assignment</li>
+                            <li><i class="fas fa-check text-success"></i> Payment tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Document upload</li>
+                            <li><i class="fas fa-check text-success"></i> Performance ratings</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Volunteers -->
+                <div class="module-card module-volunteers">
+                    <div class="module-header">
+                        <i class="fas fa-hands"></i>
+                        <h3>Volunteers</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Skill registration</li>
+                            <li><i class="fas fa-check text-success"></i> Task assignment</li>
+                            <li><i class="fas fa-check text-success"></i> Hour tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Shift scheduling</li>
+                            <li><i class="fas fa-check text-success"></i> Recognition badges</li>
+                            <li><i class="fas fa-check text-success"></i> Volunteer reports</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Documents -->
+                <div class="module-card module-documents">
+                    <div class="module-header">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>Documents</h3>
+                    </div>
+                    <div class="module-body">
+                        <ul>
+                            <li><i class="fas fa-check text-success"></i> Secure upload</li>
+                            <li><i class="fas fa-check text-success"></i> Categorization</li>
+                            <li><i class="fas fa-check text-success"></i> Access control</li>
+                            <li><i class="fas fa-check text-success"></i> Version history</li>
+                            <li><i class="fas fa-check text-success"></i> Full-text search</li>
+                            <li><i class="fas fa-check text-success"></i> Expiry alerts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Tests -->
+        <section id="tests" class="section">
+            <div class="card">
+                <h2><i class="fas fa-clipboard-check"></i> User Acceptance Test Checklist</h2>
+                <p>Click on each test to mark as passed or failed. Progress is tracked automatically.</p>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;">0%</div>
+                </div>
+            </div>
+
+            <!-- Visitor Tests -->
+            <div class="card">
+                <h3><i class="fas fa-eye" style="color: var(--saffron);"></i> Phase 1: Visitor Journey Tests</h3>
+                <ul class="test-checklist" id="visitorTests">
+                    <li class="test-item" data-test="V-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-001</span>
+                            <span class="test-description">Visit homepage as guest</span>
+                            <div class="test-expected">Expected: Homepage loads with all sections visible</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-002</span>
+                            <span class="test-description">View upcoming events</span>
+                            <div class="test-expected">Expected: Event list displays correctly</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-003</span>
+                            <span class="test-description">View event details</span>
+                            <div class="test-expected">Expected: All event info visible (date, time, price, location)</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-004</span>
+                            <span class="test-description">Browse e-magazine</span>
+                            <div class="test-expected">Expected: Articles display correctly with navigation</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-005</span>
+                            <span class="test-description">Search Jacksonville guide</span>
+                            <div class="test-expected">Expected: Search results appear with filtering</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-006</span>
+                            <span class="test-description">Listen to community radio</span>
+                            <div class="test-expected">Expected: Stream plays with controls</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-007</span>
+                            <span class="test-description">Submit anonymous complaint</span>
+                            <div class="test-expected">Expected: Complaint ID and access code received</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-008</span>
+                            <span class="test-description">Check complaint status</span>
+                            <div class="test-expected">Expected: Status displays with code</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-009">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-009</span>
+                            <span class="test-description">Take public survey</span>
+                            <div class="test-expected">Expected: Response recorded with thank you</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="V-010">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">V-010</span>
+                            <span class="test-description">Start member registration</span>
+                            <div class="test-expected">Expected: Registration form loads</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Member Tests -->
+            <div class="card">
+                <h3><i class="fas fa-id-card" style="color: var(--gold);"></i> Phase 2: Member Journey Tests</h3>
+                <ul class="test-checklist" id="memberTests">
+                    <li class="test-item" data-test="M-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-001</span>
+                            <span class="test-description">Complete registration with payment</span>
+                            <div class="test-expected">Expected: Account created, pending verification</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-002</span>
+                            <span class="test-description">Login to member account</span>
+                            <div class="test-expected">Expected: Dashboard access granted</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-003</span>
+                            <span class="test-description">Update personal profile</span>
+                            <div class="test-expected">Expected: Changes saved successfully</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-004</span>
+                            <span class="test-description">Add family member</span>
+                            <div class="test-expected">Expected: Family details updated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-005</span>
+                            <span class="test-description">Register for event</span>
+                            <div class="test-expected">Expected: Registration confirmed with ticket</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-006</span>
+                            <span class="test-description">Pay membership fee online</span>
+                            <div class="test-expected">Expected: Payment processed with receipt</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-007</span>
+                            <span class="test-description">Submit Zelle payment confirmation</span>
+                            <div class="test-expected">Expected: Confirmation recorded for verification</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-008</span>
+                            <span class="test-description">Download payment receipt</span>
+                            <div class="test-expected">Expected: PDF downloaded</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-009">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-009</span>
+                            <span class="test-description">Submit magazine article</span>
+                            <div class="test-expected">Expected: Article in review queue</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="M-010">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">M-010</span>
+                            <span class="test-description">Register as volunteer</span>
+                            <div class="test-expected">Expected: Volunteer profile created</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Treasurer Tests -->
+            <div class="card">
+                <h3><i class="fas fa-money-bill" style="color: var(--bengal-green);"></i> Phase 3: Treasurer Workflow Tests</h3>
+                <ul class="test-checklist" id="treasurerTests">
+                    <li class="test-item" data-test="T-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-001</span>
+                            <span class="test-description">Verify Zelle payment</span>
+                            <div class="test-expected">Expected: Payment verified, ledger updated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-002</span>
+                            <span class="test-description">Record income transaction</span>
+                            <div class="test-expected">Expected: Transaction in ledger with receipt#</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-003</span>
+                            <span class="test-description">Record expense transaction</span>
+                            <div class="test-expected">Expected: Expense recorded with category</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-004</span>
+                            <span class="test-description">Approve expense &lt;$500</span>
+                            <div class="test-expected">Expected: Expense approved directly</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-005</span>
+                            <span class="test-description">Expense &gt;$500 routes to VP</span>
+                            <div class="test-expected">Expected: Approval request sent to VP</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-006</span>
+                            <span class="test-description">Expense &gt;$1000 routes to President</span>
+                            <div class="test-expected">Expected: Approval request sent to President</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-007</span>
+                            <span class="test-description">Generate monthly report</span>
+                            <div class="test-expected">Expected: Report generated with all transactions</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="T-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">T-008</span>
+                            <span class="test-description">Export financial data</span>
+                            <div class="test-expected">Expected: CSV/Excel file downloaded</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- VP Tests -->
+            <div class="card">
+                <h3><i class="fas fa-user-tie" style="color: var(--saffron);"></i> Phase 4: Vice President Workflow Tests</h3>
+                <ul class="test-checklist" id="vpTests">
+                    <li class="test-item" data-test="VP-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-001</span>
+                            <span class="test-description">Verify new member</span>
+                            <div class="test-expected">Expected: Member activated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-002</span>
+                            <span class="test-description">Create new event</span>
+                            <div class="test-expected">Expected: Event created and published</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-003</span>
+                            <span class="test-description">Edit event details</span>
+                            <div class="test-expected">Expected: Changes saved</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-004</span>
+                            <span class="test-description">View all event registrations</span>
+                            <div class="test-expected">Expected: List displays with details</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-005</span>
+                            <span class="test-description">Approve Bronze/Silver sponsor</span>
+                            <div class="test-expected">Expected: Sponsor activated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-006</span>
+                            <span class="test-description">Review vendor application</span>
+                            <div class="test-expected">Expected: Vendor approved with booth</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-007</span>
+                            <span class="test-description">Assign volunteer task</span>
+                            <div class="test-expected">Expected: Task assigned with notification</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="VP-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">VP-008</span>
+                            <span class="test-description">Respond to complaint</span>
+                            <div class="test-expected">Expected: Response sent to complainant</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- President Tests -->
+            <div class="card">
+                <h3><i class="fas fa-gavel" style="color: var(--burgundy);"></i> Phase 5: President Workflow Tests</h3>
+                <ul class="test-checklist" id="presidentTests">
+                    <li class="test-item" data-test="P-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-001</span>
+                            <span class="test-description">Approve expense &gt;$1000</span>
+                            <div class="test-expected">Expected: Expense processed</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-002</span>
+                            <span class="test-description">Approve Gold/Platinum sponsor</span>
+                            <div class="test-expected">Expected: Sponsor activated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-003</span>
+                            <span class="test-description">Suspend a member</span>
+                            <div class="test-expected">Expected: Member access revoked</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-004</span>
+                            <span class="test-description">View admin activity log</span>
+                            <div class="test-expected">Expected: Audit log displays</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-005</span>
+                            <span class="test-description">Finalize annual budget</span>
+                            <div class="test-expected">Expected: Budget locked</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-006</span>
+                            <span class="test-description">Create new admin user</span>
+                            <div class="test-expected">Expected: Admin access granted</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="P-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">P-007</span>
+                            <span class="test-description">Modify admin role</span>
+                            <div class="test-expected">Expected: Role updated</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- NEW: Specialized Admin Roles Tests -->
+            <div class="card">
+                <h3><i class="fas fa-user-tag" style="color: var(--info);"></i> Phase 6: Specialized Admin Roles Tests</h3>
+                <ul class="test-checklist" id="specializedRolesTests">
+                    <li class="test-item" data-test="SR-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-001</span>
+                            <span class="test-description">Assign Magazine Editor role to user</span>
+                            <div class="test-expected">Expected: User gains magazine editing permissions</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="SR-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-002</span>
+                            <span class="test-description">Assign Radio DJ role to user</span>
+                            <div class="test-expected">Expected: User can create playlists and host shows</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="SR-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-003</span>
+                            <span class="test-description">Assign Video Coordinator role</span>
+                            <div class="test-expected">Expected: User gains video scheduling access</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="SR-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-004</span>
+                            <span class="test-description">Check permission for specialized role</span>
+                            <div class="test-expected">Expected: Permission check returns correct boolean</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="SR-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-005</span>
+                            <span class="test-description">Remove specialized role from user</span>
+                            <div class="test-expected">Expected: User loses specialized permissions</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="SR-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">SR-006</span>
+                            <span class="test-description">List all users with Ad Manager role</span>
+                            <div class="test-expected">Expected: Returns list of ad managers</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- NEW: Reporting Module Tests -->
+            <div class="card">
+                <h3><i class="fas fa-file-alt" style="color: var(--bengal-green);"></i> Phase 7: Reporting Module Tests</h3>
+                <ul class="test-checklist" id="reportingTests">
+                    <li class="test-item" data-test="RP-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-001</span>
+                            <span class="test-description">Generate monthly financial summary report</span>
+                            <div class="test-expected">Expected: PDF/Excel report with income/expense data</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-002</span>
+                            <span class="test-description">Generate membership growth report</span>
+                            <div class="test-expected">Expected: Report shows member count trends</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-003</span>
+                            <span class="test-description">Generate event attendance report</span>
+                            <div class="test-expected">Expected: Attendance data per event</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-004</span>
+                            <span class="test-description">Schedule automated weekly report</span>
+                            <div class="test-expected">Expected: Report schedule created</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-005</span>
+                            <span class="test-description">Export report to CSV format</span>
+                            <div class="test-expected">Expected: CSV file downloaded</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-006</span>
+                            <span class="test-description">Generate sponsor ROI report</span>
+                            <div class="test-expected">Expected: ROI metrics for each sponsor</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="RP-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">RP-007</span>
+                            <span class="test-description">Generate ad performance report</span>
+                            <div class="test-expected">Expected: Impressions, clicks, CTR data</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- NEW: Insights & Analytics Module Tests -->
+            <div class="card">
+                <h3><i class="fas fa-chart-line" style="color: var(--gold);"></i> Phase 8: Insights & Analytics Module Tests</h3>
+                <ul class="test-checklist" id="insightsTests">
+                    <li class="test-item" data-test="IN-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-001</span>
+                            <span class="test-description">View Executive Overview dashboard</span>
+                            <div class="test-expected">Expected: KPIs across all modules displayed</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="IN-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-002</span>
+                            <span class="test-description">View Financial Dashboard</span>
+                            <div class="test-expected">Expected: Revenue, expenses, budget variance</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="IN-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-003</span>
+                            <span class="test-description">View Membership Dashboard</span>
+                            <div class="test-expected">Expected: Growth rate, retention, engagement</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="IN-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-004</span>
+                            <span class="test-description">Generate membership growth prediction</span>
+                            <div class="test-expected">Expected: 3/6/12 month forecasts</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="IN-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-005</span>
+                            <span class="test-description">Predict event attendance</span>
+                            <div class="test-expected">Expected: Estimated attendance with confidence</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="IN-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">IN-006</span>
+                            <span class="test-description">Calculate member churn risk</span>
+                            <div class="test-expected">Expected: Risk score per member</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- NEW: Community Engagement Module Tests -->
+            <div class="card">
+                <h3><i class="fas fa-hands-helping" style="color: var(--saffron);"></i> Phase 9: Community Engagement Module Tests</h3>
+                <ul class="test-checklist" id="communityTests">
+                    <li class="test-item" data-test="CE-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-001</span>
+                            <span class="test-description">Create charity initiative</span>
+                            <div class="test-expected">Expected: Initiative created with target amount</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-002</span>
+                            <span class="test-description">Record monetary donation</span>
+                            <div class="test-expected">Expected: Donation logged, receipt generated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-003</span>
+                            <span class="test-description">Register as volunteer</span>
+                            <div class="test-expected">Expected: Volunteer profile created</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-004</span>
+                            <span class="test-description">Log volunteer hours</span>
+                            <div class="test-expected">Expected: Hours recorded for initiative</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-005</span>
+                            <span class="test-description">Create career guidance session</span>
+                            <div class="test-expected">Expected: Session created with capacity</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-006</span>
+                            <span class="test-description">Create mentorship match</span>
+                            <div class="test-expected">Expected: Mentor-mentee pairing created</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-007</span>
+                            <span class="test-description">Create scholarship program</span>
+                            <div class="test-expected">Expected: Scholarship with criteria defined</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-008</span>
+                            <span class="test-description">Submit scholarship application</span>
+                            <div class="test-expected">Expected: Application submitted for review</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="CE-009">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">CE-009</span>
+                            <span class="test-description">View community dashboard</span>
+                            <div class="test-expected">Expected: All initiatives with stats displayed</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- NEW: Ad Management Module Tests -->
+            <div class="card">
+                <h3><i class="fas fa-ad" style="color: var(--burgundy);"></i> Phase 10: Ad Management Module Tests (Google Ads-like)</h3>
+                <ul class="test-checklist" id="adManagementTests">
+                    <li class="test-item" data-test="AD-001">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-001</span>
+                            <span class="test-description">Create ad campaign</span>
+                            <div class="test-expected">Expected: Campaign created with budget and dates</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-002">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-002</span>
+                            <span class="test-description">Create banner ad</span>
+                            <div class="test-expected">Expected: Ad created in draft status</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-003">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-003</span>
+                            <span class="test-description">Review and approve ad</span>
+                            <div class="test-expected">Expected: Ad status changes to approved</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-004">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-004</span>
+                            <span class="test-description">Record ad impression</span>
+                            <div class="test-expected">Expected: Impression count incremented</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-005">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-005</span>
+                            <span class="test-description">Record ad click</span>
+                            <div class="test-expected">Expected: Click count incremented, CTR updated</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-006">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-006</span>
+                            <span class="test-description">Get ads for placement</span>
+                            <div class="test-expected">Expected: Active ads for placement returned</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-007">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-007</span>
+                            <span class="test-description">Generate campaign report</span>
+                            <div class="test-expected">Expected: Performance metrics displayed</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-008">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-008</span>
+                            <span class="test-description">Generate ad invoice</span>
+                            <div class="test-expected">Expected: Invoice with billing period totals</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-009">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-009</span>
+                            <span class="test-description">View advertiser dashboard</span>
+                            <div class="test-expected">Expected: All campaigns with stats displayed</div>
+                        </div>
+                    </li>
+                    <li class="test-item" data-test="AD-010">
+                        <div class="test-checkbox"></div>
+                        <div class="test-info">
+                            <span class="test-id">AD-010</span>
+                            <span class="test-description">Pause/Resume campaign</span>
+                            <div class="test-expected">Expected: Campaign status updated</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const sectionId = tab.dataset.section;
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Test item click handling
+        document.querySelectorAll('.test-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const currentState = item.classList.contains('passed') ? 'passed' : 
+                                   item.classList.contains('failed') ? 'failed' : 'none';
+                
+                item.classList.remove('passed', 'failed');
+                
+                if (currentState === 'none') {
+                    item.classList.add('passed');
+                    item.querySelector('.test-checkbox').innerHTML = '<i class="fas fa-check"></i>';
+                } else if (currentState === 'passed') {
+                    item.classList.add('failed');
+                    item.querySelector('.test-checkbox').innerHTML = '<i class="fas fa-times"></i>';
+                } else {
+                    item.querySelector('.test-checkbox').innerHTML = '';
+                }
+                
+                updateProgress();
+            });
+        });
+
+        // Update progress bar
+        function updateProgress() {
+            const total = document.querySelectorAll('.test-item').length;
+            const passed = document.querySelectorAll('.test-item.passed').length;
+            const percentage = Math.round((passed / total) * 100);
+            
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '% (' + passed + '/' + total + ' tests passed)';
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>

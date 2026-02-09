@@ -1,0 +1,890 @@
+/**
+ * BANF Carpool & Transportation Service
+ * =======================================
+ * Wix Velo Backend Module for event carpooling coordination
+ * 
+ * Features:
+ * - Carpool offer/request matching
+ * - Ride coordination
+ * - Route optimization suggestions
+ * - Transportation needs analytics
+ * - Accessibility support
+ * 
+ * @module backend/carpool-transport-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// CARPOOL CONFIGURATION
+// =====================================================
+
+const CARPOOL_STATUS = {
+    ACTIVE: 'active',
+    FULL: 'full',
+    CANCELLED: 'cancelled',
+    COMPLETED: 'completed'
+};
+
+const RIDE_STATUS = {
+    PENDING: 'pending',
+    CONFIRMED: 'confirmed',
+    DECLINED: 'declined',
+    CANCELLED: 'cancelled',
+    COMPLETED: 'completed'
+};
+
+const RIDE_TYPE = {
+    OFFER: 'offer',     // Driver offering seats
+    REQUEST: 'request'  // Passenger seeking ride
+};
+
+const VEHICLE_TYPES = {
+    SEDAN: { label: 'Sedan', maxSeats: 4, icon: '🚗' },
+    SUV: { label: 'SUV', maxSeats: 6, icon: '🚙' },
+    MINIVAN: { label: 'Minivan', maxSeats: 7, icon: '🚐' },
+    VAN: { label: 'Van', maxSeats: 12, icon: '🚌' },
+    OTHER: { label: 'Other', maxSeats: 4, icon: '🚗' }
+};
+
+// =====================================================
+// CARPOOL MANAGEMENT
+// =====================================================
+
+/**
+ * Offer a ride to an event
+ * @param {Object} offerData
+ */
+export async function offerRide(offerData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in to offer rides');
+    }
+    
+    try {
+        const memberName = `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim();
+        const vehicleType = VEHICLE_TYPES[offerData.vehicleType] || VEHICLE_TYPES.SEDAN;
+        
+        const offer = await wixData.insert('CarpoolOffers', {
+            // Event
+            eventId: offerData.eventId,
+            eventTitle: offerData.eventTitle || '',
+            eventDate: offerData.eventDate,
+            
+            // Type
+            type: RIDE_TYPE.OFFER,
+            
+            // Driver
+            driverId: member._id,
+            driverName: memberName,
+            driverPhone: member.contactDetails?.phones?.[0] || offerData.phone || '',
+            driverEmail: member.loginEmail || '',
+            
+            // Vehicle
+            vehicleType: offerData.vehicleType || 'SEDAN',
+            vehicleDescription: offerData.vehicleDescription || '',
+            vehicleColor: offerData.vehicleColor || '',
+            licensePlate: offerData.licensePlate || '',
+            
+            // Capacity
+            totalSeats: Math.min(offerData.totalSeats || 4, vehicleType.maxSeats),
+            availableSeats: Math.min(offerData.totalSeats || 4, vehicleType.maxSeats),
+            bookedSeats: 0,
+            
+            // Location
+            departureLocation: offerData.departureLocation,
+            departureCity: offerData.departureCity || '',
+            departureZip: offerData.departureZip || '',
+            departureCoordinates: offerData.departureCoordinates || null,
+            
+            // Stops
+            willMakeStops: offerData.willMakeStops || false,
+            possibleStops: offerData.possibleStops || [],
+            
+            // Timing
+            departureTime: offerData.departureTime,
+            returnRide: offerData.returnRide || false,
+            returnTime: offerData.returnTime || null,
+            
+            // Preferences
+            allowChildren: offerData.allowChildren !== false,
+            allowPets: offerData.allowPets || false,
+            smokingAllowed: offerData.smokingAllowed || false,
+            luggageSpace: offerData.luggageSpace || 'medium',
+            wheelchairAccessible: offerData.wheelchairAccessible || false,
+            
+            // Notes
+            notes: offerData.notes || '',
+            
+            // Status
+            status: CARPOOL_STATUS.ACTIVE,
+            
+            // Metadata
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        return {
+            success: true,
+            offerId: offer._id,
+            message: 'Ride offer posted successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error offering ride:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Request a ride to an event
+ * @param {Object} requestData
+ */
+export async function requestRide(requestData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in to request rides');
+    }
+    
+    try {
+        const memberName = `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim();
+        
+        const request = await wixData.insert('CarpoolRequests', {
+            // Event
+            eventId: requestData.eventId,
+            eventTitle: requestData.eventTitle || '',
+            eventDate: requestData.eventDate,
+            
+            // Type
+            type: RIDE_TYPE.REQUEST,
+            
+            // Requester
+            requesterId: member._id,
+            requesterName: memberName,
+            requesterPhone: member.contactDetails?.phones?.[0] || requestData.phone || '',
+            requesterEmail: member.loginEmail || '',
+            
+            // Party size
+            adultsCount: requestData.adultsCount || 1,
+            childrenCount: requestData.childrenCount || 0,
+            totalSeatsNeeded: (requestData.adultsCount || 1) + (requestData.childrenCount || 0),
+            
+            // Location
+            pickupLocation: requestData.pickupLocation,
+            pickupCity: requestData.pickupCity || '',
+            pickupZip: requestData.pickupZip || '',
+            pickupCoordinates: requestData.pickupCoordinates || null,
+            
+            // Timing
+            preferredDepartureTime: requestData.preferredDepartureTime,
+            timeFlexibility: requestData.timeFlexibility || 30, // minutes
+            needReturnRide: requestData.needReturnRide || false,
+            
+            // Requirements
+            needChildSeat: requestData.needChildSeat || false,
+            childSeatCount: requestData.childSeatCount || 0,
+            wheelchairAccess: requestData.wheelchairAccess || false,
+            luggageAmount: requestData.luggageAmount || 'none',
+            
+            // Preferences
+            petAllergy: requestData.petAllergy || false,
+            
+            // Notes
+            notes: requestData.notes || '',
+            
+            // Status
+            status: RIDE_STATUS.PENDING,
+            matchedOfferId: null,
+            
+            // Metadata
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        // Try to auto-match
+        const matchResult = await findMatchingOffers(request._id);
+        
+        return {
+            success: true,
+            requestId: request._id,
+            potentialMatches: matchResult.matches?.length || 0,
+            message: 'Ride request submitted successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error requesting ride:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// RIDE MATCHING
+// =====================================================
+
+/**
+ * Find matching ride offers for a request
+ * @param {string} requestId
+ */
+export async function findMatchingOffers(requestId) {
+    try {
+        const request = await wixData.get('CarpoolRequests', requestId);
+        
+        if (!request) {
+            return { success: false, error: 'Request not found' };
+        }
+        
+        // Find offers for same event
+        let query = wixData.query('CarpoolOffers')
+            .eq('eventId', request.eventId)
+            .eq('status', CARPOOL_STATUS.ACTIVE)
+            .ge('availableSeats', request.totalSeatsNeeded);
+        
+        // Filter by preferences
+        if (request.wheelchairAccess) {
+            query = query.eq('wheelchairAccessible', true);
+        }
+        
+        if (request.petAllergy) {
+            query = query.eq('allowPets', false);
+        }
+        
+        const offers = await query.find({ suppressAuth: true });
+        
+        // Score and rank matches
+        const scoredMatches = offers.items.map(offer => {
+            let score = 100;
+            
+            // Location proximity (would need geocoding for accurate calculation)
+            if (offer.departureCity && request.pickupCity) {
+                if (offer.departureCity.toLowerCase() === request.pickupCity.toLowerCase()) {
+                    score += 30;
+                }
+            }
+            
+            if (offer.departureZip && request.pickupZip) {
+                if (offer.departureZip.substring(0, 3) === request.pickupZip.substring(0, 3)) {
+                    score += 20;
+                }
+            }
+            
+            // Time match
+            if (offer.departureTime && request.preferredDepartureTime) {
+                const offerTime = new Date(offer.departureTime).getTime();
+                const requestTime = new Date(request.preferredDepartureTime).getTime();
+                const diffMinutes = Math.abs(offerTime - requestTime) / (1000 * 60);
+                
+                if (diffMinutes <= request.timeFlexibility) {
+                    score += 25;
+                } else if (diffMinutes <= 60) {
+                    score += 10;
+                }
+            }
+            
+            // Return ride match
+            if (request.needReturnRide && offer.returnRide) {
+                score += 20;
+            }
+            
+            // Children preference
+            if (request.childrenCount > 0 && offer.allowChildren) {
+                score += 10;
+            }
+            
+            return {
+                offer: {
+                    _id: offer._id,
+                    driverName: offer.driverName,
+                    departureLocation: offer.departureLocation,
+                    departureCity: offer.departureCity,
+                    departureTime: offer.departureTime,
+                    availableSeats: offer.availableSeats,
+                    vehicleType: offer.vehicleType,
+                    vehicleDescription: offer.vehicleDescription,
+                    returnRide: offer.returnRide,
+                    willMakeStops: offer.willMakeStops,
+                    notes: offer.notes
+                },
+                score: score
+            };
+        });
+        
+        // Sort by score
+        scoredMatches.sort((a, b) => b.score - a.score);
+        
+        return {
+            success: true,
+            matches: scoredMatches.slice(0, 10),
+            totalMatches: scoredMatches.length
+        };
+        
+    } catch (error) {
+        console.error('Error finding matches:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Request to join a carpool
+ * @param {string} offerId
+ * @param {string} requestId - Optional, if from a request
+ */
+export async function requestToJoinCarpool(offerId, requestId = null) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const offer = await wixData.get('CarpoolOffers', offerId);
+        
+        if (!offer) {
+            return { success: false, error: 'Ride offer not found' };
+        }
+        
+        if (offer.status !== CARPOOL_STATUS.ACTIVE) {
+            return { success: false, error: 'This ride is no longer available' };
+        }
+        
+        // Get request details if provided
+        let request = null;
+        let seatsNeeded = 1;
+        
+        if (requestId) {
+            request = await wixData.get('CarpoolRequests', requestId);
+            if (request) {
+                seatsNeeded = request.totalSeatsNeeded;
+            }
+        }
+        
+        if (offer.availableSeats < seatsNeeded) {
+            return { 
+                success: false, 
+                error: `Not enough seats available. Need ${seatsNeeded}, only ${offer.availableSeats} available.`
+            };
+        }
+        
+        const memberName = `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim();
+        
+        // Create ride booking
+        const booking = await wixData.insert('CarpoolBookings', {
+            offerId: offerId,
+            requestId: requestId,
+            eventId: offer.eventId,
+            
+            // Driver
+            driverId: offer.driverId,
+            driverName: offer.driverName,
+            
+            // Passenger
+            passengerId: member._id,
+            passengerName: memberName,
+            passengerPhone: member.contactDetails?.phones?.[0] || '',
+            passengerEmail: member.loginEmail || '',
+            
+            // Details
+            seatsBooked: seatsNeeded,
+            pickupLocation: request?.pickupLocation || offer.departureLocation,
+            pickupTime: request?.preferredDepartureTime || offer.departureTime,
+            
+            // Status
+            status: RIDE_STATUS.PENDING,
+            
+            // Communication
+            driverConfirmed: false,
+            passengerConfirmed: true,
+            
+            // Metadata
+            createdAt: new Date()
+        });
+        
+        // Notify driver (would integrate with notification system)
+        
+        return {
+            success: true,
+            bookingId: booking._id,
+            message: 'Ride request sent to driver. Waiting for confirmation.'
+        };
+        
+    } catch (error) {
+        console.error('Error requesting carpool:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Confirm or decline a ride booking
+ * @param {string} bookingId
+ * @param {boolean} confirmed
+ * @param {string} message
+ */
+export async function respondToBooking(bookingId, confirmed, message = '') {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const booking = await wixData.get('CarpoolBookings', bookingId);
+        
+        if (!booking) {
+            return { success: false, error: 'Booking not found' };
+        }
+        
+        // Verify this is the driver
+        if (booking.driverId !== member._id) {
+            return { success: false, error: 'Only the driver can respond to this booking' };
+        }
+        
+        if (confirmed) {
+            // Check seats still available
+            const offer = await wixData.get('CarpoolOffers', booking.offerId);
+            
+            if (offer.availableSeats < booking.seatsBooked) {
+                return { 
+                    success: false, 
+                    error: 'No longer enough seats available'
+                };
+            }
+            
+            // Update offer
+            offer.availableSeats -= booking.seatsBooked;
+            offer.bookedSeats += booking.seatsBooked;
+            
+            if (offer.availableSeats === 0) {
+                offer.status = CARPOOL_STATUS.FULL;
+            }
+            
+            await wixData.update('CarpoolOffers', offer);
+            
+            // Update booking
+            booking.status = RIDE_STATUS.CONFIRMED;
+            booking.driverConfirmed = true;
+            booking.confirmedAt = new Date();
+            booking.driverMessage = message;
+            
+            // Update request if exists
+            if (booking.requestId) {
+                const request = await wixData.get('CarpoolRequests', booking.requestId);
+                if (request) {
+                    request.status = RIDE_STATUS.CONFIRMED;
+                    request.matchedOfferId = booking.offerId;
+                    await wixData.update('CarpoolRequests', request);
+                }
+            }
+            
+        } else {
+            booking.status = RIDE_STATUS.DECLINED;
+            booking.declinedAt = new Date();
+            booking.driverMessage = message;
+        }
+        
+        await wixData.update('CarpoolBookings', booking);
+        
+        return {
+            success: true,
+            message: confirmed ? 'Ride confirmed!' : 'Booking declined'
+        };
+        
+    } catch (error) {
+        console.error('Error responding to booking:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// CARPOOL LISTINGS
+// =====================================================
+
+/**
+ * Get carpool offers for an event
+ * @param {string} eventId
+ * @param {Object} filters
+ */
+export async function getEventCarpools(eventId, filters = {}) {
+    try {
+        let query = wixData.query('CarpoolOffers')
+            .eq('eventId', eventId)
+            .eq('status', CARPOOL_STATUS.ACTIVE)
+            .gt('availableSeats', 0);
+        
+        if (filters.departureCity) {
+            query = query.contains('departureCity', filters.departureCity);
+        }
+        
+        if (filters.minSeats) {
+            query = query.ge('availableSeats', filters.minSeats);
+        }
+        
+        if (filters.returnRide !== undefined) {
+            query = query.eq('returnRide', filters.returnRide);
+        }
+        
+        if (filters.allowChildren !== undefined) {
+            query = query.eq('allowChildren', filters.allowChildren);
+        }
+        
+        if (filters.wheelchairAccessible) {
+            query = query.eq('wheelchairAccessible', true);
+        }
+        
+        const offers = await query
+            .ascending('departureTime')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            offers: offers.items.map(o => ({
+                _id: o._id,
+                driverName: o.driverName,
+                departureLocation: o.departureLocation,
+                departureCity: o.departureCity,
+                departureTime: o.departureTime,
+                totalSeats: o.totalSeats,
+                availableSeats: o.availableSeats,
+                vehicleType: o.vehicleType,
+                vehicleDescription: o.vehicleDescription,
+                returnRide: o.returnRide,
+                willMakeStops: o.willMakeStops,
+                allowChildren: o.allowChildren,
+                wheelchairAccessible: o.wheelchairAccessible,
+                notes: o.notes
+            })),
+            totalOffers: offers.totalCount
+        };
+        
+    } catch (error) {
+        console.error('Error getting carpools:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get pending ride requests for an event
+ * @param {string} eventId
+ */
+export async function getEventRideRequests(eventId) {
+    try {
+        const requests = await wixData.query('CarpoolRequests')
+            .eq('eventId', eventId)
+            .eq('status', RIDE_STATUS.PENDING)
+            .ascending('preferredDepartureTime')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            requests: requests.items.map(r => ({
+                _id: r._id,
+                requesterName: r.requesterName,
+                pickupCity: r.pickupCity,
+                preferredDepartureTime: r.preferredDepartureTime,
+                totalSeatsNeeded: r.totalSeatsNeeded,
+                adultsCount: r.adultsCount,
+                childrenCount: r.childrenCount,
+                needReturnRide: r.needReturnRide,
+                wheelchairAccess: r.wheelchairAccess,
+                notes: r.notes
+            })),
+            totalRequests: requests.totalCount
+        };
+        
+    } catch (error) {
+        console.error('Error getting ride requests:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get member's carpool activity
+ */
+export async function getMyCarpool() {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        // My offers
+        const myOffers = await wixData.query('CarpoolOffers')
+            .eq('driverId', member._id)
+            .hasSome('status', [CARPOOL_STATUS.ACTIVE, CARPOOL_STATUS.FULL])
+            .find({ suppressAuth: true });
+        
+        // My requests
+        const myRequests = await wixData.query('CarpoolRequests')
+            .eq('requesterId', member._id)
+            .eq('status', RIDE_STATUS.PENDING)
+            .find({ suppressAuth: true });
+        
+        // My confirmed rides (as passenger)
+        const myBookings = await wixData.query('CarpoolBookings')
+            .eq('passengerId', member._id)
+            .eq('status', RIDE_STATUS.CONFIRMED)
+            .find({ suppressAuth: true });
+        
+        // Pending requests for my offers
+        const pendingForMe = await wixData.query('CarpoolBookings')
+            .eq('driverId', member._id)
+            .eq('status', RIDE_STATUS.PENDING)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            myOffers: myOffers.items,
+            myRequests: myRequests.items,
+            confirmedRides: myBookings.items,
+            pendingRequests: pendingForMe.items
+        };
+        
+    } catch (error) {
+        console.error('Error getting my carpool:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// TRANSPORTATION ANALYTICS
+// =====================================================
+
+/**
+ * Get transportation analytics for an event
+ * @param {string} eventId
+ */
+export async function getTransportationAnalytics(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const offers = await wixData.query('CarpoolOffers')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        const requests = await wixData.query('CarpoolRequests')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        const bookings = await wixData.query('CarpoolBookings')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        // Calculate metrics
+        const totalSeatsOffered = offers.items.reduce((sum, o) => sum + o.totalSeats, 0);
+        const seatsBooked = offers.items.reduce((sum, o) => sum + o.bookedSeats, 0);
+        const seatsAvailable = offers.items.reduce((sum, o) => sum + o.availableSeats, 0);
+        
+        const totalSeatsRequested = requests.items.reduce((sum, r) => sum + r.totalSeatsNeeded, 0);
+        const requestsFulfilled = requests.items.filter(r => r.status === RIDE_STATUS.CONFIRMED).length;
+        const requestsPending = requests.items.filter(r => r.status === RIDE_STATUS.PENDING).length;
+        
+        // Location analysis
+        const departureCities = {};
+        for (const o of offers.items) {
+            if (o.departureCity) {
+                departureCities[o.departureCity] = (departureCities[o.departureCity] || 0) + 1;
+            }
+        }
+        
+        const pickupCities = {};
+        for (const r of requests.items) {
+            if (r.pickupCity) {
+                pickupCities[r.pickupCity] = (pickupCities[r.pickupCity] || 0) + 1;
+            }
+        }
+        
+        return {
+            success: true,
+            analytics: {
+                offers: {
+                    totalOffers: offers.items.length,
+                    activeOffers: offers.items.filter(o => o.status === CARPOOL_STATUS.ACTIVE).length,
+                    totalSeatsOffered: totalSeatsOffered,
+                    seatsBooked: seatsBooked,
+                    seatsAvailable: seatsAvailable,
+                    utilizationRate: totalSeatsOffered > 0 
+                        ? Math.round((seatsBooked / totalSeatsOffered) * 100) 
+                        : 0
+                },
+                requests: {
+                    totalRequests: requests.items.length,
+                    pendingRequests: requestsPending,
+                    fulfilledRequests: requestsFulfilled,
+                    totalSeatsRequested: totalSeatsRequested,
+                    fulfillmentRate: requests.items.length > 0
+                        ? Math.round((requestsFulfilled / requests.items.length) * 100)
+                        : 0
+                },
+                unfulfilled: {
+                    seatsStillNeeded: requests.items
+                        .filter(r => r.status === RIDE_STATUS.PENDING)
+                        .reduce((sum, r) => sum + r.totalSeatsNeeded, 0)
+                },
+                geography: {
+                    topDepartureCities: Object.entries(departureCities)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([city, count]) => ({ city, count })),
+                    topPickupCities: Object.entries(pickupCities)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([city, count]) => ({ city, count }))
+                },
+                accessibility: {
+                    wheelchairAccessibleOffers: offers.items.filter(o => o.wheelchairAccessible).length,
+                    wheelchairRequests: requests.items.filter(r => r.wheelchairAccess).length
+                }
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting transportation analytics:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// CANCEL & CLEANUP
+// =====================================================
+
+/**
+ * Cancel a carpool offer
+ * @param {string} offerId
+ */
+export async function cancelOffer(offerId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const offer = await wixData.get('CarpoolOffers', offerId);
+        
+        if (!offer) {
+            return { success: false, error: 'Offer not found' };
+        }
+        
+        if (offer.driverId !== member._id) {
+            return { success: false, error: 'Only the driver can cancel this offer' };
+        }
+        
+        // Cancel all pending bookings
+        const bookings = await wixData.query('CarpoolBookings')
+            .eq('offerId', offerId)
+            .hasSome('status', [RIDE_STATUS.PENDING, RIDE_STATUS.CONFIRMED])
+            .find({ suppressAuth: true });
+        
+        for (const booking of bookings.items) {
+            booking.status = RIDE_STATUS.CANCELLED;
+            booking.cancelledAt = new Date();
+            booking.cancelledBy = 'driver';
+            await wixData.update('CarpoolBookings', booking);
+            
+            // TODO: Notify passengers
+        }
+        
+        offer.status = CARPOOL_STATUS.CANCELLED;
+        offer.cancelledAt = new Date();
+        await wixData.update('CarpoolOffers', offer);
+        
+        return {
+            success: true,
+            affectedPassengers: bookings.items.length,
+            message: 'Ride offer cancelled'
+        };
+        
+    } catch (error) {
+        console.error('Error cancelling offer:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Cancel a ride request
+ * @param {string} requestId
+ */
+export async function cancelRequest(requestId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Must be logged in');
+    }
+    
+    try {
+        const request = await wixData.get('CarpoolRequests', requestId);
+        
+        if (!request) {
+            return { success: false, error: 'Request not found' };
+        }
+        
+        if (request.requesterId !== member._id) {
+            return { success: false, error: 'Only the requester can cancel this request' };
+        }
+        
+        // If there's a booking, handle it
+        if (request.matchedOfferId) {
+            const booking = await wixData.query('CarpoolBookings')
+                .eq('requestId', requestId)
+                .eq('status', RIDE_STATUS.CONFIRMED)
+                .find({ suppressAuth: true });
+            
+            if (booking.items.length > 0) {
+                const b = booking.items[0];
+                b.status = RIDE_STATUS.CANCELLED;
+                b.cancelledAt = new Date();
+                b.cancelledBy = 'passenger';
+                await wixData.update('CarpoolBookings', b);
+                
+                // Restore seats to offer
+                const offer = await wixData.get('CarpoolOffers', request.matchedOfferId);
+                if (offer) {
+                    offer.availableSeats += b.seatsBooked;
+                    offer.bookedSeats -= b.seatsBooked;
+                    if (offer.status === CARPOOL_STATUS.FULL) {
+                        offer.status = CARPOOL_STATUS.ACTIVE;
+                    }
+                    await wixData.update('CarpoolOffers', offer);
+                }
+            }
+        }
+        
+        request.status = RIDE_STATUS.CANCELLED;
+        request.cancelledAt = new Date();
+        await wixData.update('CarpoolRequests', request);
+        
+        return {
+            success: true,
+            message: 'Ride request cancelled'
+        };
+        
+    } catch (error) {
+        console.error('Error cancelling request:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { CARPOOL_STATUS, RIDE_STATUS, RIDE_TYPE, VEHICLE_TYPES };

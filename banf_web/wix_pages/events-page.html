@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events - BANF Jacksonville</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --saffron: #FF6B35;
+            --saffron-dark: #E85A24;
+            --bengal-green: #006A4E;
+            --burgundy: #8B0000;
+            --gold: #D4AF37;
+            --terracotta: #E2725B;
+            --navy: #1a1a2e;
+            --white: #ffffff;
+            --off-white: #f8f9fa;
+            --cream: #FFF8E7;
+            --gray-500: #6c757d;
+            --gradient-saffron: linear-gradient(135deg, #FF6B35 0%, #f7931e 100%);
+            --gradient-green: linear-gradient(135deg, #006A4E 0%, #00856F 100%);
+            --gradient-burgundy: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
+            --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--off-white);
+            color: #495057;
+            line-height: 1.7;
+        }
+        h1, h2, h3, h4, h5 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            color: var(--navy);
+        }
+        .bengali-text { font-family: 'Hind Siliguri', sans-serif; }
+
+        /* Page Header */
+        .page-header {
+            background: var(--gradient-burgundy);
+            min-height: 350px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://static.wixstatic.com/media/c62f94_9e58db92918340338d8902f14016a55f~mv2.jpg') center/cover;
+            opacity: 0.15;
+        }
+        .page-header-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: var(--white);
+        }
+        .page-header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .page-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .breadcrumb-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .breadcrumb-nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .breadcrumb-nav a:hover { color: var(--white); }
+        .breadcrumb-nav span { color: var(--gold); }
+
+        /* Section Styles */
+        section { padding: 5rem 0; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        .section-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+        .section-header p {
+            color: var(--gray-500);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+        }
+
+        /* Event Cards */
+        .event-card {
+            background: var(--white);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s ease;
+            height: 100%;
+        }
+        .event-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+        .event-icon {
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            position: relative;
+        }
+        .event-icon .featured-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--white);
+            color: var(--navy);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .event-body {
+            padding: 2rem;
+        }
+        .event-body h4 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--gray-500);
+        }
+        .event-meta i {
+            margin-right: 0.3rem;
+            color: var(--saffron);
+        }
+        .event-body p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+        .event-date-badge {
+            display: inline-block;
+            padding: 0.5rem 1.25rem;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        /* Past Events Timeline */
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: var(--gradient-saffron);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            display: flex;
+            justify-content: flex-end;
+            padding-right: 3rem;
+            position: relative;
+            margin-bottom: 3rem;
+            width: 50%;
+        }
+        .timeline-item:nth-child(even) {
+            align-self: flex-end;
+            justify-content: flex-start;
+            padding-left: 3rem;
+            padding-right: 0;
+            margin-left: 50%;
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 20px;
+            width: 24px;
+            height: 24px;
+            background: var(--saffron);
+            border-radius: 50%;
+            border: 4px solid var(--white);
+            box-shadow: var(--shadow-md);
+        }
+        .timeline-item:nth-child(even)::after {
+            right: auto;
+            left: -12px;
+        }
+        .timeline-content {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            max-width: 400px;
+        }
+        .timeline-year {
+            background: var(--gradient-saffron);
+            color: var(--white);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 0.75rem;
+        }
+        .timeline-content h5 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .timeline-content p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Event Registration CTA */
+        .cta-section {
+            background: var(--gradient-saffron);
+            padding: 4rem 0;
+            text-align: center;
+            color: var(--white);
+        }
+        .cta-section h3 {
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .cta-section p {
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .btn-cta {
+            background: var(--white);
+            color: var(--saffron);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            color: var(--saffron-dark);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--navy);
+            color: var(--white);
+            padding: 3rem 0 1.5rem;
+        }
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .footer-bottom p {
+            color: rgba(255,255,255,0.5);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .timeline::before { left: 30px; }
+            .timeline-item {
+                width: 100%;
+                padding-left: 60px !important;
+                padding-right: 0 !important;
+                margin-left: 0 !important;
+            }
+            .timeline-item::after {
+                left: 18px !important;
+                right: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <div class="page-header-content">
+                <h1>Events & Celebrations</h1>
+                <p class="bengali-text">অনুষ্ঠান ও উৎসব • জ্যাকসনভিলে বাংলা সংস্কৃতি উদযাপন</p>
+                <div class="breadcrumb-nav">
+                    <a href="/"><i class="fas fa-home me-1"></i>Home</a>
+                    <span>/</span>
+                    <span>Events</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Upcoming Events Section -->
+    <section class="bg-white">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>2025 Event Calendar</h2>
+                <p>Join us for these upcoming celebrations and cultural programs</p>
+            </div>
+            <div class="row">
+                <!-- Saraswati Puja -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-gold);">
+                            <i class="fas fa-book-open" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h4>Saraswati Puja 2025</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>February 2025</span>
+                                <span><i class="fas fa-map-marker-alt"></i>Jacksonville, FL</span>
+                            </div>
+                            <p>Celebration of Goddess Saraswati - the goddess of learning, music, and arts. Includes traditional Hate Khori (initiation to learning) ceremony for children.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-gold);">February 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basant Bahaar -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: linear-gradient(135deg, #E2725B 0%, #D4654A 100%);">
+                            <i class="fas fa-leaf" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h4>Basant Bahaar</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>March 2025</span>
+                                <span><i class="fas fa-music"></i>Cultural Program</span>
+                            </div>
+                            <p>Spring celebration featuring classical and contemporary Bengali music, poetry recitations, and artistic performances. A tribute to the beauty of spring.</p>
+                            <span class="event-date-badge" style="background: linear-gradient(135deg, #E2725B 0%, #D4654A 100%);">March 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pohela Boishakh -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-green);">
+                            <i class="fas fa-sun" style="color: white;"></i>
+                            <span class="featured-badge"><i class="fas fa-star me-1"></i>Major Event</span>
+                        </div>
+                        <div class="event-body">
+                            <h4>Pohela Boishakh 1432</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>April 14, 2025</span>
+                                <span><i class="fas fa-users"></i>All Community</span>
+                            </div>
+                            <p>Bengali New Year celebration with Mangal Shobhajatra (procession), traditional music, dance performances, and authentic Bengali cuisine.</p>
+                            <span class="event-date-badge" style="background: var(--gradient-green);">April 14, 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anandadhara -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);">
+                            <i class="fas fa-theater-masks" style="color: white;"></i>
+                            <span class="featured-badge"><i class="fas fa-award me-1"></i>Annual</span>
+                        </div>
+                        <div class="event-body">
+                            <h4>Anandadhara</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>Summer 2025</span>
+                                <span><i class="fas fa-star"></i>Since 2015</span>
+                            </div>
+                            <p>"Stream of Joy" - BANF's signature annual cultural extravaganza featuring music, dance, drama, and artistic expressions from our community.</p>
+                            <span class="event-date-badge" style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);">Summer 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shrabono Sondha -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                            <i class="fas fa-cloud-rain" style="color: white;"></i>
+                        </div>
+                        <div class="event-body">
+                            <h4>Shrabono Sondha</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>July/August 2025</span>
+                                <span><i class="fas fa-drama"></i>Drama Night</span>
+                            </div>
+                            <p>Monsoon evening cultural program featuring drama performances, Rabindra Sangeet, and poetry. A celebration of the rainy season in Bengal.</p>
+                            <span class="event-date-badge" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">July/August 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Durga Puja -->
+                <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="event-card">
+                        <div class="event-icon" style="background: var(--gradient-saffron);">
+                            <i class="fas fa-om" style="color: white;"></i>
+                            <span class="featured-badge"><i class="fas fa-crown me-1"></i>Flagship</span>
+                        </div>
+                        <div class="event-body">
+                            <h4>Durga Puja 2025</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i>October 2025</span>
+                                <span><i class="fas fa-star"></i>Since 2009</span>
+                            </div>
+                            <p>Multi-day festival honoring Goddess Durga. Features traditional rituals, Dhunuchi dance, Sindur Khela, cultural programs, and community feast (bhog).</p>
+                            <span class="event-date-badge" style="background: var(--gradient-saffron);">October 2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BANF Event Highlights -->
+    <section style="background: var(--cream);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Our Signature Events</h2>
+                <p>Celebrations that define the BANF community experience</p>
+            </div>
+            <div class="row align-items-center mb-5">
+                <div class="col-lg-6 mb-4 mb-lg-0" data-aos="fade-right">
+                    <img src="https://static.wixstatic.com/media/c62f94_b2ca407644824da0bcb6399814ee8c32~mv2.jpg" alt="Durga Puja" style="width: 100%; border-radius: 20px; box-shadow: var(--shadow-lg);">
+                </div>
+                <div class="col-lg-6" data-aos="fade-left">
+                    <span class="badge" style="background: var(--gradient-saffron); padding: 0.5rem 1rem; font-size: 0.85rem; margin-bottom: 1rem;">Flagship Event</span>
+                    <h3>Durga Puja - Our Crown Jewel</h3>
+                    <p class="bengali-text" style="color: var(--saffron); font-size: 1.1rem; margin-bottom: 1rem;">শারদীয় দুর্গোৎসব • ২০০৯ থেকে</p>
+                    <p>Since 2009, BANF has been organizing one of the most elaborate Durga Puja celebrations in Northeast Florida. Our 4-day festival brings together the entire Bengali community for:</p>
+                    <ul style="list-style: none; padding: 0; margin: 1.5rem 0;">
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>Traditional Puja rituals with professional priests</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>Beautiful idol crafted by Kumartuli artisans</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>Dhunuchi dance & Sindur Khela</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--saffron);"></i>Cultural programs & community bhog</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row align-items-center flex-lg-row-reverse">
+                <div class="col-lg-6 mb-4 mb-lg-0" data-aos="fade-left">
+                    <img src="https://static.wixstatic.com/media/c62f94_fa6ca99f02614d71a90c72eb29664861~mv2.jpg" alt="Saraswati Puja" style="width: 100%; border-radius: 20px; box-shadow: var(--shadow-lg);">
+                </div>
+                <div class="col-lg-6" data-aos="fade-right">
+                    <span class="badge" style="background: var(--gradient-gold); padding: 0.5rem 1rem; font-size: 0.85rem; margin-bottom: 1rem;">Cultural Heritage</span>
+                    <h3>Saraswati Puja - Celebrating Learning</h3>
+                    <p class="bengali-text" style="color: var(--gold); font-size: 1.1rem; margin-bottom: 1rem;">সরস্বতী পূজা • হাতে খড়ি</p>
+                    <p>The worship of Goddess Saraswati holds special significance for our community's children. Our celebration includes:</p>
+                    <ul style="list-style: none; padding: 0; margin: 1.5rem 0;">
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--gold);"></i>Traditional Puja ceremony</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--gold);"></i>Hate Khori - initiation to learning for children</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--gold);"></i>Students' cultural performances</li>
+                        <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle me-2" style="color: var(--gold);"></i>Prasad & community gathering</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Past Events Timeline -->
+    <section>
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2>Our Journey Through the Years</h2>
+                <p>Memorable moments from BANF's cultural celebrations</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item" data-aos="fade-right">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2024</span>
+                        <h5>Durga Puja 2024</h5>
+                        <p>Record attendance with 300+ participants. Featured guest artists from Kolkata.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-left">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2023</span>
+                        <h5>Anandadhara 2023</h5>
+                        <p>10th anniversary celebration with special performances and community recognition.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-right">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2022</span>
+                        <h5>Post-Pandemic Return</h5>
+                        <p>First in-person celebration after COVID, bringing the community back together.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-left">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2015</span>
+                        <h5>First Anandadhara</h5>
+                        <p>Launch of BANF's signature annual cultural extravaganza.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-right">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2009</span>
+                        <h5>First Durga Puja</h5>
+                        <p>BANF's inaugural Durga Puja celebration, marking a milestone for the Jacksonville Bengali community.</p>
+                    </div>
+                </div>
+                <div class="timeline-item" data-aos="fade-left">
+                    <div class="timeline-content">
+                        <span class="timeline-year">2008</span>
+                        <h5>BANF Founded</h5>
+                        <p>Bengali Association of North Florida established as a 501(c)(3) non-profit organization.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h3 data-aos="fade-up">Don't Miss Our Next Event!</h3>
+            <p data-aos="fade-up" data-aos-delay="100">Join the BANF community to receive event updates, early registration, and exclusive member benefits.</p>
+            <a href="/membership" class="btn-cta" data-aos="fade-up" data-aos-delay="200">
+                <i class="fas fa-user-plus"></i>Become a Member
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Bengali Association of North Florida. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true, offset: 50 });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF Admin - Video Streaming Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* BANF Kolkata Color Theme */
+            --banf-saffron: #ff6b35;
+            --banf-orange: #f7931e;
+            --banf-yellow: #f5af19;
+            --banf-deep-red: #8B0000;
+            --banf-burgundy: #722f37;
+            --banf-green: #006A4E;
+            --banf-gold: #daa520;
+            
+            /* UI Colors */
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1f2937;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --accent: var(--banf-saffron);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --live-red: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', 'Hind Siliguri', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .console-header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+            border-bottom: 3px solid var(--banf-saffron);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--banf-saffron), var(--banf-orange));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .header-title p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--live-red);
+            border-radius: 25px;
+            font-weight: 600;
+            color: var(--live-red);
+        }
+        
+        .live-indicator.active {
+            animation: pulse-live 2s infinite;
+        }
+        
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--live-red);
+            border-radius: 50%;
+        }
+        
+        .live-indicator.active .live-dot {
+            animation: pulse-dot 1s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        .back-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--text-secondary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .back-btn:hover {
+            background: var(--banf-saffron);
+            border-color: var(--banf-saffron);
+        }
+        
+        /* Main Layout */
+        .console-container {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            height: calc(100vh - 90px);
+        }
+        
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .panel-header h3 i {
+            color: var(--banf-saffron);
+        }
+        
+        .panel-body {
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        /* Stream Control Panel */
+        .stream-sources {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .source-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .source-option:hover {
+            border-color: var(--banf-saffron);
+        }
+        
+        .source-option.selected {
+            border-color: var(--banf-saffron);
+            background: rgba(255, 107, 53, 0.15);
+        }
+        
+        .source-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .source-icon.youtube { background: #ff0000; }
+        .source-icon.vimeo { background: #1ab7ea; }
+        .source-icon.facebook { background: #1877f2; }
+        .source-icon.rtmp { background: var(--banf-green); }
+        .source-icon.radio { background: var(--banf-orange); }
+        
+        .source-info h4 {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .source-info p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Stream Settings Form */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--banf-saffron);
+        }
+        
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-live {
+            background: linear-gradient(135deg, var(--live-red), #dc2626);
+            color: white;
+        }
+        
+        .btn-live:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-schedule {
+            background: var(--banf-saffron);
+            color: white;
+        }
+        
+        .btn-schedule:hover {
+            background: var(--banf-orange);
+        }
+        
+        .btn-stop {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Preview Panel */
+        .preview-container {
+            background: #000;
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-placeholder {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .preview-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .preview-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-stats {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .stat-item i {
+            color: var(--banf-saffron);
+        }
+        
+        /* Stream Stats */
+        .stream-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--banf-saffron);
+        }
+        
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+        
+        /* Chat/Activity Panel */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .chat-message {
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--banf-saffron);
+        }
+        
+        .chat-message .name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--banf-saffron);
+        }
+        
+        .chat-message .time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 0.5rem;
+        }
+        
+        .chat-message .text {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+        }
+        
+        .chat-input button {
+            padding: 0.75rem 1rem;
+            background: var(--banf-saffron);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        /* Scheduled Streams */
+        .scheduled-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .scheduled-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .scheduled-item .time {
+            min-width: 60px;
+            padding: 0.5rem;
+            background: var(--banf-green);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .scheduled-item .info h4 {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .scheduled-item .info p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Viewer List */
+        .viewer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .viewer-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+        }
+        
+        .viewer-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--banf-saffron), var(--banf-orange));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .viewer-name {
+            font-size: 0.85rem;
+        }
+        
+        .viewer-duration {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Tabs */
+        .tab-buttons {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            background: var(--banf-saffron);
+            color: white;
+        }
+        
+        /* Radio Section */
+        .radio-now-playing {
+            background: linear-gradient(135deg, var(--banf-burgundy), var(--banf-deep-red));
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .radio-now-playing h4 {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .radio-now-playing .program {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .radio-now-playing .bengali {
+            font-family: 'Hind Siliguri', sans-serif;
+            font-size: 1.2rem;
+            color: var(--banf-yellow);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .console-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="console-header">
+        <div class="header-left">
+            <div class="logo-icon">
+                <i class="fas fa-video"></i>
+            </div>
+            <div class="header-title">
+                <h1>Video Streaming Console</h1>
+                <p>BANF Admin Control Panel</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div id="liveIndicator" class="live-indicator">
+                <span class="live-dot"></span>
+                <span>OFFLINE</span>
+            </div>
+            <a href="/admin-dashboard" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </header>
+    
+    <!-- Main Console -->
+    <div class="console-container">
+        <!-- Left Panel - Stream Control -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-cog"></i> Stream Control</h3>
+            </div>
+            <div class="panel-body">
+                <!-- Source Selection -->
+                <h4 style="font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--text-secondary);">Select Source</h4>
+                <div class="stream-sources">
+                    <div class="source-option selected" data-source="youtube">
+                        <div class="source-icon youtube"><i class="fab fa-youtube"></i></div>
+                        <div class="source-info">
+                            <h4>YouTube Live</h4>
+                            <p>Stream via YouTube</p>
+                        </div>
+                    </div>
+                    <div class="source-option" data-source="vimeo">
+                        <div class="source-icon vimeo"><i class="fab fa-vimeo-v"></i></div>
+                        <div class="source-info">
+                            <h4>Vimeo</h4>
+                            <p>Professional streaming</p>
+                        </div>
+                    </div>
+                    <div class="source-option" data-source="facebook">
+                        <div class="source-icon facebook"><i class="fab fa-facebook"></i></div>
+                        <div class="source-info">
+                            <h4>Facebook Live</h4>
+                            <p>Stream to Facebook</p>
+                        </div>
+                    </div>
+                    <div class="source-option" data-source="rtmp">
+                        <div class="source-icon rtmp"><i class="fas fa-broadcast-tower"></i></div>
+                        <div class="source-info">
+                            <h4>Custom RTMP</h4>
+                            <p>Custom streaming server</p>
+                        </div>
+                    </div>
+                    <div class="source-option" data-source="radio">
+                        <div class="source-icon radio"><i class="fas fa-radio"></i></div>
+                        <div class="source-info">
+                            <h4>BANF Radio</h4>
+                            <p>Bengali music streaming</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0;">
+                
+                <!-- Stream Details Form -->
+                <div id="streamForm">
+                    <div class="form-group">
+                        <label>Stream Title</label>
+                        <input type="text" id="streamTitle" placeholder="Enter stream title...">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="streamDescription" placeholder="Describe your stream..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Embed URL / Stream Key</label>
+                        <input type="text" id="streamUrl" placeholder="https://youtube.com/live/...">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="streamCategory">
+                            <option value="cultural">Cultural Event</option>
+                            <option value="religious">Religious/Puja</option>
+                            <option value="meeting">Community Meeting</option>
+                            <option value="educational">Educational</option>
+                            <option value="entertainment">Entertainment</option>
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-live" id="goLiveBtn">
+                            <i class="fas fa-circle"></i> Go Live
+                        </button>
+                        <button class="btn btn-schedule" id="scheduleBtn">
+                            <i class="fas fa-clock"></i> Schedule
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stop Stream (hidden by default) -->
+                <div id="stopForm" style="display: none;">
+                    <div class="action-buttons">
+                        <button class="btn btn-stop" id="stopStreamBtn">
+                            <i class="fas fa-stop"></i> End Stream
+                        </button>
+                        <button class="btn btn-secondary" id="saveRecordingBtn">
+                            <i class="fas fa-save"></i> Save Recording
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center Panel - Preview & Stats -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-tv"></i> Stream Preview</h3>
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="preview">Preview</button>
+                    <button class="tab-btn" data-tab="scheduled">Scheduled</button>
+                    <button class="tab-btn" data-tab="radio">Radio</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- Preview Tab -->
+                <div id="previewTab" class="tab-content">
+                    <div class="preview-container">
+                        <div class="preview-placeholder" id="previewPlaceholder">
+                            <i class="fas fa-video-slash"></i>
+                            <p>No active stream</p>
+                            <p style="font-size: 0.8rem;">Select a source and go live</p>
+                        </div>
+                        <iframe id="streamPreview" style="display: none; width: 100%; height: 100%; border: none;"></iframe>
+                        <div class="preview-controls" style="display: none;" id="previewControls">
+                            <div class="preview-stats">
+                                <div class="stat-item">
+                                    <i class="fas fa-eye"></i>
+                                    <span id="viewerCount">0</span> viewers
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span id="streamDuration">00:00:00</span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary" style="padding: 0.5rem;">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stream Stats -->
+                    <div class="stream-stats-grid">
+                        <div class="stat-card">
+                            <div class="value" id="currentViewers">0</div>
+                            <div class="label">Current Viewers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="peakViewers">0</div>
+                            <div class="label">Peak Viewers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="totalViews">0</div>
+                            <div class="label">Total Views</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="avgWatchTime">0:00</div>
+                            <div class="label">Avg Watch Time</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scheduled Tab -->
+                <div id="scheduledTab" class="tab-content" style="display: none;">
+                    <h4 style="margin-bottom: 1rem;">Upcoming Streams</h4>
+                    <div class="scheduled-list" id="scheduledList">
+                        <div class="scheduled-item">
+                            <div class="time">
+                                <div>FEB 15</div>
+                                <div>7:00 PM</div>
+                            </div>
+                            <div class="info">
+                                <h4>Saraswati Puja Live</h4>
+                                <p>Religious • YouTube Live</p>
+                            </div>
+                        </div>
+                        <div class="scheduled-item">
+                            <div class="time">
+                                <div>FEB 20</div>
+                                <div>6:00 PM</div>
+                            </div>
+                            <div class="info">
+                                <h4>Monthly Member Meeting</h4>
+                                <p>Meeting • Vimeo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Radio Tab -->
+                <div id="radioTab" class="tab-content" style="display: none;">
+                    <div class="radio-now-playing">
+                        <h4>🎵 NOW PLAYING</h4>
+                        <div class="bengali">রবীন্দ্র সংগীত</div>
+                        <div class="program">Rabindra Sangeet Hour</div>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">10:00 AM - 2:00 PM EST</p>
+                    </div>
+                    
+                    <h4 style="margin: 1rem 0;">Today's Schedule</h4>
+                    <div class="scheduled-list" id="radioSchedule">
+                        <div class="scheduled-item">
+                            <div class="time" style="background: var(--banf-saffron);">
+                                <div>6:00</div>
+                                <div>AM</div>
+                            </div>
+                            <div class="info">
+                                <h4>সকালের সুর (Morning Melodies)</h4>
+                                <p>Traditional morning songs</p>
+                            </div>
+                        </div>
+                        <div class="scheduled-item">
+                            <div class="time" style="background: var(--banf-green);">
+                                <div>10:00</div>
+                                <div>AM</div>
+                            </div>
+                            <div class="info">
+                                <h4>রবীন্দ্র সংগীত (Rabindra Sangeet)</h4>
+                                <p>Songs of Tagore</p>
+                            </div>
+                        </div>
+                        <div class="scheduled-item">
+                            <div class="time" style="background: var(--banf-burgundy);">
+                                <div>2:00</div>
+                                <div>PM</div>
+                            </div>
+                            <div class="info">
+                                <h4>আধুনিক বাংলা (Modern Bengali)</h4>
+                                <p>Contemporary music</p>
+                            </div>
+                        </div>
+                        <div class="scheduled-item">
+                            <div class="time" style="background: var(--banf-orange);">
+                                <div>6:00</div>
+                                <div>PM</div>
+                            </div>
+                            <div class="info">
+                                <h4>চলচ্চিত্রের গান (Film Songs)</h4>
+                                <p>Bengali cinema classics</p>
+                            </div>
+                        </div>
+                        <div class="scheduled-item">
+                            <div class="time" style="background: var(--banf-deep-red);">
+                                <div>9:00</div>
+                                <div>PM</div>
+                            </div>
+                            <div class="info">
+                                <h4>শাস্ত্রীয় সঙ্গীত (Classical)</h4>
+                                <p>Hindustani classical</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Chat & Viewers -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-comments"></i> Live Activity</h3>
+            </div>
+            <div class="chat-container">
+                <div class="tab-buttons" style="margin: 0.5rem;">
+                    <button class="tab-btn active" data-activity="chat">Chat</button>
+                    <button class="tab-btn" data-activity="viewers">Viewers</button>
+                </div>
+                
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message">
+                        <span class="name">Amit Das</span>
+                        <span class="time">2:34 PM</span>
+                        <p class="text">Great stream! 🎉</p>
+                    </div>
+                    <div class="chat-message">
+                        <span class="name">Priya Sen</span>
+                        <span class="time">2:35 PM</span>
+                        <p class="text">Audio is perfect!</p>
+                    </div>
+                    <div class="chat-message">
+                        <span class="name">Ravi Kumar</span>
+                        <span class="time">2:36 PM</span>
+                        <p class="text">জয় মা দুর্গা! 🙏</p>
+                    </div>
+                </div>
+                
+                <!-- Viewers List (hidden by default) -->
+                <div class="viewer-list" id="viewersList" style="display: none; padding: 1rem;">
+                    <div class="viewer-item">
+                        <div class="viewer-avatar">AD</div>
+                        <span class="viewer-name">Amit Das</span>
+                        <span class="viewer-duration">15:32</span>
+                    </div>
+                    <div class="viewer-item">
+                        <div class="viewer-avatar">PS</div>
+                        <span class="viewer-name">Priya Sen</span>
+                        <span class="viewer-duration">12:45</span>
+                    </div>
+                    <div class="viewer-item">
+                        <div class="viewer-avatar">RK</div>
+                        <span class="viewer-name">Ravi Kumar</span>
+                        <span class="viewer-duration">8:21</span>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <input type="text" placeholder="Send message to viewers...">
+                    <button><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabGroup = this.parentElement;
+                tabGroup.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Handle main tabs
+                if (this.dataset.tab) {
+                    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                    document.getElementById(this.dataset.tab + 'Tab').style.display = 'block';
+                }
+                
+                // Handle activity tabs (chat/viewers)
+                if (this.dataset.activity) {
+                    if (this.dataset.activity === 'chat') {
+                        document.getElementById('chatMessages').style.display = 'flex';
+                        document.getElementById('viewersList').style.display = 'none';
+                    } else {
+                        document.getElementById('chatMessages').style.display = 'none';
+                        document.getElementById('viewersList').style.display = 'block';
+                    }
+                }
+            });
+        });
+        
+        // Source selection
+        document.querySelectorAll('.source-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.source-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+        
+        // Go Live button
+        document.getElementById('goLiveBtn').addEventListener('click', function() {
+            const title = document.getElementById('streamTitle').value;
+            const url = document.getElementById('streamUrl').value;
+            
+            if (!title || !url) {
+                alert('Please enter stream title and URL');
+                return;
+            }
+            
+            // Update UI
+            document.getElementById('liveIndicator').classList.add('active');
+            document.getElementById('liveIndicator').querySelector('span:last-child').textContent = 'LIVE';
+            
+            document.getElementById('streamForm').style.display = 'none';
+            document.getElementById('stopForm').style.display = 'block';
+            
+            document.getElementById('previewPlaceholder').style.display = 'none';
+            document.getElementById('streamPreview').style.display = 'block';
+            document.getElementById('previewControls').style.display = 'flex';
+            
+            // Set iframe src
+            document.getElementById('streamPreview').src = url;
+            
+            // Start duration timer
+            startDurationTimer();
+            
+            // Simulate viewers
+            simulateViewers();
+        });
+        
+        // Stop Stream button
+        document.getElementById('stopStreamBtn').addEventListener('click', function() {
+            document.getElementById('liveIndicator').classList.remove('active');
+            document.getElementById('liveIndicator').querySelector('span:last-child').textContent = 'OFFLINE';
+            
+            document.getElementById('streamForm').style.display = 'block';
+            document.getElementById('stopForm').style.display = 'none';
+            
+            document.getElementById('previewPlaceholder').style.display = 'flex';
+            document.getElementById('streamPreview').style.display = 'none';
+            document.getElementById('previewControls').style.display = 'none';
+            
+            document.getElementById('streamPreview').src = '';
+        });
+        
+        let durationInterval;
+        let duration = 0;
+        
+        function startDurationTimer() {
+            duration = 0;
+            durationInterval = setInterval(() => {
+                duration++;
+                const hrs = Math.floor(duration / 3600);
+                const mins = Math.floor((duration % 3600) / 60);
+                const secs = duration % 60;
+                document.getElementById('streamDuration').textContent = 
+                    `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function simulateViewers() {
+            let viewers = 5;
+            setInterval(() => {
+                viewers = Math.max(0, viewers + Math.floor(Math.random() * 5) - 2);
+                document.getElementById('viewerCount').textContent = viewers;
+                document.getElementById('currentViewers').textContent = viewers;
+                const peak = parseInt(document.getElementById('peakViewers').textContent);
+                if (viewers > peak) {
+                    document.getElementById('peakViewers').textContent = viewers;
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

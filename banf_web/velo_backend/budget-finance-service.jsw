@@ -1,0 +1,772 @@
+/**
+ * BANF Budget & Finance Service
+ * ===============================
+ * Wix Velo Backend Module for financial management
+ * 
+ * Features:
+ * - Event budget planning
+ * - Expense tracking and categorization
+ * - Income recording (sponsorships, tickets, donations)
+ * - Financial reports and analytics
+ * - Budget vs actual comparison
+ * 
+ * @module backend/budget-finance-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// EXPENSE CATEGORIES
+// =====================================================
+
+const EXPENSE_CATEGORIES = {
+    VENUE: { id: 'venue', name: 'Venue & Rentals', icon: '🏛️', color: '#006A4E' },
+    FOOD: { id: 'food', name: 'Food & Catering', icon: '🍽️', color: '#f7931e' },
+    DECORATIONS: { id: 'decorations', name: 'Decorations', icon: '🎨', color: '#9c27b0' },
+    ENTERTAINMENT: { id: 'entertainment', name: 'Entertainment', icon: '🎵', color: '#e91e63' },
+    EQUIPMENT: { id: 'equipment', name: 'Equipment & AV', icon: '🔊', color: '#2196f3' },
+    TRANSPORTATION: { id: 'transportation', name: 'Transportation', icon: '🚗', color: '#607d8b' },
+    SUPPLIES: { id: 'supplies', name: 'Supplies & Materials', icon: '📦', color: '#795548' },
+    MARKETING: { id: 'marketing', name: 'Marketing & Printing', icon: '📢', color: '#ff5722' },
+    PERMITS: { id: 'permits', name: 'Permits & Insurance', icon: '📋', color: '#009688' },
+    PUJA: { id: 'puja', name: 'Puja Materials', icon: '🙏', color: '#8B0000' },
+    PRIEST: { id: 'priest', name: 'Priest & Rituals', icon: '🕉️', color: '#722f37' },
+    GIFTS: { id: 'gifts', name: 'Gifts & Prizes', icon: '🎁', color: '#daa520' },
+    MISCELLANEOUS: { id: 'misc', name: 'Miscellaneous', icon: '📌', color: '#9e9e9e' }
+};
+
+const INCOME_CATEGORIES = {
+    TICKET_SALES: { id: 'tickets', name: 'Ticket Sales', icon: '🎫', color: '#4caf50' },
+    SPONSORSHIP: { id: 'sponsorship', name: 'Sponsorships', icon: '🤝', color: '#daa520' },
+    DONATION: { id: 'donation', name: 'Donations', icon: '💝', color: '#e91e63' },
+    MEMBERSHIP: { id: 'membership', name: 'Membership Fees', icon: '💳', color: '#2196f3' },
+    MERCHANDISE: { id: 'merchandise', name: 'Merchandise', icon: '👕', color: '#9c27b0' },
+    FOOD_SALES: { id: 'food_sales', name: 'Food/Prasad Sales', icon: '🍲', color: '#f7931e' },
+    OTHER: { id: 'other', name: 'Other Income', icon: '💰', color: '#607d8b' }
+};
+
+const PAYMENT_STATUS = {
+    PENDING: 'pending',
+    APPROVED: 'approved',
+    PAID: 'paid',
+    REJECTED: 'rejected',
+    CANCELLED: 'cancelled'
+};
+
+// =====================================================
+// BUDGET MANAGEMENT
+// =====================================================
+
+/**
+ * Create a budget for an event
+ * @param {string} eventId
+ * @param {Object} budgetData
+ */
+export async function createEventBudget(eventId, budgetData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Check for existing budget
+        const existing = await wixData.query('EventBudgets')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Budget already exists for this event' };
+        }
+        
+        const budget = await wixData.insert('EventBudgets', {
+            eventId: eventId,
+            eventTitle: event.title,
+            eventDate: event.eventDate,
+            
+            // Budget amounts by category
+            allocations: budgetData.allocations || {},
+            totalBudget: budgetData.totalBudget || 0,
+            
+            // Expected income
+            expectedIncome: budgetData.expectedIncome || {},
+            totalExpectedIncome: budgetData.totalExpectedIncome || 0,
+            
+            // Actuals (will be updated)
+            actualExpenses: {},
+            totalActualExpenses: 0,
+            actualIncome: {},
+            totalActualIncome: 0,
+            
+            // Status
+            status: 'active',
+            approvedBy: member._id,
+            approvedAt: new Date(),
+            
+            // Notes
+            notes: budgetData.notes || '',
+            
+            // Metadata
+            createdBy: member._id,
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        return {
+            success: true,
+            budgetId: budget._id,
+            message: 'Budget created successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error creating budget:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update budget allocations
+ * @param {string} budgetId
+ * @param {Object} updates
+ */
+export async function updateBudgetAllocations(budgetId, updates) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const budget = await wixData.get('EventBudgets', budgetId);
+        
+        if (!budget) {
+            return { success: false, error: 'Budget not found' };
+        }
+        
+        // Update allocations
+        if (updates.allocations) {
+            budget.allocations = {
+                ...budget.allocations,
+                ...updates.allocations
+            };
+            budget.totalBudget = Object.values(budget.allocations)
+                .reduce((sum, val) => sum + (val || 0), 0);
+        }
+        
+        // Update expected income
+        if (updates.expectedIncome) {
+            budget.expectedIncome = {
+                ...budget.expectedIncome,
+                ...updates.expectedIncome
+            };
+            budget.totalExpectedIncome = Object.values(budget.expectedIncome)
+                .reduce((sum, val) => sum + (val || 0), 0);
+        }
+        
+        if (updates.notes) {
+            budget.notes = updates.notes;
+        }
+        
+        budget.lastModified = new Date();
+        budget.lastModifiedBy = member._id;
+        
+        await wixData.update('EventBudgets', budget);
+        
+        return {
+            success: true,
+            message: 'Budget updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error updating budget:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// EXPENSE MANAGEMENT
+// =====================================================
+
+/**
+ * Submit an expense
+ * @param {Object} expenseData
+ */
+export async function submitExpense(expenseData) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const expense = await wixData.insert('Expenses', {
+            // Event association
+            eventId: expenseData.eventId || null,
+            budgetId: expenseData.budgetId || null,
+            
+            // Expense details
+            description: expenseData.description,
+            category: expenseData.category,
+            categoryName: EXPENSE_CATEGORIES[expenseData.category.toUpperCase()]?.name || expenseData.category,
+            amount: expenseData.amount,
+            
+            // Vendor info
+            vendorName: expenseData.vendorName || '',
+            vendorContact: expenseData.vendorContact || '',
+            
+            // Payment details
+            paymentMethod: expenseData.paymentMethod || 'pending',
+            receiptNumber: expenseData.receiptNumber || '',
+            receiptImage: expenseData.receiptImage || null,
+            
+            // Status
+            status: PAYMENT_STATUS.PENDING,
+            
+            // Dates
+            expenseDate: expenseData.expenseDate || new Date(),
+            dueDate: expenseData.dueDate || null,
+            
+            // Notes
+            notes: expenseData.notes || '',
+            
+            // Metadata
+            submittedBy: member._id,
+            submittedByName: `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim(),
+            submittedAt: new Date()
+        });
+        
+        await logFinancialActivity('EXPENSE_SUBMITTED', expense._id, {
+            amount: expense.amount,
+            category: expense.category,
+            submittedBy: member._id
+        });
+        
+        return {
+            success: true,
+            expenseId: expense._id,
+            message: 'Expense submitted for approval'
+        };
+        
+    } catch (error) {
+        console.error('Error submitting expense:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Approve or reject an expense
+ * @param {string} expenseId
+ * @param {string} action - 'approve' or 'reject'
+ * @param {string} notes
+ */
+export async function processExpense(expenseId, action, notes = '') {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const expense = await wixData.get('Expenses', expenseId);
+        
+        if (!expense) {
+            return { success: false, error: 'Expense not found' };
+        }
+        
+        if (action === 'approve') {
+            expense.status = PAYMENT_STATUS.APPROVED;
+            expense.approvedBy = member._id;
+            expense.approvedAt = new Date();
+        } else if (action === 'reject') {
+            expense.status = PAYMENT_STATUS.REJECTED;
+            expense.rejectedBy = member._id;
+            expense.rejectedAt = new Date();
+            expense.rejectionReason = notes;
+        }
+        
+        expense.processNotes = notes;
+        expense.lastModified = new Date();
+        
+        await wixData.update('Expenses', expense);
+        
+        // Update budget actuals if approved
+        if (action === 'approve' && expense.budgetId) {
+            await updateBudgetActuals(expense.budgetId, 'expense', expense.category, expense.amount);
+        }
+        
+        await logFinancialActivity(`EXPENSE_${action.toUpperCase()}D`, expense._id, {
+            amount: expense.amount,
+            processedBy: member._id
+        });
+        
+        return {
+            success: true,
+            message: `Expense ${action}d successfully`
+        };
+        
+    } catch (error) {
+        console.error('Error processing expense:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Mark expense as paid
+ * @param {string} expenseId
+ * @param {Object} paymentDetails
+ */
+export async function markExpensePaid(expenseId, paymentDetails) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const expense = await wixData.get('Expenses', expenseId);
+        
+        if (!expense) {
+            return { success: false, error: 'Expense not found' };
+        }
+        
+        if (expense.status !== PAYMENT_STATUS.APPROVED) {
+            return { success: false, error: 'Expense must be approved before marking as paid' };
+        }
+        
+        expense.status = PAYMENT_STATUS.PAID;
+        expense.paidAt = new Date();
+        expense.paidBy = member._id;
+        expense.paymentMethod = paymentDetails.method || expense.paymentMethod;
+        expense.paymentReference = paymentDetails.reference || '';
+        expense.paymentNotes = paymentDetails.notes || '';
+        expense.lastModified = new Date();
+        
+        await wixData.update('Expenses', expense);
+        
+        await logFinancialActivity('EXPENSE_PAID', expense._id, {
+            amount: expense.amount,
+            method: expense.paymentMethod
+        });
+        
+        return {
+            success: true,
+            message: 'Expense marked as paid'
+        };
+        
+    } catch (error) {
+        console.error('Error marking expense paid:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// INCOME MANAGEMENT
+// =====================================================
+
+/**
+ * Record income
+ * @param {Object} incomeData
+ */
+export async function recordIncome(incomeData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const income = await wixData.insert('Income', {
+            // Event association
+            eventId: incomeData.eventId || null,
+            budgetId: incomeData.budgetId || null,
+            
+            // Income details
+            description: incomeData.description,
+            category: incomeData.category,
+            categoryName: INCOME_CATEGORIES[incomeData.category.toUpperCase()]?.name || incomeData.category,
+            amount: incomeData.amount,
+            
+            // Source info
+            sourceName: incomeData.sourceName || '',
+            sourceContact: incomeData.sourceContact || '',
+            memberId: incomeData.memberId || null,
+            
+            // Payment details
+            paymentMethod: incomeData.paymentMethod || 'other',
+            referenceNumber: incomeData.referenceNumber || '',
+            
+            // Dates
+            receivedDate: incomeData.receivedDate || new Date(),
+            
+            // Notes
+            notes: incomeData.notes || '',
+            
+            // Metadata
+            recordedBy: member._id,
+            recordedAt: new Date()
+        });
+        
+        // Update budget actuals
+        if (income.budgetId) {
+            await updateBudgetActuals(income.budgetId, 'income', income.category, income.amount);
+        }
+        
+        await logFinancialActivity('INCOME_RECORDED', income._id, {
+            amount: income.amount,
+            category: income.category
+        });
+        
+        return {
+            success: true,
+            incomeId: income._id,
+            message: 'Income recorded successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error recording income:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// FINANCIAL REPORTS
+// =====================================================
+
+/**
+ * Get event financial summary
+ * @param {string} eventId
+ */
+export async function getEventFinancialSummary(eventId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        // Get budget
+        const budgets = await wixData.query('EventBudgets')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        const budget = budgets.items[0] || null;
+        
+        // Get all expenses
+        const expenses = await wixData.query('Expenses')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        // Get all income
+        const income = await wixData.query('Income')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        // Calculate totals
+        const paidExpenses = expenses.items.filter(e => e.status === PAYMENT_STATUS.PAID);
+        const totalExpenses = paidExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const pendingExpenses = expenses.items
+            .filter(e => e.status === PAYMENT_STATUS.PENDING || e.status === PAYMENT_STATUS.APPROVED)
+            .reduce((sum, e) => sum + e.amount, 0);
+        
+        const totalIncome = income.items.reduce((sum, i) => sum + i.amount, 0);
+        
+        // Group by category
+        const expensesByCategory = {};
+        for (const exp of paidExpenses) {
+            expensesByCategory[exp.category] = (expensesByCategory[exp.category] || 0) + exp.amount;
+        }
+        
+        const incomeByCategory = {};
+        for (const inc of income.items) {
+            incomeByCategory[inc.category] = (incomeByCategory[inc.category] || 0) + inc.amount;
+        }
+        
+        // Calculate variance
+        const budgetedAmount = budget?.totalBudget || 0;
+        const variance = budgetedAmount - totalExpenses;
+        const variancePercent = budgetedAmount > 0 
+            ? Math.round((variance / budgetedAmount) * 100) 
+            : 0;
+        
+        return {
+            success: true,
+            summary: {
+                event: {
+                    title: event?.title,
+                    date: event?.eventDate
+                },
+                
+                // Budget vs Actual
+                budget: {
+                    allocated: budgetedAmount,
+                    actual: totalExpenses,
+                    pending: pendingExpenses,
+                    variance: variance,
+                    variancePercent: variancePercent,
+                    status: variance >= 0 ? 'under_budget' : 'over_budget'
+                },
+                
+                // Income
+                income: {
+                    expected: budget?.totalExpectedIncome || 0,
+                    actual: totalIncome,
+                    variance: totalIncome - (budget?.totalExpectedIncome || 0)
+                },
+                
+                // Net
+                netPosition: totalIncome - totalExpenses,
+                
+                // Breakdowns
+                expensesByCategory: Object.entries(expensesByCategory).map(([cat, amount]) => ({
+                    category: cat,
+                    categoryName: EXPENSE_CATEGORIES[cat.toUpperCase()]?.name || cat,
+                    icon: EXPENSE_CATEGORIES[cat.toUpperCase()]?.icon || '📌',
+                    amount: amount,
+                    budgeted: budget?.allocations?.[cat] || 0,
+                    variance: (budget?.allocations?.[cat] || 0) - amount
+                })),
+                
+                incomeByCategory: Object.entries(incomeByCategory).map(([cat, amount]) => ({
+                    category: cat,
+                    categoryName: INCOME_CATEGORIES[cat.toUpperCase()]?.name || cat,
+                    icon: INCOME_CATEGORIES[cat.toUpperCase()]?.icon || '💰',
+                    amount: amount
+                })),
+                
+                // Transactions
+                recentExpenses: expenses.items.slice(0, 5).map(e => ({
+                    description: e.description,
+                    amount: e.amount,
+                    category: e.category,
+                    status: e.status,
+                    date: e.expenseDate
+                })),
+                
+                recentIncome: income.items.slice(0, 5).map(i => ({
+                    description: i.description,
+                    amount: i.amount,
+                    category: i.category,
+                    date: i.receivedDate
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting financial summary:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get organization annual financial report
+ * @param {number} year
+ */
+export async function getAnnualFinancialReport(year) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        
+        // Get all expenses for the year
+        const expenses = await wixData.query('Expenses')
+            .ge('expenseDate', startDate)
+            .le('expenseDate', endDate)
+            .eq('status', PAYMENT_STATUS.PAID)
+            .find({ suppressAuth: true });
+        
+        // Get all income for the year
+        const income = await wixData.query('Income')
+            .ge('receivedDate', startDate)
+            .le('receivedDate', endDate)
+            .find({ suppressAuth: true });
+        
+        // Monthly breakdown
+        const monthlyData = {};
+        for (let month = 0; month < 12; month++) {
+            monthlyData[month] = { expenses: 0, income: 0 };
+        }
+        
+        for (const exp of expenses.items) {
+            const month = new Date(exp.expenseDate).getMonth();
+            monthlyData[month].expenses += exp.amount;
+        }
+        
+        for (const inc of income.items) {
+            const month = new Date(inc.receivedDate).getMonth();
+            monthlyData[month].income += inc.amount;
+        }
+        
+        // Category breakdown
+        const categoryExpenses = {};
+        const categoryIncome = {};
+        
+        for (const exp of expenses.items) {
+            categoryExpenses[exp.category] = (categoryExpenses[exp.category] || 0) + exp.amount;
+        }
+        
+        for (const inc of income.items) {
+            categoryIncome[inc.category] = (categoryIncome[inc.category] || 0) + inc.amount;
+        }
+        
+        const totalExpenses = expenses.items.reduce((sum, e) => sum + e.amount, 0);
+        const totalIncome = income.items.reduce((sum, i) => sum + i.amount, 0);
+        
+        return {
+            success: true,
+            report: {
+                year: year,
+                
+                // Summary
+                summary: {
+                    totalIncome: totalIncome,
+                    totalExpenses: totalExpenses,
+                    netPosition: totalIncome - totalExpenses,
+                    transactionCount: expenses.items.length + income.items.length
+                },
+                
+                // Monthly trend
+                monthlyTrend: Object.entries(monthlyData).map(([month, data]) => ({
+                    month: new Date(year, parseInt(month), 1).toLocaleString('default', { month: 'short' }),
+                    expenses: data.expenses,
+                    income: data.income,
+                    net: data.income - data.expenses
+                })),
+                
+                // Category breakdowns
+                expenseCategories: Object.entries(categoryExpenses)
+                    .map(([cat, amount]) => ({
+                        category: cat,
+                        name: EXPENSE_CATEGORIES[cat.toUpperCase()]?.name || cat,
+                        icon: EXPENSE_CATEGORIES[cat.toUpperCase()]?.icon || '📌',
+                        amount: amount,
+                        percentage: Math.round((amount / totalExpenses) * 100)
+                    }))
+                    .sort((a, b) => b.amount - a.amount),
+                
+                incomeCategories: Object.entries(categoryIncome)
+                    .map(([cat, amount]) => ({
+                        category: cat,
+                        name: INCOME_CATEGORIES[cat.toUpperCase()]?.name || cat,
+                        icon: INCOME_CATEGORIES[cat.toUpperCase()]?.icon || '💰',
+                        amount: amount,
+                        percentage: Math.round((amount / totalIncome) * 100)
+                    }))
+                    .sort((a, b) => b.amount - a.amount)
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting annual report:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// EXPENSE TRACKING DASHBOARD
+// =====================================================
+
+/**
+ * Get pending expenses for approval
+ */
+export async function getPendingExpenses() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const expenses = await wixData.query('Expenses')
+            .eq('status', PAYMENT_STATUS.PENDING)
+            .ascending('submittedAt')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            expenses: expenses.items.map(e => ({
+                _id: e._id,
+                description: e.description,
+                category: e.category,
+                categoryName: e.categoryName,
+                amount: e.amount,
+                vendorName: e.vendorName,
+                submittedBy: e.submittedByName,
+                submittedAt: e.submittedAt,
+                eventId: e.eventId,
+                receiptImage: e.receiptImage,
+                notes: e.notes
+            })),
+            totalPending: expenses.totalCount
+        };
+        
+    } catch (error) {
+        console.error('Error getting pending expenses:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function updateBudgetActuals(budgetId, type, category, amount) {
+    try {
+        const budget = await wixData.get('EventBudgets', budgetId);
+        if (!budget) return;
+        
+        if (type === 'expense') {
+            budget.actualExpenses = budget.actualExpenses || {};
+            budget.actualExpenses[category] = (budget.actualExpenses[category] || 0) + amount;
+            budget.totalActualExpenses = Object.values(budget.actualExpenses)
+                .reduce((sum, val) => sum + val, 0);
+        } else if (type === 'income') {
+            budget.actualIncome = budget.actualIncome || {};
+            budget.actualIncome[category] = (budget.actualIncome[category] || 0) + amount;
+            budget.totalActualIncome = Object.values(budget.actualIncome)
+                .reduce((sum, val) => sum + val, 0);
+        }
+        
+        budget.lastModified = new Date();
+        await wixData.update('EventBudgets', budget);
+    } catch (error) {
+        console.error('Error updating budget actuals:', error);
+    }
+}
+
+async function logFinancialActivity(action, recordId, details) {
+    await wixData.insert('FinancialActivityLog', {
+        action: action,
+        recordId: recordId,
+        details: details,
+        timestamp: new Date()
+    });
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec') ||
+                role.toLowerCase().includes('treasurer')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_STATUS };

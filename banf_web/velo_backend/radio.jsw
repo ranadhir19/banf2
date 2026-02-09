@@ -1,0 +1,417 @@
+// backend/radio.jsw
+// BANF Radio Station Integration - Wix Velo Backend
+// Integrates with external streaming services via wix-fetch
+
+import wixData from 'wix-data';
+import { fetch } from 'wix-fetch';
+
+// Radio station status constants
+const STATION_STATUS = {
+    ONLINE: 'online',
+    OFFLINE: 'offline',
+    MAINTENANCE: 'maintenance'
+};
+
+/**
+ * Get radio station configuration
+ */
+export async function getRadioStationConfig() {
+    try {
+        const result = await wixData.query('RadioStations')
+            .eq('isActive', true)
+            .find({ suppressAuth: true });
+        
+        if (result.items.length === 0) {
+            return getDefaultStationConfig();
+        }
+        
+        const station = result.items[0];
+        return {
+            id: station._id,
+            name: station.stationName,
+            description: station.description,
+            streamUrl: station.streamUrl,
+            fallbackUrl: station.fallbackUrl,
+            logoUrl: station.logoUrl,
+            status: station.status,
+            currentShow: await getCurrentShow(),
+            upcomingShows: await getUpcomingShows(5),
+            metadata: {
+                genre: station.genre || 'Bengali Music',
+                language: station.language || 'Bengali',
+                frequency: station.frequency || 'Online Only'
+            }
+        };
+    } catch (error) {
+        console.error('Error getting radio config:', error);
+        return getDefaultStationConfig();
+    }
+}
+
+/**
+ * Get current playing show
+ */
+export async function getCurrentShow() {
+    try {
+        const now = new Date();
+        const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+        const currentTime = now.toTimeString().substring(0, 5); // HH:MM format
+        
+        const result = await wixData.query('RadioSchedule')
+            .eq('dayOfWeek', dayOfWeek)
+            .eq('isActive', true)
+            .le('startTime', currentTime)
+            .ge('endTime', currentTime)
+            .find({ suppressAuth: true });
+        
+        if (result.items.length > 0) {
+            const show = result.items[0];
+            return {
+                id: show._id,
+                title: show.showTitle,
+                host: show.hostName,
+                description: show.description,
+                startTime: show.startTime,
+                endTime: show.endTime,
+                genre: show.genre
+            };
+        }
+        
+        return {
+            title: 'Auto DJ',
+            host: 'BANF Radio',
+            description: 'Playing your favorite Bengali songs',
+            genre: 'Mixed'
+        };
+    } catch (error) {
+        console.error('Error getting current show:', error);
+        return null;
+    }
+}
+
+/**
+ * Get upcoming shows
+ */
+export async function getUpcomingShows(limit = 10) {
+    try {
+        const now = new Date();
+        const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+        const currentTime = now.toTimeString().substring(0, 5);
+        
+        // Get today's remaining shows
+        const todayShows = await wixData.query('RadioSchedule')
+            .eq('dayOfWeek', dayOfWeek)
+            .eq('isActive', true)
+            .gt('startTime', currentTime)
+            .ascending('startTime')
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        // Get tomorrow's shows if needed
+        const shows = todayShows.items.map(s => ({
+            id: s._id,
+            title: s.showTitle,
+            host: s.hostName,
+            day: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            genre: s.genre
+        }));
+        
+        return shows;
+    } catch (error) {
+        console.error('Error getting upcoming shows:', error);
+        return [];
+    }
+}
+
+/**
+ * Get full weekly schedule
+ */
+export async function getWeeklySchedule() {
+    try {
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const schedule = {};
+        
+        for (const day of days) {
+            const result = await wixData.query('RadioSchedule')
+                .eq('dayOfWeek', day)
+                .eq('isActive', true)
+                .ascending('startTime')
+                .find({ suppressAuth: true });
+            
+            schedule[day] = result.items.map(s => ({
+                id: s._id,
+                title: s.showTitle,
+                host: s.hostName,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                genre: s.genre,
+                description: s.description
+            }));
+        }
+        
+        return schedule;
+    } catch (error) {
+        console.error('Error getting weekly schedule:', error);
+        return {};
+    }
+}
+
+/**
+ * Create/Update radio show (admin only)
+ */
+export async function createRadioShow(showData, adminId) {
+    try {
+        const show = {
+            showTitle: showData.title,
+            hostName: showData.host,
+            description: showData.description || '',
+            genre: showData.genre || 'General',
+            dayOfWeek: showData.dayOfWeek.toLowerCase(),
+            startTime: showData.startTime,
+            endTime: showData.endTime,
+            isRecurring: showData.isRecurring !== false,
+            isActive: true,
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        // Check for time conflicts
+        const conflicts = await wixData.query('RadioSchedule')
+            .eq('dayOfWeek', show.dayOfWeek)
+            .eq('isActive', true)
+            .find();
+        
+        const hasConflict = conflicts.items.some(existing => {
+            return (show.startTime < existing.endTime && show.endTime > existing.startTime);
+        });
+        
+        if (hasConflict) {
+            return { success: false, error: 'Time slot conflicts with existing show' };
+        }
+        
+        const result = await wixData.insert('RadioSchedule', show);
+        
+        return { success: true, showId: result._id };
+    } catch (error) {
+        console.error('Error creating radio show:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get song library
+ */
+export async function getSongLibrary(options = { limit: 50, skip: 0, genre: null }) {
+    try {
+        let query = wixData.query('BengaliSongs');
+        
+        if (options.genre) {
+            query = query.eq('genre', options.genre);
+        }
+        
+        query = query
+            .ascending('title')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(song => ({
+                id: song._id,
+                title: song.title,
+                artist: song.artist,
+                album: song.album,
+                genre: song.genre,
+                duration: song.duration,
+                year: song.releaseYear,
+                playCount: song.playCount || 0
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting song library:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Add song to library (admin only)
+ */
+export async function addSong(songData, adminId) {
+    try {
+        const song = {
+            title: songData.title,
+            artist: songData.artist,
+            album: songData.album || '',
+            genre: songData.genre || 'Bengali',
+            duration: songData.duration || 0,
+            releaseYear: songData.year || null,
+            lyrics: songData.lyrics || '',
+            audioUrl: songData.audioUrl || '',
+            playCount: 0,
+            addedBy: adminId,
+            _createdDate: new Date()
+        };
+        
+        const result = await wixData.insert('BengaliSongs', song);
+        
+        return { success: true, songId: result._id };
+    } catch (error) {
+        console.error('Error adding song:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Submit song request
+ */
+export async function submitSongRequest(requestData) {
+    try {
+        const request = {
+            songTitle: requestData.songTitle,
+            artistName: requestData.artist || '',
+            requestedBy: requestData.name || 'Anonymous',
+            message: requestData.message || '',
+            dedicatedTo: requestData.dedicatedTo || '',
+            status: 'pending', // pending, approved, played, rejected
+            submittedAt: new Date(),
+            _createdDate: new Date()
+        };
+        
+        await wixData.insert('SongRequests', request, { suppressAuth: true });
+        
+        return { success: true, message: 'Song request submitted!' };
+    } catch (error) {
+        console.error('Error submitting song request:', error);
+        return { success: false, error: 'Failed to submit request' };
+    }
+}
+
+/**
+ * Get pending song requests (admin/DJ)
+ */
+export async function getPendingSongRequests() {
+    try {
+        const result = await wixData.query('SongRequests')
+            .eq('status', 'pending')
+            .descending('submittedAt')
+            .limit(50)
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting song requests:', error);
+        return [];
+    }
+}
+
+/**
+ * Update station status (admin only)
+ */
+export async function updateStationStatus(stationId, status, adminId) {
+    try {
+        const station = await wixData.get('RadioStations', stationId);
+        if (!station) {
+            return { success: false, error: 'Station not found' };
+        }
+        
+        await wixData.update('RadioStations', {
+            ...station,
+            status: status,
+            lastStatusUpdate: new Date(),
+            statusUpdatedBy: adminId,
+            _updatedDate: new Date()
+        });
+        
+        return { success: true, message: 'Station status updated' };
+    } catch (error) {
+        console.error('Error updating station status:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get listener statistics
+ */
+export async function getListenerStats() {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        
+        const monthAgo = new Date(today);
+        monthAgo.setDate(monthAgo.getDate() - 30);
+        
+        // These would typically come from external streaming service
+        // For now, we track page views/interactions
+        const todayStats = await wixData.query('RadioListenerLogs')
+            .ge('timestamp', today)
+            .count();
+        
+        const weekStats = await wixData.query('RadioListenerLogs')
+            .ge('timestamp', weekAgo)
+            .count();
+        
+        const monthStats = await wixData.query('RadioListenerLogs')
+            .ge('timestamp', monthAgo)
+            .count();
+        
+        return {
+            today: todayStats,
+            thisWeek: weekStats,
+            thisMonth: monthStats,
+            peakListeners: 0, // Would come from streaming service
+            averageListenTime: 0 // Would come from streaming service
+        };
+    } catch (error) {
+        console.error('Error getting listener stats:', error);
+        return { today: 0, thisWeek: 0, thisMonth: 0 };
+    }
+}
+
+/**
+ * Log listener activity
+ */
+export async function logListenerActivity(action, details = {}) {
+    try {
+        await wixData.insert('RadioListenerLogs', {
+            action: action, // 'play', 'pause', 'tune_in', 'tune_out'
+            details: JSON.stringify(details),
+            timestamp: new Date(),
+            _createdDate: new Date()
+        }, { suppressAuth: true });
+    } catch (error) {
+        console.error('Error logging listener activity:', error);
+    }
+}
+
+// Helper function
+function getDefaultStationConfig() {
+    return {
+        name: 'BANF Radio',
+        description: 'Bay Area Natun Fasal Community Radio',
+        streamUrl: '',
+        status: STATION_STATUS.OFFLINE,
+        currentShow: {
+            title: 'Auto DJ',
+            host: 'BANF Radio',
+            description: 'Playing your favorite Bengali songs'
+        },
+        upcomingShows: [],
+        metadata: {
+            genre: 'Bengali Music',
+            language: 'Bengali',
+            frequency: 'Online Only'
+        }
+    };
+}
+
+// Export constants
+export const StationStatus = STATION_STATUS;

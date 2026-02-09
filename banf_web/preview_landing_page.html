@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF Landing Page - Design Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Bangladesh Flag Colors */
+        :root {
+            --green: #006A4E;
+            --green-dark: #004d38;
+            --red: #F42A41;
+            --gold: #FFD700;
+            --white: #FFFFFF;
+            --dark: #1a1a2e;
+            --gray: #f5f5f5;
+        }
+        
+        /* ========== HEADER / NAVIGATION ========== */
+        .header {
+            background: var(--green);
+            padding: 15px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-circle {
+            width: 50px;
+            height: 50px;
+            background: var(--red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-text {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 25px;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+        
+        .nav-btn {
+            background: var(--red);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .nav-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(244, 42, 65, 0.4);
+        }
+        
+        /* ========== HERO SECTION ========== */
+        .hero {
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 20px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: var(--red);
+            border-radius: 50%;
+            opacity: 0.1;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .bengali-welcome {
+            font-family: 'Noto Sans Bengali', sans-serif;
+            font-size: 72px;
+            color: var(--gold);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .english-welcome {
+            font-size: 48px;
+            color: white;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .tagline {
+            font-size: 22px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 40px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-primary {
+            background: var(--red);
+            color: white;
+            padding: 15px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(244, 42, 65, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            padding: 15px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            border: 2px solid white;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: white;
+            color: var(--green);
+        }
+        
+        /* ========== STATS SECTION ========== */
+        .stats {
+            background: var(--dark);
+            padding: 40px 20px;
+        }
+        
+        .stats-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .stat-label {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        /* ========== QUICK ACCESS ========== */
+        .quick-access {
+            padding: 60px 20px;
+            background: var(--gray);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 40px;
+            color: var(--green);
+        }
+        
+        .quick-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 20px;
+        }
+        
+        .quick-item {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 15px;
+            text-align: center;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .quick-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,106,78,0.2);
+        }
+        
+        .quick-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .quick-label {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        /* ========== EVENTS SECTION ========== */
+        .events {
+            padding: 80px 20px;
+            background: white;
+        }
+        
+        .events-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        
+        .event-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .event-image {
+            height: 200px;
+            background: linear-gradient(45deg, var(--green), var(--green-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 60px;
+        }
+        
+        .event-content {
+            padding: 25px;
+        }
+        
+        .event-date {
+            background: var(--red);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .event-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .event-location {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .event-btn {
+            background: var(--green);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .event-btn:hover {
+            background: var(--green-dark);
+        }
+        
+        /* ========== RADIO SECTION ========== */
+        .radio {
+            background: linear-gradient(135deg, var(--dark) 0%, #16213e 100%);
+            padding: 80px 20px;
+            color: white;
+        }
+        
+        .radio-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .radio-title {
+            font-size: 42px;
+            margin-bottom: 20px;
+        }
+        
+        .radio-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(244, 42, 65, 0.2);
+            padding: 10px 25px;
+            border-radius: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .live-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--red);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .now-playing {
+            font-size: 24px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .radio-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .radio-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .play-btn {
+            background: var(--red);
+            color: white;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(244, 42, 65, 0.5);
+        }
+        
+        /* ========== MEMBERSHIP SECTION ========== */
+        .membership {
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+            padding: 80px 20px;
+            color: white;
+        }
+        
+        .membership-title {
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 50px;
+        }
+        
+        .membership-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+        
+        .membership-card {
+            background: white;
+            color: var(--dark);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .membership-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .membership-card.featured {
+            background: var(--gold);
+            transform: scale(1.05);
+        }
+        
+        .membership-card.featured:hover {
+            transform: scale(1.1);
+        }
+        
+        .membership-type {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .membership-price {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--green);
+            margin-bottom: 20px;
+        }
+        
+        .membership-features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+        
+        .membership-features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .membership-btn {
+            background: var(--green);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .membership-btn:hover {
+            background: var(--green-dark);
+        }
+        
+        /* ========== MAGAZINE SECTION ========== */
+        .magazine {
+            padding: 80px 20px;
+            background: white;
+        }
+        
+        .magazine-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+        
+        .magazine-image {
+            background: linear-gradient(45deg, var(--red), #ff6b6b);
+            height: 400px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 80px;
+        }
+        
+        .magazine-content h2 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: var(--green);
+        }
+        
+        .magazine-bengali {
+            font-family: 'Noto Sans Bengali', sans-serif;
+            font-size: 48px;
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+        
+        .magazine-desc {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        
+        /* ========== SPONSORS SECTION ========== */
+        .sponsors {
+            padding: 60px 20px;
+            background: var(--gray);
+        }
+        
+        .sponsors-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            flex-wrap: wrap;
+        }
+        
+        .sponsor-logo {
+            width: 150px;
+            height: 80px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            font-weight: 600;
+            color: #999;
+        }
+        
+        /* ========== CONTACT SECTION ========== */
+        .contact {
+            padding: 80px 20px;
+            background: white;
+        }
+        
+        .contact-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+        
+        .form-group textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            background: var(--green);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .submit-btn:hover {
+            background: var(--green-dark);
+            transform: translateY(-3px);
+        }
+        
+        /* ========== FOOTER ========== */
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 60px 20px 30px;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+        }
+        
+        .footer-about h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--gold);
+        }
+        
+        .footer-about p {
+            opacity: 0.8;
+            line-height: 1.8;
+        }
+        
+        .footer-links h4 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--gold);
+        }
+        
+        .footer-links ul {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .footer-links a:hover {
+            opacity: 1;
+            color: var(--gold);
+        }
+        
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 40px auto 0;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            opacity: 0.6;
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1024px) {
+            .quick-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .events-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .membership-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .footer-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            .bengali-welcome {
+                font-size: 48px;
+            }
+            .english-welcome {
+                font-size: 32px;
+            }
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .quick-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .events-grid {
+                grid-template-columns: 1fr;
+            }
+            .membership-grid {
+                grid-template-columns: 1fr;
+            }
+            .magazine-container {
+                grid-template-columns: 1fr;
+            }
+            .footer-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========== DESIGN PREVIEW BANNER ========== */
+        .preview-banner {
+            background: var(--red);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            z-index: 9999;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+        
+        .preview-banner h3 {
+            margin-bottom: 10px;
+        }
+        
+        .approve-btn {
+            background: white;
+            color: var(--red);
+            padding: 10px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s;
+        }
+        
+        .approve-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .reject-btn {
+            background: transparent;
+            color: white;
+            padding: 10px 30px;
+            border: 2px solid white;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s;
+        }
+        
+        .reject-btn:hover {
+            background: white;
+            color: var(--red);
+        }
+    </style>
+</head>
+<body>
+    <!-- ========== HEADER ========== -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-circle">🇧🇩</div>
+                <span class="logo-text">BANF</span>
+            </div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#events">Events</a></li>
+                    <li><a href="#radio">Radio</a></li>
+                    <li><a href="#magazine">Magazine</a></li>
+                    <li><a href="#membership">Membership</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+            <a href="#register" class="nav-btn">Join BANF</a>
+        </div>
+    </header>
+
+    <!-- ========== HERO SECTION ========== -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1 class="bengali-welcome">স্বাগতম</h1>
+            <h2 class="english-welcome">Welcome to BANF</h2>
+            <p class="tagline">Bengali Association of North Florida • Preserving Bengali Culture Since 1988</p>
+            <div class="hero-buttons">
+                <a href="#register" class="btn-primary">🤝 Join Our Community</a>
+                <a href="#events" class="btn-secondary">📅 Explore Events</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== STATS SECTION ========== -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">Active Members</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">50+</div>
+                <div class="stat-label">Events Yearly</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">35+</div>
+                <div class="stat-label">Years Strong</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">1000+</div>
+                <div class="stat-label">Community Reach</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== QUICK ACCESS ========== -->
+    <section class="quick-access">
+        <h2 class="section-title">Quick Access</h2>
+        <div class="quick-grid">
+            <a href="/events" class="quick-item">
+                <div class="quick-icon">📅</div>
+                <div class="quick-label">Events</div>
+            </a>
+            <a href="/members" class="quick-item">
+                <div class="quick-icon">👥</div>
+                <div class="quick-label">Members</div>
+            </a>
+            <a href="/radio" class="quick-item">
+                <div class="quick-icon">📻</div>
+                <div class="quick-label">Radio</div>
+            </a>
+            <a href="/magazine" class="quick-item">
+                <div class="quick-icon">📖</div>
+                <div class="quick-label">Magazine</div>
+            </a>
+            <a href="/gallery" class="quick-item">
+                <div class="quick-icon">🖼️</div>
+                <div class="quick-label">Gallery</div>
+            </a>
+            <a href="/volunteer" class="quick-item">
+                <div class="quick-icon">🤝</div>
+                <div class="quick-label">Volunteer</div>
+            </a>
+        </div>
+    </section>
+
+    <!-- ========== EVENTS SECTION ========== -->
+    <section class="events" id="events">
+        <h2 class="section-title">Upcoming Events</h2>
+        <div class="events-grid">
+            <div class="event-card">
+                <div class="event-image">🎭</div>
+                <div class="event-content">
+                    <span class="event-date">📅 Mar 15, 2026</span>
+                    <h3 class="event-title">Pohela Boishakh Celebration</h3>
+                    <p class="event-location">📍 Jacksonville Community Center</p>
+                    <a href="/events/pohela-boishakh" class="event-btn">View Details</a>
+                </div>
+            </div>
+            <div class="event-card">
+                <div class="event-image">🎵</div>
+                <div class="event-content">
+                    <span class="event-date">📅 Apr 20, 2026</span>
+                    <h3 class="event-title">Rabindra Jayanti</h3>
+                    <p class="event-location">📍 BANF Cultural Hall</p>
+                    <a href="/events/rabindra-jayanti" class="event-btn">View Details</a>
+                </div>
+            </div>
+            <div class="event-card">
+                <div class="event-image">🍲</div>
+                <div class="event-content">
+                    <span class="event-date">📅 May 10, 2026</span>
+                    <h3 class="event-title">Bengali Food Festival</h3>
+                    <p class="event-location">📍 Riverside Park</p>
+                    <a href="/events/food-festival" class="event-btn">View Details</a>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="/events" class="btn-primary">View All Events →</a>
+        </div>
+    </section>
+
+    <!-- ========== RADIO SECTION ========== -->
+    <section class="radio" id="radio">
+        <div class="radio-container">
+            <h2 class="radio-title">📻 BANF Radio</h2>
+            <div class="radio-status">
+                <span class="live-dot"></span>
+                <span>LIVE NOW</span>
+            </div>
+            <p class="now-playing">🎵 Bengali Music Hour - Classic Rabindra Sangeet</p>
+            <div class="radio-controls">
+                <button class="radio-btn play-btn">▶</button>
+                <button class="radio-btn" style="background: #444; color: white;">⏹</button>
+                <button class="radio-btn" style="background: #444; color: white;">🔊</button>
+            </div>
+            <p style="margin-top: 30px; opacity: 0.7;">Listen to Bengali music, news, and cultural programs 24/7</p>
+        </div>
+    </section>
+
+    <!-- ========== MEMBERSHIP SECTION ========== -->
+    <section class="membership" id="membership">
+        <h2 class="membership-title">Join the BANF Family</h2>
+        <div class="membership-grid">
+            <div class="membership-card">
+                <h3 class="membership-type">Individual</h3>
+                <div class="membership-price">$50/yr</div>
+                <ul class="membership-features">
+                    <li>✓ Event Access</li>
+                    <li>✓ Newsletter</li>
+                    <li>✓ Voting Rights</li>
+                    <li>✓ Member Directory</li>
+                </ul>
+                <a href="/register?type=individual" class="membership-btn">Join Now</a>
+            </div>
+            <div class="membership-card featured">
+                <h3 class="membership-type">Family</h3>
+                <div class="membership-price">$75/yr</div>
+                <ul class="membership-features">
+                    <li>✓ All Individual Benefits</li>
+                    <li>✓ Family Event Passes</li>
+                    <li>✓ Kids Programs</li>
+                    <li>✓ Priority Registration</li>
+                </ul>
+                <a href="/register?type=family" class="membership-btn">Join Now</a>
+            </div>
+            <div class="membership-card">
+                <h3 class="membership-type">Student</h3>
+                <div class="membership-price">$25/yr</div>
+                <ul class="membership-features">
+                    <li>✓ Event Access</li>
+                    <li>✓ Newsletter</li>
+                    <li>✓ Mentorship Program</li>
+                    <li>✓ Student Activities</li>
+                </ul>
+                <a href="/register?type=student" class="membership-btn">Join Now</a>
+            </div>
+            <div class="membership-card">
+                <h3 class="membership-type">Lifetime</h3>
+                <div class="membership-price">$500</div>
+                <ul class="membership-features">
+                    <li>✓ All Family Benefits</li>
+                    <li>✓ Lifetime Access</li>
+                    <li>✓ VIP Events</li>
+                    <li>✓ Recognition Wall</li>
+                </ul>
+                <a href="/register?type=lifetime" class="membership-btn">Join Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== MAGAZINE SECTION ========== -->
+    <section class="magazine" id="magazine">
+        <div class="magazine-container">
+            <div class="magazine-image">📖</div>
+            <div class="magazine-content">
+                <h2>BANF Magazine</h2>
+                <div class="magazine-bengali">প্রতিবিম্ব</div>
+                <p class="magazine-desc">
+                    Our annual literary magazine features poetry, stories, essays, and artwork 
+                    from our talented community members. Celebrating Bengali literature and 
+                    culture in North Florida since 1990.
+                </p>
+                <a href="/magazine" class="btn-primary">Read Latest Issue</a>
+                <a href="/magazine/submit" class="btn-secondary" style="margin-left: 15px;">Submit Your Work</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== SPONSORS SECTION ========== -->
+    <section class="sponsors">
+        <h2 class="section-title">Our Sponsors</h2>
+        <div class="sponsors-grid">
+            <div class="sponsor-logo">Gold Sponsor</div>
+            <div class="sponsor-logo">Silver Sponsor</div>
+            <div class="sponsor-logo">Bronze Sponsor</div>
+            <div class="sponsor-logo">Community Partner</div>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/sponsors" class="btn-secondary" style="border-color: var(--green); color: var(--green);">Become a Sponsor</a>
+        </div>
+    </section>
+
+    <!-- ========== CONTACT SECTION ========== -->
+    <section class="contact" id="contact">
+        <div class="contact-container">
+            <h2 class="section-title">Get In Touch</h2>
+            <form class="contact-form">
+                <div class="form-group">
+                    <input type="text" placeholder="Your Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" placeholder="Your Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" placeholder="Subject">
+                </div>
+                <div class="form-group">
+                    <textarea placeholder="Your Message" required></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Send Message</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-about">
+                <h3>🇧🇩 BANF</h3>
+                <p>
+                    Bengali Association of North Florida (BANF) is a non-profit organization 
+                    dedicated to preserving and promoting Bengali culture, language, and heritage 
+                    in the Jacksonville, Florida area since 1988.
+                </p>
+            </div>
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/events">Events</a></li>
+                    <li><a href="/membership">Membership</a></li>
+                    <li><a href="/gallery">Gallery</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="/radio">BANF Radio</a></li>
+                    <li><a href="/magazine">প্রতিবিম্ব Magazine</a></li>
+                    <li><a href="/volunteer">Volunteer</a></li>
+                    <li><a href="/sponsors">Sponsors</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Contact</h4>
+                <ul>
+                    <li>📧 info@jaxbengali.org</li>
+                    <li>📍 Jacksonville, FL</li>
+                    <li><a href="/contact">Contact Form</a></li>
+                    <li><a href="/admin">Admin Login</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Bengali Association of North Florida (BANF). All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- ========== DESIGN PREVIEW BANNER ========== -->
+    <div class="preview-banner">
+        <h3>📋 DESIGN PREVIEW - Review the Landing Page</h3>
+        <p style="margin-bottom: 15px;">This is a static preview. Click to approve or request changes.</p>
+        <button class="approve-btn" onclick="alert('✅ Design Approved! Ready to implement in Wix.')">✓ Approve Design</button>
+        <button class="reject-btn" onclick="alert('Please share your feedback on what changes you need.')">✎ Request Changes</button>
+    </div>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

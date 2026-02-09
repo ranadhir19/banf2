@@ -1,0 +1,1070 @@
+/**
+ * BANF Member Registration Flow Backend Module
+ * ==============================================
+ * Complete member registration workflow with:
+ * - Sign up with first name, last name, email, phone
+ * - Database verification of membership fees paid
+ * - Dynamic unique registration code generation
+ * - Login with registration code → setup username/password
+ * - Profile management (username, address, phone, email, password reset)
+ * - EC member role-based access
+ * 
+ * File: backend/member-registration-flow.jsw
+ * Deploy to: Wix Velo Backend
+ */
+
+import wixData from 'wix-data';
+import { authentication, currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import crypto from 'crypto';
+
+// Collections
+const COLLECTIONS = {
+    MEMBERS: 'Members',
+    PENDING_REGISTRATIONS: 'PendingRegistrations',
+    FEE_PAYMENTS: 'MembershipFeePayments',
+    REGISTRATION_CODES: 'RegistrationCodes',
+    EC_ROLES: 'ECMemberRoles',
+    ACTIVITY_LOG: 'MemberActivityLog'
+};
+
+// Member Roles
+export const MEMBER_ROLES = {
+    SUPER_ADMIN: 'super_admin',
+    PRESIDENT: 'president',
+    TREASURER: 'treasurer',
+    VICE_PRESIDENT: 'vp',
+    SECRETARY: 'secretary',
+    EC_MEMBER: 'ec',
+    MODERATOR: 'moderator',
+    MEMBER: 'member',
+    VISITOR: 'visitor'
+};
+
+// Role Colors (for UI display)
+export const ROLE_COLORS = {
+    super_admin: { primary: '#1a1a1a', secondary: '#333' },
+    president: { primary: '#8B0000', secondary: '#a50000' },
+    treasurer: { primary: '#00A86B', secondary: '#008a64' },
+    vp: { primary: '#FF6B35', secondary: '#ff8b5c' },
+    secretary: { primary: '#5c6bc0', secondary: '#7986cb' },
+    ec: { primary: '#26a69a', secondary: '#4db6ac' },
+    moderator: { primary: '#7e57c2', secondary: '#9575cd' },
+    member: { primary: '#D4AF37', secondary: '#e5c158' },
+    visitor: { primary: '#78909c', secondary: '#90a4ae' }
+};
+
+/**
+ * ============================================
+ * STEP 1: VISITOR SIGN UP
+ * ============================================
+ * Visitor provides basic info, system checks fee payment
+ */
+
+/**
+ * Initiate member sign up - Step 1: Collect basic info and verify fee payment
+ * @param {Object} signUpData - Basic registration data
+ * @returns {Object} - Result with registration status
+ */
+export async function initiateSignUp(signUpData) {
+    const { firstName, lastName, email, phone } = signUpData;
+    
+    try {
+        // Validate required fields
+        if (!firstName || !lastName || !email || !phone) {
+            return {
+                success: false,
+                error: 'All fields are required: first name, last name, email, and phone',
+                code: 'MISSING_FIELDS'
+            };
+        }
+        
+        // Normalize email and phone
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedPhone = normalizePhone(phone);
+        
+        // Check if already registered
+        const existingMember = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('email', normalizedEmail)
+            .or(wixData.query(COLLECTIONS.MEMBERS).eq('phoneNumber', normalizedPhone))
+            .find({ suppressAuth: true });
+        
+        if (existingMember.items.length > 0) {
+            return {
+                success: false,
+                error: 'An account with this email or phone number already exists',
+                code: 'ALREADY_REGISTERED',
+                suggestion: 'Please try logging in instead, or use "Forgot Password" to recover your account.'
+            };
+        }
+        
+        // Check if already has pending registration
+        const pendingReg = await wixData.query(COLLECTIONS.PENDING_REGISTRATIONS)
+            .eq('email', normalizedEmail)
+            .eq('status', 'pending')
+            .find({ suppressAuth: true });
+        
+        if (pendingReg.items.length > 0) {
+            // Resend existing registration code
+            const existingCode = pendingReg.items[0].registrationCode;
+            await sendRegistrationCodeEmail(normalizedEmail, `${firstName} ${lastName}`, existingCode);
+            
+            return {
+                success: true,
+                message: 'You already have a pending registration. We have resent your registration code.',
+                registrationId: pendingReg.items[0]._id,
+                step: 'CODE_SENT',
+                feeVerified: pendingReg.items[0].feeVerified
+            };
+        }
+        
+        // CRITICAL: Verify membership fee has been paid in database
+        const feeVerification = await verifyMembershipFeePaid(normalizedEmail, normalizedPhone, `${firstName} ${lastName}`);
+        
+        if (!feeVerification.found) {
+            // Store pending registration without code (they need to pay first)
+            await wixData.insert(COLLECTIONS.PENDING_REGISTRATIONS, {
+                firstName,
+                lastName,
+                email: normalizedEmail,
+                phone: normalizedPhone,
+                fullName: `${firstName} ${lastName}`,
+                status: 'pending_payment',
+                feeVerified: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+            
+            return {
+                success: false,
+                error: 'Membership fee payment not found',
+                code: 'PAYMENT_NOT_FOUND',
+                message: `We could not find a membership fee payment for "${firstName} ${lastName}" (${normalizedEmail} / ${normalizedPhone}) in our records.`,
+                instructions: [
+                    'Please ensure you have paid your membership fee via Zelle.',
+                    'Use the email banf@example.org or phone (904) 555-BANF for Zelle payments.',
+                    'Allow 24-48 hours for payment verification.',
+                    'If you have already paid, please contact our Treasurer for verification.'
+                ]
+            };
+        }
+        
+        // Fee verified - Generate unique registration code
+        const registrationCode = generateUniqueCode();
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // Code valid for 7 days
+        
+        // Store pending registration with code
+        const pendingRegistration = await wixData.insert(COLLECTIONS.PENDING_REGISTRATIONS, {
+            firstName,
+            lastName,
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            fullName: `${firstName} ${lastName}`,
+            registrationCode,
+            codeExpiresAt: expirationDate,
+            feeVerified: true,
+            feePaymentId: feeVerification.paymentId,
+            feeAmount: feeVerification.amount,
+            membershipType: feeVerification.membershipType || 'individual',
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        // Also store in RegistrationCodes for lookup
+        await wixData.insert(COLLECTIONS.REGISTRATION_CODES, {
+            code: registrationCode,
+            email: normalizedEmail,
+            registrationId: pendingRegistration._id,
+            expiresAt: expirationDate,
+            isUsed: false,
+            createdAt: new Date()
+        });
+        
+        // Send registration code via email
+        await sendRegistrationCodeEmail(normalizedEmail, `${firstName} ${lastName}`, registrationCode);
+        
+        // Log activity
+        await logActivity('signup_initiated', pendingRegistration._id, {
+            email: normalizedEmail,
+            feeAmount: feeVerification.amount
+        });
+        
+        return {
+            success: true,
+            message: 'Membership fee verified! A registration code has been sent to your email.',
+            registrationId: pendingRegistration._id,
+            step: 'CODE_SENT',
+            feeVerified: true,
+            membershipType: feeVerification.membershipType,
+            codeExpiresAt: expirationDate
+        };
+        
+    } catch (error) {
+        console.error('Sign up initiation failed:', error);
+        return {
+            success: false,
+            error: 'An error occurred during sign up. Please try again.',
+            code: 'SYSTEM_ERROR'
+        };
+    }
+}
+
+/**
+ * ============================================
+ * STEP 2: VERIFY REGISTRATION CODE
+ * ============================================
+ */
+
+/**
+ * Verify registration code and proceed to account setup
+ * @param {string} code - Registration code from email
+ * @returns {Object} - Registration data if valid
+ */
+export async function verifyRegistrationCode(code) {
+    try {
+        const normalizedCode = code.toUpperCase().trim();
+        
+        // Find the registration code
+        const codeRecord = await wixData.query(COLLECTIONS.REGISTRATION_CODES)
+            .eq('code', normalizedCode)
+            .eq('isUsed', false)
+            .find({ suppressAuth: true });
+        
+        if (codeRecord.items.length === 0) {
+            return {
+                success: false,
+                error: 'Invalid or expired registration code',
+                code: 'INVALID_CODE'
+            };
+        }
+        
+        const record = codeRecord.items[0];
+        
+        // Check if expired
+        if (new Date(record.expiresAt) < new Date()) {
+            return {
+                success: false,
+                error: 'Registration code has expired',
+                code: 'CODE_EXPIRED',
+                suggestion: 'Please start the sign-up process again to receive a new code.'
+            };
+        }
+        
+        // Get pending registration
+        const pendingReg = await wixData.get(COLLECTIONS.PENDING_REGISTRATIONS, record.registrationId, {
+            suppressAuth: true
+        });
+        
+        if (!pendingReg) {
+            return {
+                success: false,
+                error: 'Registration not found',
+                code: 'REGISTRATION_NOT_FOUND'
+            };
+        }
+        
+        return {
+            success: true,
+            step: 'SETUP_ACCOUNT',
+            registrationId: record.registrationId,
+            email: record.email,
+            memberData: {
+                firstName: pendingReg.firstName,
+                lastName: pendingReg.lastName,
+                email: pendingReg.email,
+                phone: pendingReg.phone,
+                membershipType: pendingReg.membershipType
+            }
+        };
+        
+    } catch (error) {
+        console.error('Code verification failed:', error);
+        return {
+            success: false,
+            error: 'Failed to verify code',
+            code: 'SYSTEM_ERROR'
+        };
+    }
+}
+
+/**
+ * ============================================
+ * STEP 3: SETUP USERNAME AND PASSWORD
+ * ============================================
+ */
+
+/**
+ * Complete registration by setting up username and password
+ * @param {Object} setupData - Account setup data
+ * @returns {Object} - Registration result with session
+ */
+export async function completeRegistration(setupData) {
+    const { registrationId, registrationCode, username, password, confirmPassword, address } = setupData;
+    
+    try {
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            return {
+                success: false,
+                error: 'Passwords do not match',
+                code: 'PASSWORD_MISMATCH'
+            };
+        }
+        
+        // Validate password strength
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+            return {
+                success: false,
+                error: passwordValidation.message,
+                code: 'WEAK_PASSWORD'
+            };
+        }
+        
+        // Verify registration code again
+        const codeVerification = await verifyRegistrationCode(registrationCode);
+        if (!codeVerification.success) {
+            return codeVerification;
+        }
+        
+        // Get pending registration
+        const pendingReg = await wixData.get(COLLECTIONS.PENDING_REGISTRATIONS, registrationId, {
+            suppressAuth: true
+        });
+        
+        if (!pendingReg || pendingReg.status !== 'pending') {
+            return {
+                success: false,
+                error: 'Invalid or expired registration',
+                code: 'INVALID_REGISTRATION'
+            };
+        }
+        
+        // Determine username (default to email if not provided)
+        const finalUsername = username && username.trim() 
+            ? username.trim().toLowerCase() 
+            : pendingReg.email;
+        
+        // Create Wix member account
+        const registrationResult = await authentication.register(pendingReg.email, password, {
+            contactInfo: {
+                firstName: pendingReg.firstName,
+                lastName: pendingReg.lastName,
+                phones: [pendingReg.phone],
+                addresses: address ? [{
+                    addressLine: address.street,
+                    city: address.city || 'Jacksonville',
+                    subdivision: address.state || 'FL',
+                    postalCode: address.zip,
+                    country: 'US'
+                }] : []
+            }
+        });
+        
+        // Create member record in CMS
+        const memberRecord = await wixData.insert(COLLECTIONS.MEMBERS, {
+            wixMemberId: registrationResult.member._id,
+            email: pendingReg.email,
+            username: finalUsername,
+            firstName: pendingReg.firstName,
+            lastName: pendingReg.lastName,
+            fullName: pendingReg.fullName,
+            phoneNumber: pendingReg.phone,
+            address: address ? JSON.stringify(address) : '',
+            membershipType: pendingReg.membershipType,
+            membershipStatus: 'active',
+            membershipStartDate: new Date(),
+            membershipEndDate: getMembershipEndDate(pendingReg.membershipType),
+            membershipPaidDate: new Date(),
+            feePaymentId: pendingReg.feePaymentId,
+            totalPaid: pendingReg.feeAmount,
+            isVerified: true,
+            isFirstLogin: true,
+            role: MEMBER_ROLES.MEMBER,
+            registrationDate: new Date(),
+            familyMembers: '[]',
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        });
+        
+        // Mark registration code as used
+        await wixData.query(COLLECTIONS.REGISTRATION_CODES)
+            .eq('code', registrationCode.toUpperCase())
+            .find({ suppressAuth: true })
+            .then(result => {
+                if (result.items.length > 0) {
+                    const codeRecord = result.items[0];
+                    codeRecord.isUsed = true;
+                    codeRecord.usedAt = new Date();
+                    codeRecord.memberId = memberRecord._id;
+                    return wixData.update(COLLECTIONS.REGISTRATION_CODES, codeRecord, { suppressAuth: true });
+                }
+            });
+        
+        // Update pending registration status
+        pendingReg.status = 'completed';
+        pendingReg.completedAt = new Date();
+        pendingReg.memberId = memberRecord._id;
+        pendingReg.updatedAt = new Date();
+        await wixData.update(COLLECTIONS.PENDING_REGISTRATIONS, pendingReg, { suppressAuth: true });
+        
+        // Link fee payment to member
+        if (pendingReg.feePaymentId) {
+            await linkPaymentToMember(pendingReg.feePaymentId, memberRecord._id);
+        }
+        
+        // Send welcome email
+        try {
+            await triggeredEmails.emailMember('welcome_member', registrationResult.member._id, {
+                variables: {
+                    firstName: pendingReg.firstName,
+                    membershipType: pendingReg.membershipType,
+                    username: finalUsername
+                }
+            });
+        } catch (emailError) {
+            console.error('Welcome email failed:', emailError);
+        }
+        
+        // Log activity
+        await logActivity('registration_completed', memberRecord._id, {
+            membershipType: pendingReg.membershipType
+        });
+        
+        return {
+            success: true,
+            message: 'Registration complete! Welcome to BANF!',
+            memberId: memberRecord._id,
+            member: {
+                id: memberRecord._id,
+                email: memberRecord.email,
+                username: finalUsername,
+                fullName: memberRecord.fullName,
+                membershipType: memberRecord.membershipType,
+                role: MEMBER_ROLES.MEMBER,
+                isFirstLogin: true
+            },
+            sessionToken: registrationResult.sessionToken
+        };
+        
+    } catch (error) {
+        console.error('Registration completion failed:', error);
+        
+        // Check for specific Wix errors
+        if (error.message && error.message.includes('already exists')) {
+            return {
+                success: false,
+                error: 'An account with this email already exists',
+                code: 'ACCOUNT_EXISTS'
+            };
+        }
+        
+        return {
+            success: false,
+            error: 'Failed to complete registration. Please try again.',
+            code: 'SYSTEM_ERROR'
+        };
+    }
+}
+
+/**
+ * ============================================
+ * MEMBER LOGIN
+ * ============================================
+ */
+
+/**
+ * Login member with registration code (for first time) or credentials
+ * @param {Object} loginData - Login credentials
+ * @returns {Object} - Login result
+ */
+export async function loginMember(loginData) {
+    const { emailOrUsername, password, registrationCode } = loginData;
+    
+    try {
+        // If registration code provided, this is a first-time login
+        if (registrationCode) {
+            return await firstTimeLogin(registrationCode);
+        }
+        
+        // Regular login with email/username and password
+        const normalizedInput = emailOrUsername.toLowerCase().trim();
+        
+        // Check if input is username or email
+        let email = normalizedInput;
+        if (!normalizedInput.includes('@')) {
+            // It's a username, look up the email
+            const memberByUsername = await wixData.query(COLLECTIONS.MEMBERS)
+                .eq('username', normalizedInput)
+                .find({ suppressAuth: true });
+            
+            if (memberByUsername.items.length === 0) {
+                return {
+                    success: false,
+                    error: 'Invalid username or password',
+                    code: 'INVALID_CREDENTIALS'
+                };
+            }
+            email = memberByUsername.items[0].email;
+        }
+        
+        // Authenticate with Wix
+        const loginResult = await authentication.login(email, password);
+        
+        // Get member record
+        const members = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('email', email)
+            .find({ suppressAuth: true });
+        
+        if (members.items.length === 0) {
+            return {
+                success: false,
+                error: 'Member profile not found',
+                code: 'PROFILE_NOT_FOUND'
+            };
+        }
+        
+        const member = members.items[0];
+        
+        // Check membership status
+        if (member.membershipStatus === 'suspended') {
+            return {
+                success: false,
+                error: 'Your membership has been suspended. Please contact the EC for assistance.',
+                code: 'ACCOUNT_SUSPENDED'
+            };
+        }
+        
+        // Update last login
+        member.lastLogin = new Date();
+        member.loginCount = (member.loginCount || 0) + 1;
+        
+        // Check if first login (show welcome message)
+        const isFirstLogin = member.isFirstLogin === true;
+        if (isFirstLogin) {
+            member.isFirstLogin = false;
+        }
+        
+        member._updatedDate = new Date();
+        await wixData.update(COLLECTIONS.MEMBERS, member, { suppressAuth: true });
+        
+        // Check for EC role
+        const ecRole = await getECRole(member._id);
+        
+        // Log activity
+        await logActivity('login', member._id, { loginType: 'standard' });
+        
+        return {
+            success: true,
+            member: {
+                id: member._id,
+                email: member.email,
+                username: member.username,
+                fullName: member.fullName,
+                firstName: member.firstName,
+                lastName: member.lastName,
+                membershipType: member.membershipType,
+                membershipStatus: member.membershipStatus,
+                role: ecRole || MEMBER_ROLES.MEMBER,
+                roleColor: ROLE_COLORS[ecRole || MEMBER_ROLES.MEMBER],
+                isFirstLogin
+            },
+            sessionToken: loginResult.sessionToken,
+            isFirstLogin,
+            welcomeMessage: isFirstLogin 
+                ? `Welcome to BANF, ${member.firstName}! This is your first time logging in.`
+                : `Welcome back, ${member.firstName}!`
+        };
+        
+    } catch (error) {
+        console.error('Member login failed:', error);
+        return {
+            success: false,
+            error: 'Invalid email/username or password',
+            code: 'INVALID_CREDENTIALS'
+        };
+    }
+}
+
+/**
+ * First-time login with registration code only
+ */
+async function firstTimeLogin(registrationCode) {
+    const codeVerification = await verifyRegistrationCode(registrationCode);
+    
+    if (!codeVerification.success) {
+        return codeVerification;
+    }
+    
+    return {
+        success: true,
+        step: 'SETUP_REQUIRED',
+        message: 'Please set up your username and password to complete registration.',
+        ...codeVerification
+    };
+}
+
+/**
+ * ============================================
+ * PROFILE MANAGEMENT
+ * ============================================
+ */
+
+/**
+ * Get current member's profile
+ */
+export async function getCurrentProfile() {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) {
+            return { success: false, error: 'Not logged in', code: 'NOT_AUTHENTICATED' };
+        }
+        
+        const profile = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('wixMemberId', member._id)
+            .find({ suppressAuth: true });
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Profile not found', code: 'PROFILE_NOT_FOUND' };
+        }
+        
+        const memberData = profile.items[0];
+        const ecRole = await getECRole(memberData._id);
+        
+        return {
+            success: true,
+            profile: {
+                id: memberData._id,
+                email: memberData.email,
+                username: memberData.username,
+                firstName: memberData.firstName,
+                lastName: memberData.lastName,
+                fullName: memberData.fullName,
+                phone: memberData.phoneNumber,
+                address: memberData.address ? JSON.parse(memberData.address) : null,
+                membershipType: memberData.membershipType,
+                membershipStatus: memberData.membershipStatus,
+                membershipStartDate: memberData.membershipStartDate,
+                membershipEndDate: memberData.membershipEndDate,
+                familyMembers: JSON.parse(memberData.familyMembers || '[]'),
+                role: ecRole || MEMBER_ROLES.MEMBER,
+                roleColor: ROLE_COLORS[ecRole || MEMBER_ROLES.MEMBER],
+                registrationDate: memberData.registrationDate,
+                isVerified: memberData.isVerified
+            }
+        };
+    } catch (error) {
+        console.error('Failed to get profile:', error);
+        return { success: false, error: error.message, code: 'SYSTEM_ERROR' };
+    }
+}
+
+/**
+ * Update member profile
+ * @param {Object} updates - Profile updates
+ */
+export async function updateProfile(updates) {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) {
+            return { success: false, error: 'Not logged in', code: 'NOT_AUTHENTICATED' };
+        }
+        
+        const members = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('wixMemberId', member._id)
+            .find({ suppressAuth: true });
+        
+        if (members.items.length === 0) {
+            return { success: false, error: 'Profile not found', code: 'PROFILE_NOT_FOUND' };
+        }
+        
+        const existingMember = members.items[0];
+        
+        // Allowed fields for self-update
+        const allowedFields = ['username', 'phoneNumber', 'address', 'familyMembers'];
+        const filteredUpdates = {};
+        
+        allowedFields.forEach(field => {
+            if (updates[field] !== undefined) {
+                if (field === 'address' && typeof updates[field] === 'object') {
+                    filteredUpdates[field] = JSON.stringify(updates[field]);
+                } else if (field === 'familyMembers' && Array.isArray(updates[field])) {
+                    filteredUpdates[field] = JSON.stringify(updates[field]);
+                } else {
+                    filteredUpdates[field] = updates[field];
+                }
+            }
+        });
+        
+        // Check username uniqueness if being changed
+        if (filteredUpdates.username && filteredUpdates.username !== existingMember.username) {
+            const usernameCheck = await wixData.query(COLLECTIONS.MEMBERS)
+                .eq('username', filteredUpdates.username.toLowerCase())
+                .find({ suppressAuth: true });
+            
+            if (usernameCheck.items.length > 0) {
+                return {
+                    success: false,
+                    error: 'Username is already taken',
+                    code: 'USERNAME_TAKEN'
+                };
+            }
+            filteredUpdates.username = filteredUpdates.username.toLowerCase();
+        }
+        
+        filteredUpdates._updatedDate = new Date();
+        
+        const updated = { ...existingMember, ...filteredUpdates };
+        await wixData.update(COLLECTIONS.MEMBERS, updated, { suppressAuth: true });
+        
+        // Log activity
+        await logActivity('profile_updated', existingMember._id, {
+            updatedFields: Object.keys(filteredUpdates)
+        });
+        
+        return {
+            success: true,
+            message: 'Profile updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Profile update failed:', error);
+        return { success: false, error: error.message, code: 'SYSTEM_ERROR' };
+    }
+}
+
+/**
+ * Change email (requires re-verification)
+ */
+export async function changeEmail(newEmail, currentPassword) {
+    try {
+        const member = await currentMember.getMember();
+        if (!member) {
+            return { success: false, error: 'Not logged in', code: 'NOT_AUTHENTICATED' };
+        }
+        
+        const normalizedEmail = newEmail.toLowerCase().trim();
+        
+        // Check if new email is already in use
+        const emailCheck = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('email', normalizedEmail)
+            .find({ suppressAuth: true });
+        
+        if (emailCheck.items.length > 0) {
+            return {
+                success: false,
+                error: 'This email is already registered',
+                code: 'EMAIL_IN_USE'
+            };
+        }
+        
+        // TODO: Implement email change with Wix authentication
+        // This would typically require:
+        // 1. Verify current password
+        // 2. Send verification email to new address
+        // 3. Update on verification
+        
+        return {
+            success: false,
+            error: 'Email change feature coming soon. Please contact support.',
+            code: 'NOT_IMPLEMENTED'
+        };
+        
+    } catch (error) {
+        console.error('Email change failed:', error);
+        return { success: false, error: error.message, code: 'SYSTEM_ERROR' };
+    }
+}
+
+/**
+ * Request password reset
+ */
+export async function requestPasswordReset(email) {
+    try {
+        const normalizedEmail = email.toLowerCase().trim();
+        
+        // Check if member exists
+        const members = await wixData.query(COLLECTIONS.MEMBERS)
+            .eq('email', normalizedEmail)
+            .find({ suppressAuth: true });
+        
+        // Always return success to prevent email enumeration
+        if (members.items.length > 0) {
+            await authentication.sendSetPasswordEmail(normalizedEmail);
+            await logActivity('password_reset_requested', members.items[0]._id, {});
+        }
+        
+        return {
+            success: true,
+            message: 'If an account exists with this email, a password reset link has been sent.'
+        };
+        
+    } catch (error) {
+        console.error('Password reset failed:', error);
+        return {
+            success: true, // Still return success to prevent email enumeration
+            message: 'If an account exists with this email, a password reset link has been sent.'
+        };
+    }
+}
+
+/**
+ * ============================================
+ * EC ROLE MANAGEMENT
+ * ============================================
+ */
+
+/**
+ * Get EC role for a member
+ */
+async function getECRole(memberId) {
+    try {
+        const ecRoles = await wixData.query(COLLECTIONS.EC_ROLES)
+            .eq('memberId', memberId)
+            .eq('isActive', true)
+            .find({ suppressAuth: true });
+        
+        if (ecRoles.items.length > 0) {
+            return ecRoles.items[0].role;
+        }
+        return null;
+    } catch (error) {
+        console.error('Failed to get EC role:', error);
+        return null;
+    }
+}
+
+/**
+ * Check if member has specific permission
+ */
+export async function checkPermission(memberId, permission) {
+    const role = await getECRole(memberId);
+    
+    if (!role) {
+        return MEMBER_ROLE_PERMISSIONS.member.includes(permission) ||
+               MEMBER_ROLE_PERMISSIONS.member.includes('*');
+    }
+    
+    const permissions = MEMBER_ROLE_PERMISSIONS[role] || [];
+    return permissions.includes('*') || permissions.includes(permission);
+}
+
+// Member role permissions
+const MEMBER_ROLE_PERMISSIONS = {
+    super_admin: ['*'],
+    president: ['*'],
+    treasurer: ['finances', 'payments', 'reports', 'members.verify', 'members.view'],
+    vp: ['members', 'events', 'meetings', 'finances.view', 'complaints'],
+    secretary: ['meetings', 'communications', 'members.view', 'reports.view'],
+    ec: ['events.create', 'meetings.view', 'members.view', 'checkin'],
+    moderator: ['complaints', 'content'],
+    member: ['profile.self', 'events.register', 'payments.self', 'directory.view'],
+    visitor: ['events.view', 'info.view']
+};
+
+/**
+ * ============================================
+ * HELPER FUNCTIONS
+ * ============================================
+ */
+
+/**
+ * Verify membership fee payment in database
+ */
+async function verifyMembershipFeePaid(email, phone, fullName) {
+    try {
+        // Search by multiple criteria
+        const nameTokens = fullName.toLowerCase().split(' ');
+        
+        // Query for payments matching email, phone, or name
+        let query = wixData.query(COLLECTIONS.FEE_PAYMENTS)
+            .eq('payerEmail', email)
+            .or(wixData.query(COLLECTIONS.FEE_PAYMENTS).eq('payerPhone', phone));
+        
+        // Also try matching by name
+        const payments = await query
+            .eq('status', 'verified')
+            .eq('isLinkedToMember', false)
+            .descending('paymentDate')
+            .find({ suppressAuth: true });
+        
+        if (payments.items.length > 0) {
+            return {
+                found: true,
+                paymentId: payments.items[0]._id,
+                amount: payments.items[0].amount,
+                membershipType: payments.items[0].membershipType,
+                paymentDate: payments.items[0].paymentDate
+            };
+        }
+        
+        // Try name-based search as fallback
+        const nameSearch = await wixData.query(COLLECTIONS.FEE_PAYMENTS)
+            .contains('payerName', nameTokens[0])
+            .eq('status', 'verified')
+            .eq('isLinkedToMember', false)
+            .find({ suppressAuth: true });
+        
+        for (const payment of nameSearch.items) {
+            const payerNameLower = (payment.payerName || '').toLowerCase();
+            if (nameTokens.every(token => payerNameLower.includes(token))) {
+                return {
+                    found: true,
+                    paymentId: payment._id,
+                    amount: payment.amount,
+                    membershipType: payment.membershipType,
+                    paymentDate: payment.paymentDate
+                };
+            }
+        }
+        
+        return { found: false };
+        
+    } catch (error) {
+        console.error('Fee verification error:', error);
+        return { found: false, error: error.message };
+    }
+}
+
+/**
+ * Link payment to member after registration
+ */
+async function linkPaymentToMember(paymentId, memberId) {
+    try {
+        const payment = await wixData.get(COLLECTIONS.FEE_PAYMENTS, paymentId, { suppressAuth: true });
+        if (payment) {
+            payment.memberId = memberId;
+            payment.isLinkedToMember = true;
+            payment.linkedAt = new Date();
+            await wixData.update(COLLECTIONS.FEE_PAYMENTS, payment, { suppressAuth: true });
+        }
+    } catch (error) {
+        console.error('Failed to link payment:', error);
+    }
+}
+
+/**
+ * Generate unique registration code
+ */
+function generateUniqueCode() {
+    // Format: BANF-XXXX-XXXX (8 random alphanumeric chars)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar chars (0,O,1,I)
+    let code = 'BANF-';
+    
+    for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    code += '-';
+    for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return code;
+}
+
+/**
+ * Normalize phone number
+ */
+function normalizePhone(phone) {
+    return phone.replace(/[^0-9]/g, '');
+}
+
+/**
+ * Validate password strength
+ */
+function validatePassword(password) {
+    if (password.length < 8) {
+        return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one uppercase letter' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one lowercase letter' };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one number' };
+    }
+    return { valid: true };
+}
+
+/**
+ * Get membership end date (1 year from now)
+ */
+function getMembershipEndDate(membershipType) {
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    return endDate;
+}
+
+/**
+ * Send registration code email
+ */
+async function sendRegistrationCodeEmail(email, name, code) {
+    try {
+        // Using Wix triggered emails or custom SMTP
+        await triggeredEmails.emailContact('registration_code', {
+            email,
+            variables: {
+                name,
+                registrationCode: code,
+                expirationDays: '7'
+            }
+        });
+    } catch (error) {
+        console.error('Failed to send registration email:', error);
+        // Don't fail the whole process
+    }
+}
+
+/**
+ * Log member activity
+ */
+async function logActivity(action, entityId, details) {
+    try {
+        await wixData.insert(COLLECTIONS.ACTIVITY_LOG, {
+            action,
+            entityId,
+            details: JSON.stringify(details),
+            timestamp: new Date(),
+            _createdDate: new Date()
+        });
+    } catch (error) {
+        console.error('Failed to log activity:', error);
+    }
+}
+
+/**
+ * ============================================
+ * VISITOR INFORMATION ENDPOINT
+ * ============================================
+ */
+
+/**
+ * Get visitor information message for member portal
+ */
+export function getVisitorNotice() {
+    return {
+        title: 'Members-Only Portal',
+        message: 'This area is for registered BANF members only.',
+        instructions: [
+            'If you are a new member who has paid membership fees, click "Sign Up" to create your account.',
+            'If you already have an account, please log in with your username/email and password.',
+            'If you have a registration code, enter it below to complete your registration.',
+            'For membership information and fee payment, please visit our Membership page.'
+        ],
+        links: {
+            signUp: '/member-signup',
+            login: '/member-login',
+            membershipInfo: '/membership',
+            contactUs: '/contact'
+        },
+        feeInfo: {
+            individual: { amount: 40, description: 'Individual Membership - $40/year' },
+            family: { amount: 75, description: 'Family Membership - $75/year' },
+            senior: { amount: 25, description: 'Senior Membership (65+) - $25/year' }
+        }
+    };
+}

@@ -1,0 +1,701 @@
+/**
+ * BANF Check-In Kiosk Service
+ * =============================
+ * Wix Velo Backend Module for self-service event check-in
+ * 
+ * Features:
+ * - QR code scanning at kiosk
+ * - Manual lookup by name/phone
+ * - Real-time attendance tracking
+ * - Badge printing integration
+ * - Family check-in support
+ * 
+ * @module backend/checkin-kiosk-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// KIOSK CONFIGURATION
+// =====================================================
+
+const KIOSK_MODES = {
+    QR_ONLY: 'qr_only',
+    QR_WITH_MANUAL: 'qr_with_manual',
+    MANUAL_ONLY: 'manual_only'
+};
+
+const CHECKIN_STATUS = {
+    NOT_CHECKED_IN: 'not_checked_in',
+    CHECKED_IN: 'checked_in',
+    CHECKED_OUT: 'checked_out',
+    NO_SHOW: 'no_show'
+};
+
+const BADGE_TYPES = {
+    MEMBER: { label: 'Member', color: '#006A4E', icon: '🏠' },
+    GUEST: { label: 'Guest', color: '#f7931e', icon: '👋' },
+    VIP: { label: 'VIP', color: '#722f37', icon: '⭐' },
+    VOLUNTEER: { label: 'Volunteer', color: '#4285f4', icon: '🤝' },
+    EC_MEMBER: { label: 'EC Member', color: '#8B0000', icon: '👑' },
+    SPONSOR: { label: 'Sponsor', color: '#daa520', icon: '🏆' },
+    CHILD: { label: 'Child', color: '#9c27b0', icon: '🧒' }
+};
+
+// =====================================================
+// KIOSK SESSION MANAGEMENT
+// =====================================================
+
+/**
+ * Initialize a kiosk session for an event
+ * @param {string} eventId
+ * @param {Object} kioskConfig
+ */
+export async function initializeKiosk(eventId, kioskConfig = {}) {
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Create kiosk session
+        const session = await wixData.insert('KioskSessions', {
+            eventId: eventId,
+            eventTitle: event.title,
+            eventDate: event.eventDate,
+            
+            // Configuration
+            mode: kioskConfig.mode || KIOSK_MODES.QR_WITH_MANUAL,
+            allowWalkIns: kioskConfig.allowWalkIns !== false,
+            requireFoodSelection: kioskConfig.requireFoodSelection || false,
+            printBadges: kioskConfig.printBadges || false,
+            
+            // Station Info
+            stationId: kioskConfig.stationId || `KIOSK_${Date.now()}`,
+            stationName: kioskConfig.stationName || 'Main Entrance',
+            
+            // Status
+            status: 'active',
+            startedAt: new Date(),
+            
+            // Stats
+            stats: {
+                totalCheckIns: 0,
+                qrCheckIns: 0,
+                manualCheckIns: 0,
+                walkIns: 0,
+                adults: 0,
+                children: 0
+            }
+        });
+        
+        // Get expected attendees
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .eq('rsvpStatus', 'attending')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            sessionId: session._id,
+            stationId: session.stationId,
+            eventInfo: {
+                title: event.title,
+                date: event.eventDate,
+                venue: event.venueName
+            },
+            expectedAttendees: rsvps.totalCount,
+            mode: session.mode
+        };
+        
+    } catch (error) {
+        console.error('Error initializing kiosk:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// CHECK-IN OPERATIONS
+// =====================================================
+
+/**
+ * Check in via QR code scan
+ * @param {string} sessionId
+ * @param {string} qrCode
+ */
+export async function checkInByQR(sessionId, qrCode) {
+    try {
+        // Validate session
+        const session = await wixData.get('KioskSessions', sessionId);
+        if (!session || session.status !== 'active') {
+            return { success: false, error: 'Invalid kiosk session' };
+        }
+        
+        // Find QR code
+        const qrResult = await wixData.query('QRCodes')
+            .eq('qrCode', qrCode)
+            .eq('eventId', session.eventId)
+            .find({ suppressAuth: true });
+        
+        if (qrResult.items.length === 0) {
+            return { 
+                success: false, 
+                error: 'QR code not found',
+                suggestion: 'Try manual lookup'
+            };
+        }
+        
+        const qr = qrResult.items[0];
+        
+        // Check if already used
+        if (qr.status === 'used') {
+            // Get previous check-in time
+            const prevCheckin = await wixData.query('CheckInLog')
+                .eq('qrCode', qrCode)
+                .descending('checkedInAt')
+                .limit(1)
+                .find({ suppressAuth: true });
+            
+            return {
+                success: false,
+                error: 'Already checked in',
+                previousCheckIn: prevCheckin.items[0]?.checkedInAt,
+                attendeeInfo: {
+                    name: qr.metadata?.attendeeName,
+                    email: qr.metadata?.email
+                }
+            };
+        }
+        
+        // Perform check-in
+        const checkInResult = await performCheckIn(session, {
+            method: 'qr',
+            qrCode: qrCode,
+            rsvpId: qr.rsvpId,
+            attendeeInfo: qr.metadata
+        });
+        
+        // Update QR code status
+        qr.status = 'used';
+        qr.usedAt = new Date();
+        qr.usedAtStation = session.stationId;
+        await wixData.update('QRCodes', qr);
+        
+        return checkInResult;
+        
+    } catch (error) {
+        console.error('Error QR check-in:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Check in via manual lookup
+ * @param {string} sessionId
+ * @param {Object} lookupData - { name, phone, email }
+ */
+export async function checkInByManual(sessionId, lookupData) {
+    try {
+        const session = await wixData.get('KioskSessions', sessionId);
+        if (!session || session.status !== 'active') {
+            return { success: false, error: 'Invalid kiosk session' };
+        }
+        
+        // Search for attendee
+        let query = wixData.query('EviteRSVPs')
+            .eq('eventId', session.eventId)
+            .eq('rsvpStatus', 'attending');
+        
+        if (lookupData.phone) {
+            query = query.eq('phone', lookupData.phone);
+        } else if (lookupData.email) {
+            query = query.eq('email', lookupData.email.toLowerCase());
+        } else if (lookupData.name) {
+            query = query.contains('attendeeName', lookupData.name);
+        }
+        
+        const rsvps = await query.find({ suppressAuth: true });
+        
+        if (rsvps.items.length === 0) {
+            // No RSVP found - check if walk-ins allowed
+            if (session.allowWalkIns) {
+                return {
+                    success: false,
+                    notFound: true,
+                    walkInAllowed: true,
+                    message: 'No RSVP found. Register as walk-in?'
+                };
+            }
+            return { success: false, error: 'Attendee not found in RSVP list' };
+        }
+        
+        if (rsvps.items.length > 1) {
+            // Multiple matches - return list for selection
+            return {
+                success: false,
+                multipleMatches: true,
+                matches: rsvps.items.map(r => ({
+                    rsvpId: r._id,
+                    name: r.attendeeName,
+                    email: maskEmail(r.email),
+                    phone: maskPhone(r.phone),
+                    guestCount: r.totalGuests,
+                    checkedIn: r.checkinStatus === 'checked_in'
+                }))
+            };
+        }
+        
+        const rsvp = rsvps.items[0];
+        
+        // Check if already checked in
+        if (rsvp.checkinStatus === CHECKIN_STATUS.CHECKED_IN) {
+            return {
+                success: false,
+                error: 'Already checked in',
+                previousCheckIn: rsvp.checkedInAt
+            };
+        }
+        
+        // Perform check-in
+        return await performCheckIn(session, {
+            method: 'manual',
+            rsvpId: rsvp._id,
+            attendeeInfo: {
+                attendeeName: rsvp.attendeeName,
+                email: rsvp.email,
+                phone: rsvp.phone,
+                dietary: rsvp.dietary,
+                guests: rsvp.guests,
+                totalAdults: rsvp.totalAdults,
+                totalChildren: rsvp.totalChildren
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error manual check-in:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Register and check in a walk-in attendee
+ * @param {string} sessionId
+ * @param {Object} walkInData
+ */
+export async function checkInWalkIn(sessionId, walkInData) {
+    try {
+        const session = await wixData.get('KioskSessions', sessionId);
+        if (!session || session.status !== 'active') {
+            return { success: false, error: 'Invalid kiosk session' };
+        }
+        
+        if (!session.allowWalkIns) {
+            return { success: false, error: 'Walk-ins not allowed for this event' };
+        }
+        
+        // Create walk-in RSVP
+        const walkInRSVP = await wixData.insert('EviteRSVPs', {
+            eventId: session.eventId,
+            attendeeName: walkInData.name,
+            email: walkInData.email,
+            phone: walkInData.phone,
+            rsvpStatus: 'attending',
+            isWalkIn: true,
+            
+            // Guest info
+            totalAdults: walkInData.adults || 1,
+            totalChildren: walkInData.children || 0,
+            totalGuests: (walkInData.adults || 1) + (walkInData.children || 0),
+            
+            // Dietary
+            dietary: walkInData.dietary || [],
+            
+            submittedAt: new Date()
+        });
+        
+        // Perform check-in
+        return await performCheckIn(session, {
+            method: 'walkin',
+            rsvpId: walkInRSVP._id,
+            attendeeInfo: {
+                attendeeName: walkInData.name,
+                email: walkInData.email,
+                phone: walkInData.phone,
+                totalAdults: walkInData.adults || 1,
+                totalChildren: walkInData.children || 0,
+                dietary: walkInData.dietary
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error walk-in check-in:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Perform the actual check-in
+ */
+async function performCheckIn(session, checkInData) {
+    const { method, rsvpId, attendeeInfo, qrCode } = checkInData;
+    
+    // Create check-in log entry
+    const checkInLog = await wixData.insert('CheckInLog', {
+        sessionId: session._id,
+        eventId: session.eventId,
+        rsvpId: rsvpId,
+        qrCode: qrCode || null,
+        
+        // Attendee Info
+        attendeeName: attendeeInfo.attendeeName,
+        email: attendeeInfo.email,
+        phone: attendeeInfo.phone,
+        
+        // Group Info
+        totalAdults: attendeeInfo.totalAdults || 1,
+        totalChildren: attendeeInfo.totalChildren || 0,
+        
+        // Check-in Details
+        method: method, // 'qr', 'manual', 'walkin'
+        stationId: session.stationId,
+        stationName: session.stationName,
+        checkedInAt: new Date(),
+        
+        // Status
+        status: CHECKIN_STATUS.CHECKED_IN
+    });
+    
+    // Update RSVP status
+    if (rsvpId) {
+        const rsvp = await wixData.get('EviteRSVPs', rsvpId);
+        if (rsvp) {
+            rsvp.checkinStatus = CHECKIN_STATUS.CHECKED_IN;
+            rsvp.checkedInAt = new Date();
+            rsvp.checkedInBy = session.stationId;
+            await wixData.update('EviteRSVPs', rsvp);
+        }
+    }
+    
+    // Update session stats
+    session.stats.totalCheckIns++;
+    if (method === 'qr') session.stats.qrCheckIns++;
+    if (method === 'manual') session.stats.manualCheckIns++;
+    if (method === 'walkin') session.stats.walkIns++;
+    session.stats.adults += (attendeeInfo.totalAdults || 1);
+    session.stats.children += (attendeeInfo.totalChildren || 0);
+    await wixData.update('KioskSessions', session);
+    
+    // Determine badge type
+    const badgeType = determineBadgeType(attendeeInfo);
+    
+    return {
+        success: true,
+        checkInId: checkInLog._id,
+        message: `Welcome, ${attendeeInfo.attendeeName}!`,
+        attendee: {
+            name: attendeeInfo.attendeeName,
+            adults: attendeeInfo.totalAdults || 1,
+            children: attendeeInfo.totalChildren || 0,
+            dietary: attendeeInfo.dietary
+        },
+        badge: {
+            type: badgeType,
+            ...BADGE_TYPES[badgeType],
+            name: attendeeInfo.attendeeName,
+            guestOf: method === 'walkin' ? 'Walk-In' : null
+        },
+        checkedInAt: checkInLog.checkedInAt
+    };
+}
+
+function determineBadgeType(attendeeInfo) {
+    if (attendeeInfo.isVolunteer) return 'VOLUNTEER';
+    if (attendeeInfo.isECMember) return 'EC_MEMBER';
+    if (attendeeInfo.isSponsor) return 'SPONSOR';
+    if (attendeeInfo.isVIP) return 'VIP';
+    if (attendeeInfo.memberId) return 'MEMBER';
+    return 'GUEST';
+}
+
+// =====================================================
+// ATTENDANCE SEARCH
+// =====================================================
+
+/**
+ * Search attendees for check-in
+ * @param {string} sessionId
+ * @param {string} searchTerm
+ */
+export async function searchAttendees(sessionId, searchTerm) {
+    try {
+        const session = await wixData.get('KioskSessions', sessionId);
+        if (!session) {
+            return { success: false, error: 'Invalid session' };
+        }
+        
+        // Search by name
+        const byName = await wixData.query('EviteRSVPs')
+            .eq('eventId', session.eventId)
+            .eq('rsvpStatus', 'attending')
+            .contains('attendeeName', searchTerm)
+            .limit(10)
+            .find({ suppressAuth: true });
+        
+        // Search by phone (if numeric)
+        let byPhone = { items: [] };
+        if (/^\d+$/.test(searchTerm) && searchTerm.length >= 4) {
+            byPhone = await wixData.query('EviteRSVPs')
+                .eq('eventId', session.eventId)
+                .eq('rsvpStatus', 'attending')
+                .contains('phone', searchTerm)
+                .limit(5)
+                .find({ suppressAuth: true });
+        }
+        
+        // Combine and dedupe results
+        const allResults = [...byName.items, ...byPhone.items];
+        const uniqueResults = allResults.filter((item, index, self) =>
+            index === self.findIndex(r => r._id === item._id)
+        );
+        
+        return {
+            success: true,
+            results: uniqueResults.slice(0, 10).map(r => ({
+                rsvpId: r._id,
+                name: r.attendeeName,
+                phone: maskPhone(r.phone),
+                email: maskEmail(r.email),
+                totalGuests: r.totalGuests,
+                adults: r.totalAdults,
+                children: r.totalChildren,
+                dietary: r.dietary,
+                checkedIn: r.checkinStatus === CHECKIN_STATUS.CHECKED_IN,
+                checkedInAt: r.checkedInAt
+            })),
+            totalFound: uniqueResults.length
+        };
+        
+    } catch (error) {
+        console.error('Error searching attendees:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// KIOSK DASHBOARD
+// =====================================================
+
+/**
+ * Get real-time kiosk stats
+ * @param {string} sessionId
+ */
+export async function getKioskStats(sessionId) {
+    try {
+        const session = await wixData.get('KioskSessions', sessionId);
+        if (!session) {
+            return { success: false, error: 'Session not found' };
+        }
+        
+        // Get expected attendees
+        const expectedResult = await wixData.query('EviteRSVPs')
+            .eq('eventId', session.eventId)
+            .eq('rsvpStatus', 'attending')
+            .count({ suppressAuth: true });
+        
+        // Get checked in count
+        const checkedInResult = await wixData.query('EviteRSVPs')
+            .eq('eventId', session.eventId)
+            .eq('checkinStatus', CHECKIN_STATUS.CHECKED_IN)
+            .count({ suppressAuth: true });
+        
+        // Get recent check-ins
+        const recentCheckIns = await wixData.query('CheckInLog')
+            .eq('sessionId', sessionId)
+            .descending('checkedInAt')
+            .limit(5)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            stats: {
+                expected: expectedResult,
+                checkedIn: checkedInResult,
+                remaining: expectedResult - checkedInResult,
+                checkInRate: expectedResult > 0 
+                    ? Math.round((checkedInResult / expectedResult) * 100) 
+                    : 0,
+                
+                // Session stats
+                sessionStats: session.stats,
+                
+                // Station info
+                station: {
+                    id: session.stationId,
+                    name: session.stationName,
+                    activeFor: Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000)
+                },
+                
+                // Recent activity
+                recentCheckIns: recentCheckIns.items.map(c => ({
+                    name: c.attendeeName,
+                    time: c.checkedInAt,
+                    method: c.method,
+                    partySize: (c.totalAdults || 0) + (c.totalChildren || 0)
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting kiosk stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all kiosk sessions for an event
+ * @param {string} eventId
+ */
+export async function getEventKioskSessions(eventId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const sessions = await wixData.query('KioskSessions')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            sessions: sessions.items.map(s => ({
+                sessionId: s._id,
+                stationId: s.stationId,
+                stationName: s.stationName,
+                status: s.status,
+                startedAt: s.startedAt,
+                stats: s.stats
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting kiosk sessions:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// ATTENDANCE REPORT
+// =====================================================
+
+/**
+ * Get attendance report for an event
+ * @param {string} eventId
+ */
+export async function getAttendanceReport(eventId) {
+    const member = await currentMember.getMember();
+    if (!member) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        // Get all RSVPs
+        const rsvps = await wixData.query('EviteRSVPs')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        // Get all check-in logs
+        const checkIns = await wixData.query('CheckInLog')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        // Calculate stats
+        const totalRSVPs = rsvps.totalCount;
+        const attending = rsvps.items.filter(r => r.rsvpStatus === 'attending').length;
+        const checkedIn = rsvps.items.filter(r => r.checkinStatus === CHECKIN_STATUS.CHECKED_IN).length;
+        const noShows = attending - checkedIn;
+        const walkIns = checkIns.items.filter(c => c.method === 'walkin').length;
+        
+        const totalAdults = checkIns.items.reduce((sum, c) => sum + (c.totalAdults || 0), 0);
+        const totalChildren = checkIns.items.reduce((sum, c) => sum + (c.totalChildren || 0), 0);
+        
+        // Check-in timeline
+        const timelineData = {};
+        for (const c of checkIns.items) {
+            const hour = new Date(c.checkedInAt).getHours();
+            timelineData[hour] = (timelineData[hour] || 0) + 1;
+        }
+        
+        return {
+            success: true,
+            report: {
+                event: {
+                    title: event?.title,
+                    date: event?.eventDate
+                },
+                summary: {
+                    totalRSVPs: totalRSVPs,
+                    expectedAttendees: attending,
+                    actualCheckedIn: checkedIn,
+                    noShows: noShows,
+                    walkIns: walkIns,
+                    attendanceRate: attending > 0 
+                        ? Math.round((checkedIn / attending) * 100) 
+                        : 0
+                },
+                demographics: {
+                    totalAdults: totalAdults,
+                    totalChildren: totalChildren,
+                    totalHeadcount: totalAdults + totalChildren
+                },
+                checkInMethods: {
+                    qr: checkIns.items.filter(c => c.method === 'qr').length,
+                    manual: checkIns.items.filter(c => c.method === 'manual').length,
+                    walkIn: walkIns
+                },
+                timeline: Object.entries(timelineData).map(([hour, count]) => ({
+                    hour: `${hour}:00`,
+                    checkIns: count
+                })),
+                attendeeList: rsvps.items.map(r => ({
+                    name: r.attendeeName,
+                    email: r.email,
+                    rsvpStatus: r.rsvpStatus,
+                    checkinStatus: r.checkinStatus || CHECKIN_STATUS.NOT_CHECKED_IN,
+                    checkedInAt: r.checkedInAt,
+                    partySize: r.totalGuests
+                }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting attendance report:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+function maskEmail(email) {
+    if (!email) return '';
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    const maskedLocal = local.substring(0, 2) + '***';
+    return `${maskedLocal}@${domain}`;
+}
+
+function maskPhone(phone) {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 4) return phone;
+    return '***-***-' + digits.slice(-4);
+}
+
+// Export constants
+export { KIOSK_MODES, CHECKIN_STATUS, BADGE_TYPES };

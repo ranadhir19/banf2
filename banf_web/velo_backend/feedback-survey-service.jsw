@@ -1,0 +1,797 @@
+/**
+ * BANF Feedback & Survey Service
+ * ===============================
+ * Wix Velo Backend Module for post-event surveys and member feedback
+ * 
+ * Features:
+ * - Survey template creation
+ * - Post-event feedback collection
+ * - Rating analytics
+ * - Improvement suggestions tracking
+ * - NPS (Net Promoter Score) calculation
+ * 
+ * @module backend/feedback-survey-service.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// =====================================================
+// SURVEY CONFIGURATION
+// =====================================================
+
+const QUESTION_TYPES = {
+    RATING: 'rating',           // 1-5 stars
+    NPS: 'nps',                 // 0-10 scale
+    MULTIPLE_CHOICE: 'multiple_choice',
+    CHECKBOX: 'checkbox',
+    TEXT: 'text',
+    TEXTAREA: 'textarea',
+    YES_NO: 'yes_no'
+};
+
+const SURVEY_TEMPLATES = {
+    POST_EVENT: {
+        name: 'Post Event Survey',
+        questions: [
+            {
+                questionId: 'Q1',
+                type: QUESTION_TYPES.RATING,
+                text: 'How would you rate the overall event?',
+                required: true
+            },
+            {
+                questionId: 'Q2',
+                type: QUESTION_TYPES.RATING,
+                text: 'How would you rate the venue?',
+                required: true
+            },
+            {
+                questionId: 'Q3',
+                type: QUESTION_TYPES.RATING,
+                text: 'How would you rate the food quality?',
+                required: true
+            },
+            {
+                questionId: 'Q4',
+                type: QUESTION_TYPES.RATING,
+                text: 'How would you rate the cultural program?',
+                required: false
+            },
+            {
+                questionId: 'Q5',
+                type: QUESTION_TYPES.YES_NO,
+                text: 'Was the event well organized?',
+                required: true
+            },
+            {
+                questionId: 'Q6',
+                type: QUESTION_TYPES.NPS,
+                text: 'How likely are you to recommend BANF events to friends?',
+                required: true
+            },
+            {
+                questionId: 'Q7',
+                type: QUESTION_TYPES.TEXTAREA,
+                text: 'What did you like most about the event?',
+                required: false
+            },
+            {
+                questionId: 'Q8',
+                type: QUESTION_TYPES.TEXTAREA,
+                text: 'What could we improve?',
+                required: false
+            },
+            {
+                questionId: 'Q9',
+                type: QUESTION_TYPES.CHECKBOX,
+                text: 'Which aspects would you like to see improved?',
+                options: ['Venue', 'Food', 'Parking', 'Program timing', 'Registration process', 'Communication'],
+                required: false
+            }
+        ]
+    },
+    
+    MEMBERSHIP_SATISFACTION: {
+        name: 'Membership Satisfaction Survey',
+        questions: [
+            {
+                questionId: 'MS1',
+                type: QUESTION_TYPES.RATING,
+                text: 'How satisfied are you with your BANF membership?',
+                required: true
+            },
+            {
+                questionId: 'MS2',
+                type: QUESTION_TYPES.MULTIPLE_CHOICE,
+                text: 'How often do you attend BANF events?',
+                options: ['Every event', 'Most events', 'Some events', 'Rarely', 'This was my first'],
+                required: true
+            },
+            {
+                questionId: 'MS3',
+                type: QUESTION_TYPES.NPS,
+                text: 'How likely are you to renew your membership?',
+                required: true
+            },
+            {
+                questionId: 'MS4',
+                type: QUESTION_TYPES.CHECKBOX,
+                text: 'What type of events would you like to see more of?',
+                options: ['Pujas', 'Cultural programs', 'Picnics', 'Kids activities', 'Educational workshops', 'Sports events'],
+                required: false
+            },
+            {
+                questionId: 'MS5',
+                type: QUESTION_TYPES.TEXTAREA,
+                text: 'Any suggestions for improving BANF?',
+                required: false
+            }
+        ]
+    },
+    
+    QUICK_FEEDBACK: {
+        name: 'Quick Feedback',
+        questions: [
+            {
+                questionId: 'QF1',
+                type: QUESTION_TYPES.RATING,
+                text: 'Quick rating for this event',
+                required: true
+            },
+            {
+                questionId: 'QF2',
+                type: QUESTION_TYPES.TEXT,
+                text: 'One word to describe the event',
+                required: false
+            }
+        ]
+    }
+};
+
+// =====================================================
+// SURVEY CREATION
+// =====================================================
+
+/**
+ * Create a survey for an event
+ * @param {Object} surveyData
+ */
+export async function createSurvey(surveyData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        // Get template or custom questions
+        let questions = surveyData.questions;
+        if (surveyData.templateId && SURVEY_TEMPLATES[surveyData.templateId]) {
+            questions = SURVEY_TEMPLATES[surveyData.templateId].questions;
+        }
+        
+        const survey = await wixData.insert('Surveys', {
+            // Event association
+            eventId: surveyData.eventId,
+            eventTitle: surveyData.eventTitle,
+            
+            // Survey details
+            title: surveyData.title || `Feedback for ${surveyData.eventTitle}`,
+            description: surveyData.description || 'We would love to hear your feedback!',
+            templateId: surveyData.templateId || 'custom',
+            
+            // Questions
+            questions: questions,
+            
+            // Settings
+            isAnonymous: surveyData.isAnonymous || false,
+            allowMultipleResponses: surveyData.allowMultipleResponses || false,
+            isActive: true,
+            
+            // Timing
+            startDate: surveyData.startDate || new Date(),
+            endDate: surveyData.endDate || null, // null = no end
+            
+            // Stats
+            responseCount: 0,
+            averageRating: 0,
+            npsScore: null,
+            
+            // Metadata
+            createdBy: member._id,
+            createdAt: new Date()
+        });
+        
+        return {
+            success: true,
+            surveyId: survey._id,
+            surveyUrl: `/feedback/${survey._id}`,
+            message: 'Survey created successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error creating survey:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Create post-event survey automatically
+ * @param {string} eventId
+ */
+export async function createPostEventSurvey(eventId) {
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        // Check if survey already exists
+        const existing = await wixData.query('Surveys')
+            .eq('eventId', eventId)
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0) {
+            return {
+                success: true,
+                surveyId: existing.items[0]._id,
+                message: 'Survey already exists for this event'
+            };
+        }
+        
+        return await createSurvey({
+            eventId: eventId,
+            eventTitle: event.title,
+            title: `Share Your Feedback: ${event.title}`,
+            description: 'Thank you for attending! Your feedback helps us improve future events.',
+            templateId: 'POST_EVENT',
+            isAnonymous: false,
+            startDate: new Date(),
+            endDate: addDays(new Date(), 7) // Active for 7 days
+        });
+        
+    } catch (error) {
+        console.error('Error creating post-event survey:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// RESPONSE SUBMISSION
+// =====================================================
+
+/**
+ * Submit survey response
+ * @param {string} surveyId
+ * @param {Object} responses - { questionId: answer }
+ */
+export async function submitSurveyResponse(surveyId, responses) {
+    const member = await currentMember.getMember();
+    
+    try {
+        const survey = await wixData.get('Surveys', surveyId);
+        
+        if (!survey) {
+            return { success: false, error: 'Survey not found' };
+        }
+        
+        if (!survey.isActive) {
+            return { success: false, error: 'Survey is no longer active' };
+        }
+        
+        if (survey.endDate && new Date() > new Date(survey.endDate)) {
+            return { success: false, error: 'Survey has ended' };
+        }
+        
+        // Check for duplicate response
+        if (!survey.allowMultipleResponses && member) {
+            const existing = await wixData.query('SurveyResponses')
+                .eq('surveyId', surveyId)
+                .eq('memberId', member._id)
+                .find({ suppressAuth: true });
+            
+            if (existing.items.length > 0) {
+                return { success: false, error: 'You have already submitted a response' };
+            }
+        }
+        
+        // Validate required questions
+        for (const q of survey.questions) {
+            if (q.required && !responses[q.questionId]) {
+                return { 
+                    success: false, 
+                    error: `Required question not answered: ${q.text}`
+                };
+            }
+        }
+        
+        // Save response
+        const response = await wixData.insert('SurveyResponses', {
+            surveyId: surveyId,
+            eventId: survey.eventId,
+            
+            // Responder info (if not anonymous)
+            memberId: survey.isAnonymous ? null : member?._id,
+            memberName: survey.isAnonymous ? 'Anonymous' : 
+                (member ? `${member.contactDetails?.firstName || ''} ${member.contactDetails?.lastName || ''}`.trim() : 'Guest'),
+            
+            // Responses
+            responses: responses,
+            
+            // Calculated metrics
+            overallRating: calculateOverallRating(survey.questions, responses),
+            npsResponse: extractNPSResponse(survey.questions, responses),
+            
+            // Metadata
+            submittedAt: new Date(),
+            userAgent: '', // Could be populated from frontend
+            isAnonymous: survey.isAnonymous
+        });
+        
+        // Update survey stats
+        await updateSurveyStats(surveyId);
+        
+        return {
+            success: true,
+            responseId: response._id,
+            message: 'Thank you for your feedback!'
+        };
+        
+    } catch (error) {
+        console.error('Error submitting response:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// ANALYTICS & REPORTING
+// =====================================================
+
+/**
+ * Get survey analytics
+ * @param {string} surveyId
+ */
+export async function getSurveyAnalytics(surveyId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const survey = await wixData.get('Surveys', surveyId);
+        
+        if (!survey) {
+            return { success: false, error: 'Survey not found' };
+        }
+        
+        const responses = await wixData.query('SurveyResponses')
+            .eq('surveyId', surveyId)
+            .find({ suppressAuth: true });
+        
+        // Process each question
+        const questionAnalytics = {};
+        
+        for (const q of survey.questions) {
+            const questionResponses = responses.items
+                .map(r => r.responses[q.questionId])
+                .filter(r => r !== undefined && r !== null);
+            
+            switch (q.type) {
+                case QUESTION_TYPES.RATING:
+                    questionAnalytics[q.questionId] = {
+                        question: q.text,
+                        type: q.type,
+                        responseCount: questionResponses.length,
+                        average: calculateAverage(questionResponses),
+                        distribution: calculateDistribution(questionResponses, [1, 2, 3, 4, 5])
+                    };
+                    break;
+                    
+                case QUESTION_TYPES.NPS:
+                    const { score, promoters, passives, detractors } = calculateNPS(questionResponses);
+                    questionAnalytics[q.questionId] = {
+                        question: q.text,
+                        type: q.type,
+                        responseCount: questionResponses.length,
+                        npsScore: score,
+                        promoters: promoters,
+                        passives: passives,
+                        detractors: detractors
+                    };
+                    break;
+                    
+                case QUESTION_TYPES.MULTIPLE_CHOICE:
+                case QUESTION_TYPES.CHECKBOX:
+                    const optionCounts = {};
+                    for (const r of questionResponses) {
+                        const answers = Array.isArray(r) ? r : [r];
+                        for (const a of answers) {
+                            optionCounts[a] = (optionCounts[a] || 0) + 1;
+                        }
+                    }
+                    questionAnalytics[q.questionId] = {
+                        question: q.text,
+                        type: q.type,
+                        responseCount: questionResponses.length,
+                        optionCounts: optionCounts
+                    };
+                    break;
+                    
+                case QUESTION_TYPES.YES_NO:
+                    questionAnalytics[q.questionId] = {
+                        question: q.text,
+                        type: q.type,
+                        responseCount: questionResponses.length,
+                        yesCount: questionResponses.filter(r => r === 'yes' || r === true).length,
+                        noCount: questionResponses.filter(r => r === 'no' || r === false).length
+                    };
+                    break;
+                    
+                case QUESTION_TYPES.TEXT:
+                case QUESTION_TYPES.TEXTAREA:
+                    questionAnalytics[q.questionId] = {
+                        question: q.text,
+                        type: q.type,
+                        responseCount: questionResponses.length,
+                        responses: questionResponses // Return actual text responses
+                    };
+                    break;
+            }
+        }
+        
+        // Overall metrics
+        const ratingQuestions = survey.questions.filter(q => q.type === QUESTION_TYPES.RATING);
+        const allRatings = ratingQuestions.flatMap(q => 
+            responses.items.map(r => r.responses[q.questionId]).filter(Boolean)
+        );
+        
+        return {
+            success: true,
+            analytics: {
+                surveyTitle: survey.title,
+                eventTitle: survey.eventTitle,
+                totalResponses: responses.items.length,
+                
+                // Overall metrics
+                overallRating: calculateAverage(allRatings),
+                npsScore: survey.npsScore,
+                
+                // Question breakdown
+                questionAnalytics: questionAnalytics,
+                
+                // Response timeline
+                responseTimeline: groupResponsesByDate(responses.items),
+                
+                // Recent responses
+                recentResponses: responses.items
+                    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                    .slice(0, 10)
+                    .map(r => ({
+                        memberName: r.memberName,
+                        overallRating: r.overallRating,
+                        submittedAt: r.submittedAt
+                    }))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting analytics:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get feedback comparison across events
+ * @param {Array} eventIds - Optional specific events to compare
+ */
+export async function getEventFeedbackComparison(eventIds = null) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        let query = wixData.query('Surveys');
+        
+        if (eventIds && eventIds.length > 0) {
+            query = query.hasSome('eventId', eventIds);
+        }
+        
+        const surveys = await query
+            .descending('createdAt')
+            .limit(20)
+            .find({ suppressAuth: true });
+        
+        const comparison = [];
+        
+        for (const survey of surveys.items) {
+            if (survey.responseCount > 0) {
+                comparison.push({
+                    eventId: survey.eventId,
+                    eventTitle: survey.eventTitle,
+                    responseCount: survey.responseCount,
+                    averageRating: survey.averageRating,
+                    npsScore: survey.npsScore,
+                    surveyDate: survey.createdAt
+                });
+            }
+        }
+        
+        // Calculate trends
+        let ratingTrend = 'stable';
+        let npsTrend = 'stable';
+        
+        if (comparison.length >= 2) {
+            const recent = comparison.slice(0, 3);
+            const older = comparison.slice(3, 6);
+            
+            const recentAvgRating = calculateAverage(recent.map(e => e.averageRating));
+            const olderAvgRating = calculateAverage(older.map(e => e.averageRating));
+            
+            if (recentAvgRating > olderAvgRating + 0.2) ratingTrend = 'improving';
+            else if (recentAvgRating < olderAvgRating - 0.2) ratingTrend = 'declining';
+            
+            const recentNPS = calculateAverage(recent.map(e => e.npsScore).filter(Boolean));
+            const olderNPS = calculateAverage(older.map(e => e.npsScore).filter(Boolean));
+            
+            if (recentNPS > olderNPS + 5) npsTrend = 'improving';
+            else if (recentNPS < olderNPS - 5) npsTrend = 'declining';
+        }
+        
+        return {
+            success: true,
+            comparison: comparison,
+            trends: {
+                ratingTrend: ratingTrend,
+                npsTrend: npsTrend,
+                overallAverageRating: calculateAverage(comparison.map(e => e.averageRating)),
+                overallNPS: calculateAverage(comparison.map(e => e.npsScore).filter(Boolean))
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting comparison:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get improvement suggestions aggregated
+ */
+export async function getImprovementSuggestions() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const responses = await wixData.query('SurveyResponses')
+            .descending('submittedAt')
+            .limit(200)
+            .find({ suppressAuth: true });
+        
+        const suggestions = [];
+        const categories = {};
+        
+        for (const response of responses.items) {
+            // Look for improvement-related questions
+            for (const [qId, answer] of Object.entries(response.responses)) {
+                if (typeof answer === 'string' && answer.length > 10) {
+                    suggestions.push({
+                        text: answer,
+                        eventId: response.eventId,
+                        rating: response.overallRating,
+                        date: response.submittedAt
+                    });
+                }
+                
+                // Checkbox responses (improvement areas)
+                if (Array.isArray(answer)) {
+                    for (const item of answer) {
+                        categories[item] = (categories[item] || 0) + 1;
+                    }
+                }
+            }
+        }
+        
+        return {
+            success: true,
+            suggestions: suggestions.slice(0, 50),
+            categoryBreakdown: Object.entries(categories)
+                .sort((a, b) => b[1] - a[1])
+                .map(([category, count]) => ({ category, count })),
+            totalFeedback: responses.items.length
+        };
+        
+    } catch (error) {
+        console.error('Error getting suggestions:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// SURVEY MANAGEMENT
+// =====================================================
+
+/**
+ * Close a survey
+ * @param {string} surveyId
+ */
+export async function closeSurvey(surveyId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const survey = await wixData.get('Surveys', surveyId);
+        
+        if (!survey) {
+            return { success: false, error: 'Survey not found' };
+        }
+        
+        survey.isActive = false;
+        survey.closedAt = new Date();
+        survey.closedBy = member._id;
+        
+        await wixData.update('Surveys', survey);
+        
+        return {
+            success: true,
+            message: 'Survey closed successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error closing survey:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get active surveys
+ */
+export async function getActiveSurveys() {
+    try {
+        const surveys = await wixData.query('Surveys')
+            .eq('isActive', true)
+            .descending('createdAt')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            surveys: surveys.items.map(s => ({
+                _id: s._id,
+                title: s.title,
+                eventTitle: s.eventTitle,
+                responseCount: s.responseCount,
+                averageRating: s.averageRating,
+                endDate: s.endDate,
+                createdAt: s.createdAt
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting active surveys:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function updateSurveyStats(surveyId) {
+    const survey = await wixData.get('Surveys', surveyId);
+    const responses = await wixData.query('SurveyResponses')
+        .eq('surveyId', surveyId)
+        .find({ suppressAuth: true });
+    
+    survey.responseCount = responses.items.length;
+    
+    // Calculate average rating
+    const ratings = responses.items.map(r => r.overallRating).filter(Boolean);
+    survey.averageRating = calculateAverage(ratings);
+    
+    // Calculate NPS
+    const npsResponses = responses.items.map(r => r.npsResponse).filter(r => r !== null && r !== undefined);
+    if (npsResponses.length > 0) {
+        survey.npsScore = calculateNPS(npsResponses).score;
+    }
+    
+    await wixData.update('Surveys', survey);
+}
+
+function calculateOverallRating(questions, responses) {
+    const ratingQuestions = questions.filter(q => q.type === QUESTION_TYPES.RATING);
+    const ratings = ratingQuestions
+        .map(q => responses[q.questionId])
+        .filter(r => r !== undefined && r !== null)
+        .map(Number);
+    
+    return calculateAverage(ratings);
+}
+
+function extractNPSResponse(questions, responses) {
+    const npsQuestion = questions.find(q => q.type === QUESTION_TYPES.NPS);
+    return npsQuestion ? responses[npsQuestion.questionId] : null;
+}
+
+function calculateAverage(numbers) {
+    if (!numbers || numbers.length === 0) return 0;
+    const validNumbers = numbers.filter(n => !isNaN(n));
+    if (validNumbers.length === 0) return 0;
+    return validNumbers.reduce((a, b) => a + Number(b), 0) / validNumbers.length;
+}
+
+function calculateDistribution(responses, values) {
+    const distribution = {};
+    for (const v of values) {
+        distribution[v] = responses.filter(r => Number(r) === v).length;
+    }
+    return distribution;
+}
+
+function calculateNPS(responses) {
+    const validResponses = responses.map(Number).filter(r => !isNaN(r) && r >= 0 && r <= 10);
+    
+    if (validResponses.length === 0) {
+        return { score: null, promoters: 0, passives: 0, detractors: 0 };
+    }
+    
+    const promoters = validResponses.filter(r => r >= 9).length;
+    const passives = validResponses.filter(r => r >= 7 && r <= 8).length;
+    const detractors = validResponses.filter(r => r <= 6).length;
+    
+    const total = validResponses.length;
+    const score = Math.round(((promoters - detractors) / total) * 100);
+    
+    return {
+        score: score,
+        promoters: Math.round((promoters / total) * 100),
+        passives: Math.round((passives / total) * 100),
+        detractors: Math.round((detractors / total) * 100)
+    };
+}
+
+function groupResponsesByDate(responses) {
+    const groups = {};
+    
+    for (const r of responses) {
+        const date = new Date(r.submittedAt).toISOString().split('T')[0];
+        groups[date] = (groups[date] || 0) + 1;
+    }
+    
+    return Object.entries(groups)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { QUESTION_TYPES, SURVEY_TEMPLATES };

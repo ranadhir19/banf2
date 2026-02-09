@@ -1,0 +1,328 @@
+/**
+ * BANF Admin Authentication Backend Module
+ * Handles admin login and role-based access control
+ * 
+ * File: backend/admin-auth.jsw
+ * Deploy to: Wix Velo Backend
+ */
+
+import wixData from 'wix-data';
+import { authentication, authorization } from 'wix-members-backend';
+import { elevate } from 'wix-auth';
+
+// Admin Roles
+export const ADMIN_ROLES = {
+    SUPER_ADMIN: 'super_admin',      // Full access
+    PRESIDENT: 'president',          // Full access
+    VICE_PRESIDENT: 'vice_president', // Most access
+    TREASURER: 'treasurer',          // Financial access
+    SECRETARY: 'secretary',          // Minutes & communications
+    EC_MEMBER: 'ec_member',          // Limited admin access
+    MODERATOR: 'moderator'           // Content moderation only
+};
+
+// Role Permissions
+const ROLE_PERMISSIONS = {
+    super_admin: ['*'],
+    president: ['*'],
+    vice_president: ['members', 'events', 'meetings', 'finances', 'reports', 'complaints'],
+    treasurer: ['finances', 'payments', 'reports', 'members_readonly'],
+    secretary: ['meetings', 'communications', 'members_readonly', 'reports'],
+    ec_member: ['events', 'meetings_readonly', 'members_readonly'],
+    moderator: ['complaints', 'content']
+};
+
+/**
+ * Login admin user
+ * @param {string} email - Admin email
+ * @param {string} password - Admin password
+ * @returns {object} - Login result
+ */
+export async function loginAdmin(email, password) {
+    try {
+        // First authenticate with Wix
+        const loginResult = await authentication.login(email, password);
+        
+        // Check if user is an admin
+        const admins = await wixData.query('Admins')
+            .eq('email', email.toLowerCase())
+            .find({ suppressAuth: true });
+        
+        if (admins.items.length === 0) {
+            return { success: false, error: 'Not authorized as admin' };
+        }
+        
+        const admin = admins.items[0];
+        
+        if (!admin.isActive) {
+            return { success: false, error: 'Admin account is deactivated' };
+        }
+        
+        // Update last login
+        await wixData.update('Admins', {
+            ...admin,
+            lastLogin: new Date(),
+            loginCount: (admin.loginCount || 0) + 1,
+            updatedAt: new Date()
+        });
+        
+        // Log the login
+        await logAdminActivity(admin._id, 'login', 'Admin logged in');
+        
+        return {
+            success: true,
+            sessionToken: loginResult.sessionToken,
+            admin: {
+                id: admin._id,
+                email: admin.email,
+                fullName: admin.fullName,
+                role: admin.role,
+                permissions: getPermissionsForRole(admin.role),
+                ecPosition: admin.ecPosition
+            }
+        };
+    } catch (error) {
+        console.error('Admin login failed:', error);
+        return { success: false, error: 'Invalid credentials' };
+    }
+}
+
+/**
+ * Get permissions for a role
+ * @param {string} role - Admin role
+ * @returns {array} - List of permissions
+ */
+function getPermissionsForRole(role) {
+    return ROLE_PERMISSIONS[role] || [];
+}
+
+/**
+ * Check if admin has permission
+ * @param {string} adminId - Admin ID
+ * @param {string} permission - Permission to check
+ * @returns {boolean} - Has permission
+ */
+export async function checkAdminPermission(adminId, permission) {
+    try {
+        const admins = await wixData.query('Admins')
+            .eq('_id', adminId)
+            .find({ suppressAuth: true });
+        
+        if (admins.items.length === 0) {
+            return false;
+        }
+        
+        const admin = admins.items[0];
+        const permissions = getPermissionsForRole(admin.role);
+        
+        return permissions.includes('*') || permissions.includes(permission);
+    } catch (error) {
+        console.error('Permission check failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Create new admin user
+ * @param {object} adminData - Admin details
+ * @param {string} creatorId - ID of admin creating this account
+ * @returns {object} - Creation result
+ */
+export async function createAdmin(adminData, creatorId) {
+    // Check if creator has permission
+    const hasPermission = await checkAdminPermission(creatorId, 'admin_management');
+    if (!hasPermission) {
+        return { success: false, error: 'Not authorized to create admins' };
+    }
+    
+    const { email, fullName, role, ecPosition } = adminData;
+    
+    try {
+        // Check if admin already exists
+        const existing = await wixData.query('Admins')
+            .eq('email', email.toLowerCase())
+            .find({ suppressAuth: true });
+        
+        if (existing.items.length > 0) {
+            return { success: false, error: 'Admin with this email already exists' };
+        }
+        
+        // Create admin record
+        const admin = await wixData.insert('Admins', {
+            email: email.toLowerCase(),
+            fullName,
+            role: role || ADMIN_ROLES.EC_MEMBER,
+            ecPosition: ecPosition || '',
+            isActive: true,
+            loginCount: 0,
+            createdBy: creatorId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        await logAdminActivity(creatorId, 'admin_created', `Created admin: ${email}`);
+        
+        return {
+            success: true,
+            adminId: admin._id,
+            message: 'Admin created successfully. User must register/login with Wix Members.'
+        };
+    } catch (error) {
+        console.error('Failed to create admin:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update admin role
+ * @param {string} adminId - Admin to update
+ * @param {string} newRole - New role
+ * @param {string} updaterId - ID of admin making the update
+ * @returns {object} - Update result
+ */
+export async function updateAdminRole(adminId, newRole, updaterId) {
+    const hasPermission = await checkAdminPermission(updaterId, 'admin_management');
+    if (!hasPermission) {
+        return { success: false, error: 'Not authorized to update admin roles' };
+    }
+    
+    try {
+        const admin = await wixData.get('Admins', adminId);
+        
+        if (!admin) {
+            return { success: false, error: 'Admin not found' };
+        }
+        
+        await wixData.update('Admins', {
+            ...admin,
+            role: newRole,
+            updatedBy: updaterId,
+            updatedAt: new Date()
+        });
+        
+        await logAdminActivity(updaterId, 'role_updated', `Updated ${admin.email} role to ${newRole}`);
+        
+        return { success: true, message: 'Admin role updated' };
+    } catch (error) {
+        console.error('Failed to update admin role:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Deactivate admin account
+ * @param {string} adminId - Admin to deactivate
+ * @param {string} deactivatorId - ID of admin performing deactivation
+ * @returns {object} - Result
+ */
+export async function deactivateAdmin(adminId, deactivatorId) {
+    const hasPermission = await checkAdminPermission(deactivatorId, 'admin_management');
+    if (!hasPermission) {
+        return { success: false, error: 'Not authorized to deactivate admins' };
+    }
+    
+    try {
+        const admin = await wixData.get('Admins', adminId);
+        
+        if (!admin) {
+            return { success: false, error: 'Admin not found' };
+        }
+        
+        await wixData.update('Admins', {
+            ...admin,
+            isActive: false,
+            deactivatedBy: deactivatorId,
+            deactivatedAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        await logAdminActivity(deactivatorId, 'admin_deactivated', `Deactivated admin: ${admin.email}`);
+        
+        return { success: true, message: 'Admin deactivated' };
+    } catch (error) {
+        console.error('Failed to deactivate admin:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all admins
+ * @param {string} requesterId - ID of admin requesting list
+ * @returns {object} - List of admins
+ */
+export async function getAllAdmins(requesterId) {
+    const hasPermission = await checkAdminPermission(requesterId, 'admin_management');
+    if (!hasPermission) {
+        return { success: false, error: 'Not authorized' };
+    }
+    
+    try {
+        const admins = await wixData.query('Admins')
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            admins: admins.items.map(admin => ({
+                id: admin._id,
+                email: admin.email,
+                fullName: admin.fullName,
+                role: admin.role,
+                ecPosition: admin.ecPosition,
+                isActive: admin.isActive,
+                lastLogin: admin.lastLogin,
+                loginCount: admin.loginCount
+            }))
+        };
+    } catch (error) {
+        console.error('Failed to get admins:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Log admin activity
+ * @param {string} adminId - Admin ID
+ * @param {string} action - Action performed
+ * @param {string} details - Action details
+ */
+async function logAdminActivity(adminId, action, details) {
+    try {
+        await wixData.insert('AdminActivityLog', {
+            adminId,
+            action,
+            details,
+            ipAddress: '', // Would need to capture from request
+            timestamp: new Date()
+        });
+    } catch (error) {
+        console.error('Failed to log admin activity:', error);
+    }
+}
+
+/**
+ * Get admin activity log
+ * @param {string} requesterId - ID of requesting admin
+ * @param {number} limit - Number of entries to return
+ * @returns {object} - Activity log
+ */
+export async function getAdminActivityLog(requesterId, limit = 100) {
+    const hasPermission = await checkAdminPermission(requesterId, 'admin_management');
+    if (!hasPermission) {
+        return { success: false, error: 'Not authorized' };
+    }
+    
+    try {
+        const logs = await wixData.query('AdminActivityLog')
+            .descending('timestamp')
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        return {
+            success: true,
+            logs: logs.items
+        };
+    } catch (error) {
+        console.error('Failed to get activity log:', error);
+        return { success: false, error: error.message };
+    }
+}

@@ -1,0 +1,909 @@
+/**
+ * BANF Member Automation Service
+ * ================================
+ * Wix Velo Backend Module for automated member management
+ * 
+ * Features:
+ * - New member onboarding automation
+ * - Membership renewal reminders
+ * - Birthday wishes automation
+ * - Member engagement scoring
+ * - Automatic role/status management
+ * 
+ * @module backend/member-automation.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember, members } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import { contacts } from 'wix-crm-backend';
+
+// =====================================================
+// MEMBERSHIP TYPES & CONFIGURATION
+// =====================================================
+
+const MEMBERSHIP_TYPES = {
+    FAMILY: {
+        name: 'Family Membership',
+        price: 100,
+        durationMonths: 12,
+        benefits: ['All events access', 'Puja participation', 'Newsletter', 'Voting rights']
+    },
+    INDIVIDUAL: {
+        name: 'Individual Membership',
+        price: 50,
+        durationMonths: 12,
+        benefits: ['All events access', 'Puja participation', 'Newsletter']
+    },
+    STUDENT: {
+        name: 'Student Membership',
+        price: 25,
+        durationMonths: 12,
+        benefits: ['All events access', 'Student discounts']
+    },
+    LIFETIME: {
+        name: 'Lifetime Membership',
+        price: 500,
+        durationMonths: null, // Never expires
+        benefits: ['All events access', 'Puja participation', 'Newsletter', 'Voting rights', 'Lifetime recognition']
+    },
+    HONORARY: {
+        name: 'Honorary Membership',
+        price: 0,
+        durationMonths: null,
+        benefits: ['Full member benefits', 'Special recognition']
+    }
+};
+
+const ENGAGEMENT_ACTIONS = {
+    EVENT_ATTENDANCE: 10,
+    EVENT_RSVP: 2,
+    VOLUNTEER: 20,
+    DONATION: 15,
+    REFERRAL: 25,
+    COMMITTEE: 30,
+    FEEDBACK_GIVEN: 5,
+    STREAM_WATCHED: 3,
+    NEWSLETTER_OPENED: 1
+};
+
+// =====================================================
+// NEW MEMBER ONBOARDING
+// =====================================================
+
+/**
+ * Process new member registration
+ * Called automatically when a new member signs up
+ * @param {Object} memberData
+ */
+export async function onboardNewMember(memberData) {
+    try {
+        console.log('Processing new member:', memberData.email);
+        
+        // 1. Create member profile in custom collection
+        const memberProfile = await wixData.insert('MemberProfiles', {
+            memberId: memberData._id,
+            email: memberData.loginEmail,
+            firstName: memberData.firstName || '',
+            lastName: memberData.lastName || '',
+            phone: memberData.phone || '',
+            
+            // Membership Details
+            membershipType: 'INDIVIDUAL', // Default, will be updated on payment
+            membershipStatus: 'PENDING', // PENDING, ACTIVE, EXPIRED, SUSPENDED
+            membershipStartDate: null,
+            membershipEndDate: null,
+            
+            // Profile Details
+            address: {
+                street: '',
+                city: 'Jacksonville',
+                state: 'FL',
+                zip: ''
+            },
+            familyMembers: [],
+            interests: [],
+            dietaryRestrictions: '',
+            
+            // Engagement Tracking
+            engagementScore: 0,
+            totalEventsAttended: 0,
+            totalDonations: 0,
+            volunteerHours: 0,
+            referralCount: 0,
+            
+            // Communication Preferences
+            emailNotifications: true,
+            smsNotifications: false,
+            newsletterSubscribed: true,
+            eventReminders: true,
+            
+            // Dates
+            registrationDate: new Date(),
+            lastActivityDate: new Date(),
+            lastLoginDate: new Date(),
+            
+            // Birthday
+            dateOfBirth: memberData.dateOfBirth || null,
+            birthdayWishSent: false
+        });
+        
+        // 2. Send welcome email
+        await sendWelcomeEmail(memberData);
+        
+        // 3. Create welcome task for EC to review
+        await createAdminTask({
+            type: 'NEW_MEMBER_REVIEW',
+            title: `Review new member: ${memberData.firstName} ${memberData.lastName}`,
+            memberId: memberData._id,
+            memberEmail: memberData.loginEmail,
+            priority: 'medium',
+            dueDate: addDays(new Date(), 3)
+        });
+        
+        // 4. Log activity
+        await logMemberActivity(memberData._id, 'REGISTRATION', 'New member registered');
+        
+        return {
+            success: true,
+            message: 'Member onboarding initiated',
+            profileId: memberProfile._id
+        };
+        
+    } catch (error) {
+        console.error('Error in onboardNewMember:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Send welcome email to new member
+ * @param {Object} memberData 
+ */
+async function sendWelcomeEmail(memberData) {
+    try {
+        await triggeredEmails.emailMember(
+            'welcome_new_member',
+            memberData._id,
+            {
+                variables: {
+                    firstName: memberData.firstName || 'Friend',
+                    membershipLink: 'https://jaxbengali.org/membership',
+                    eventsLink: 'https://jaxbengali.org/events',
+                    aboutLink: 'https://jaxbengali.org/about-us'
+                }
+            }
+        );
+        
+        console.log('Welcome email sent to:', memberData.loginEmail);
+        
+    } catch (error) {
+        console.error('Error sending welcome email:', error);
+    }
+}
+
+/**
+ * Complete member profile (called from profile form)
+ * @param {string} memberId 
+ * @param {Object} profileData 
+ */
+export async function completeProfile(memberId, profileData) {
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find();
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Profile not found' };
+        }
+        
+        const updatedProfile = {
+            ...profile.items[0],
+            ...profileData,
+            profileCompleted: true,
+            profileCompletedDate: new Date(),
+            lastActivityDate: new Date()
+        };
+        
+        await wixData.update('MemberProfiles', updatedProfile);
+        
+        // Award engagement points for completing profile
+        await addEngagementPoints(memberId, 10, 'Profile completed');
+        
+        return {
+            success: true,
+            message: 'Profile updated successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error completing profile:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// MEMBERSHIP RENEWAL
+// =====================================================
+
+/**
+ * Check for expiring memberships and send reminders
+ * (Run daily via scheduled job)
+ */
+export async function checkMembershipRenewals() {
+    try {
+        const now = new Date();
+        const thirtyDaysFromNow = addDays(now, 30);
+        const sevenDaysFromNow = addDays(now, 7);
+        const oneDayFromNow = addDays(now, 1);
+        
+        const results = {
+            thirtyDayReminders: 0,
+            sevenDayReminders: 0,
+            oneDayReminders: 0,
+            expirations: 0
+        };
+        
+        // 30-day reminders
+        const expiring30 = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .between('membershipEndDate', now, thirtyDaysFromNow)
+            .eq('reminder30DaySent', false)
+            .find();
+        
+        for (const member of expiring30.items) {
+            await sendRenewalReminder(member, 30);
+            member.reminder30DaySent = true;
+            await wixData.update('MemberProfiles', member);
+            results.thirtyDayReminders++;
+        }
+        
+        // 7-day reminders
+        const expiring7 = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .between('membershipEndDate', now, sevenDaysFromNow)
+            .eq('reminder7DaySent', false)
+            .find();
+        
+        for (const member of expiring7.items) {
+            await sendRenewalReminder(member, 7);
+            member.reminder7DaySent = true;
+            await wixData.update('MemberProfiles', member);
+            results.sevenDayReminders++;
+        }
+        
+        // 1-day reminders (final)
+        const expiring1 = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .between('membershipEndDate', now, oneDayFromNow)
+            .eq('reminder1DaySent', false)
+            .find();
+        
+        for (const member of expiring1.items) {
+            await sendRenewalReminder(member, 1);
+            member.reminder1DaySent = true;
+            await wixData.update('MemberProfiles', member);
+            results.oneDayReminders++;
+        }
+        
+        // Process expired memberships
+        const expired = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .lt('membershipEndDate', now)
+            .ne('membershipType', 'LIFETIME')
+            .ne('membershipType', 'HONORARY')
+            .find();
+        
+        for (const member of expired.items) {
+            await processMembershipExpiration(member);
+            results.expirations++;
+        }
+        
+        console.log('Membership renewal check completed:', results);
+        return {
+            success: true,
+            ...results
+        };
+        
+    } catch (error) {
+        console.error('Error checking renewals:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Send renewal reminder email
+ * @param {Object} member 
+ * @param {number} daysLeft 
+ */
+async function sendRenewalReminder(member, daysLeft) {
+    try {
+        const templateId = daysLeft === 1 
+            ? 'membership_renewal_final'
+            : daysLeft === 7 
+                ? 'membership_renewal_week'
+                : 'membership_renewal_month';
+        
+        await triggeredEmails.emailMember(
+            templateId,
+            member.memberId,
+            {
+                variables: {
+                    firstName: member.firstName,
+                    daysRemaining: daysLeft,
+                    expirationDate: formatDate(member.membershipEndDate),
+                    membershipType: MEMBERSHIP_TYPES[member.membershipType]?.name || member.membershipType,
+                    renewalLink: 'https://jaxbengali.org/membership/renew'
+                }
+            }
+        );
+        
+        // Log reminder sent
+        await logMemberActivity(member.memberId, 'RENEWAL_REMINDER', `${daysLeft}-day renewal reminder sent`);
+        
+    } catch (error) {
+        console.error('Error sending renewal reminder:', error);
+    }
+}
+
+/**
+ * Process membership expiration
+ * @param {Object} member 
+ */
+async function processMembershipExpiration(member) {
+    try {
+        // Update status to EXPIRED
+        member.membershipStatus = 'EXPIRED';
+        member.membershipExpiredDate = new Date();
+        
+        // Reset reminder flags for next renewal cycle
+        member.reminder30DaySent = false;
+        member.reminder7DaySent = false;
+        member.reminder1DaySent = false;
+        
+        await wixData.update('MemberProfiles', member);
+        
+        // Send expiration notification
+        await triggeredEmails.emailMember(
+            'membership_expired',
+            member.memberId,
+            {
+                variables: {
+                    firstName: member.firstName,
+                    membershipType: MEMBERSHIP_TYPES[member.membershipType]?.name,
+                    renewalLink: 'https://jaxbengali.org/membership/renew'
+                }
+            }
+        );
+        
+        // Create admin task to follow up
+        await createAdminTask({
+            type: 'MEMBERSHIP_EXPIRED',
+            title: `Follow up with expired member: ${member.firstName} ${member.lastName}`,
+            memberId: member.memberId,
+            memberEmail: member.email,
+            priority: 'low',
+            dueDate: addDays(new Date(), 7)
+        });
+        
+        await logMemberActivity(member.memberId, 'MEMBERSHIP_EXPIRED', 'Membership expired');
+        
+    } catch (error) {
+        console.error('Error processing expiration:', error);
+    }
+}
+
+/**
+ * Renew membership (called after payment)
+ * @param {string} memberId 
+ * @param {string} membershipType 
+ * @param {Object} paymentInfo 
+ */
+export async function renewMembership(memberId, membershipType, paymentInfo = {}) {
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find();
+        
+        if (profile.items.length === 0) {
+            return { success: false, error: 'Member profile not found' };
+        }
+        
+        const member = profile.items[0];
+        const membershipConfig = MEMBERSHIP_TYPES[membershipType];
+        
+        if (!membershipConfig) {
+            return { success: false, error: 'Invalid membership type' };
+        }
+        
+        // Calculate new dates
+        const startDate = new Date();
+        let endDate = null;
+        
+        if (membershipConfig.durationMonths) {
+            endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + membershipConfig.durationMonths);
+        }
+        
+        // Update member profile
+        member.membershipType = membershipType;
+        member.membershipStatus = 'ACTIVE';
+        member.membershipStartDate = startDate;
+        member.membershipEndDate = endDate;
+        member.lastRenewalDate = startDate;
+        member.paymentId = paymentInfo.paymentId || null;
+        
+        // Reset reminder flags
+        member.reminder30DaySent = false;
+        member.reminder7DaySent = false;
+        member.reminder1DaySent = false;
+        
+        await wixData.update('MemberProfiles', member);
+        
+        // Send confirmation email
+        await triggeredEmails.emailMember(
+            'membership_confirmation',
+            memberId,
+            {
+                variables: {
+                    firstName: member.firstName,
+                    membershipType: membershipConfig.name,
+                    startDate: formatDate(startDate),
+                    endDate: endDate ? formatDate(endDate) : 'Lifetime',
+                    benefits: membershipConfig.benefits.join('\n• ')
+                }
+            }
+        );
+        
+        // Award engagement points
+        await addEngagementPoints(memberId, 20, 'Membership renewed');
+        
+        await logMemberActivity(memberId, 'MEMBERSHIP_RENEWED', `Renewed as ${membershipType}`);
+        
+        return {
+            success: true,
+            message: 'Membership renewed successfully',
+            expirationDate: endDate
+        };
+        
+    } catch (error) {
+        console.error('Error renewing membership:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// BIRTHDAY AUTOMATION
+// =====================================================
+
+/**
+ * Check and send birthday wishes
+ * (Run daily via scheduled job)
+ */
+export async function checkBirthdayWishes() {
+    try {
+        const today = new Date();
+        const todayMonth = today.getMonth() + 1;
+        const todayDay = today.getDate();
+        
+        // Find members with birthday today
+        const allMembers = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .isNotEmpty('dateOfBirth')
+            .find();
+        
+        const birthdayMembers = allMembers.items.filter(member => {
+            if (!member.dateOfBirth) return false;
+            const dob = new Date(member.dateOfBirth);
+            return dob.getMonth() + 1 === todayMonth && dob.getDate() === todayDay;
+        });
+        
+        let sentCount = 0;
+        
+        for (const member of birthdayMembers) {
+            // Check if already sent this year
+            const thisYear = today.getFullYear();
+            if (member.lastBirthdayWishYear === thisYear) {
+                continue;
+            }
+            
+            await sendBirthdayWish(member);
+            
+            // Update member record
+            member.lastBirthdayWishYear = thisYear;
+            await wixData.update('MemberProfiles', member);
+            
+            sentCount++;
+        }
+        
+        console.log(`Birthday wishes sent: ${sentCount}`);
+        return {
+            success: true,
+            birthdayMembersFound: birthdayMembers.length,
+            wishesSent: sentCount
+        };
+        
+    } catch (error) {
+        console.error('Error checking birthdays:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Send birthday wish email
+ * @param {Object} member 
+ */
+async function sendBirthdayWish(member) {
+    try {
+        await triggeredEmails.emailMember(
+            'happy_birthday',
+            member.memberId,
+            {
+                variables: {
+                    firstName: member.firstName,
+                    // Calculate age if DOB is full date
+                    memberSince: formatDate(member.registrationDate)
+                }
+            }
+        );
+        
+        await logMemberActivity(member.memberId, 'BIRTHDAY_WISH', 'Birthday wish sent');
+        
+    } catch (error) {
+        console.error('Error sending birthday wish:', error);
+    }
+}
+
+// =====================================================
+// ENGAGEMENT SCORING
+// =====================================================
+
+/**
+ * Add engagement points to member
+ * @param {string} memberId 
+ * @param {number} points 
+ * @param {string} reason 
+ */
+export async function addEngagementPoints(memberId, points, reason) {
+    try {
+        const profile = await wixData.query('MemberProfiles')
+            .eq('memberId', memberId)
+            .find();
+        
+        if (profile.items.length === 0) return;
+        
+        const member = profile.items[0];
+        member.engagementScore = (member.engagementScore || 0) + points;
+        member.lastActivityDate = new Date();
+        
+        await wixData.update('MemberProfiles', member);
+        
+        // Log engagement activity
+        await wixData.insert('EngagementLog', {
+            memberId: memberId,
+            points: points,
+            reason: reason,
+            timestamp: new Date()
+        });
+        
+        // Check for engagement milestones
+        await checkEngagementMilestones(member);
+        
+    } catch (error) {
+        console.error('Error adding engagement points:', error);
+    }
+}
+
+/**
+ * Check and award engagement milestones
+ * @param {Object} member 
+ */
+async function checkEngagementMilestones(member) {
+    const milestones = [
+        { points: 100, badge: 'bronze', title: 'Community Participant' },
+        { points: 250, badge: 'silver', title: 'Active Member' },
+        { points: 500, badge: 'gold', title: 'Community Champion' },
+        { points: 1000, badge: 'platinum', title: 'BANF Ambassador' }
+    ];
+    
+    for (const milestone of milestones) {
+        if (member.engagementScore >= milestone.points) {
+            const badgeKey = `badge_${milestone.badge}_awarded`;
+            
+            if (!member[badgeKey]) {
+                // Award badge
+                member[badgeKey] = true;
+                member[`badge_${milestone.badge}_date`] = new Date();
+                
+                await wixData.update('MemberProfiles', member);
+                
+                // Send milestone notification
+                await triggeredEmails.emailMember(
+                    'engagement_milestone',
+                    member.memberId,
+                    {
+                        variables: {
+                            firstName: member.firstName,
+                            badge: milestone.badge,
+                            title: milestone.title,
+                            points: member.engagementScore
+                        }
+                    }
+                );
+                
+                await logMemberActivity(
+                    member.memberId, 
+                    'MILESTONE_ACHIEVED', 
+                    `Achieved ${milestone.title} (${milestone.badge})`
+                );
+            }
+        }
+    }
+}
+
+/**
+ * Get engagement leaderboard
+ * @param {number} limit 
+ */
+export async function getEngagementLeaderboard(limit = 10) {
+    try {
+        const leaders = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .descending('engagementScore')
+            .limit(limit)
+            .find();
+        
+        return {
+            success: true,
+            leaderboard: leaders.items.map((m, index) => ({
+                rank: index + 1,
+                name: `${m.firstName} ${m.lastName?.charAt(0) || ''}.`,
+                score: m.engagementScore,
+                badge: getBadgeLevel(m.engagementScore)
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting leaderboard:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get badge level based on points
+ * @param {number} points 
+ */
+function getBadgeLevel(points) {
+    if (points >= 1000) return 'platinum';
+    if (points >= 500) return 'gold';
+    if (points >= 250) return 'silver';
+    if (points >= 100) return 'bronze';
+    return 'none';
+}
+
+// =====================================================
+// MEMBER ANALYTICS & REPORTING
+// =====================================================
+
+/**
+ * Get member statistics (admin only)
+ */
+export async function getMemberStatistics() {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const allMembers = await wixData.query('MemberProfiles')
+            .limit(1000)
+            .find();
+        
+        const members = allMembers.items;
+        
+        // Status breakdown
+        const statusCounts = {
+            ACTIVE: 0,
+            PENDING: 0,
+            EXPIRED: 0,
+            SUSPENDED: 0
+        };
+        
+        // Type breakdown
+        const typeCounts = {};
+        
+        // Monthly registrations (last 12 months)
+        const monthlyRegistrations = {};
+        
+        for (const m of members) {
+            // Status
+            statusCounts[m.membershipStatus] = (statusCounts[m.membershipStatus] || 0) + 1;
+            
+            // Type
+            typeCounts[m.membershipType] = (typeCounts[m.membershipType] || 0) + 1;
+            
+            // Monthly
+            if (m.registrationDate) {
+                const monthKey = formatMonthKey(new Date(m.registrationDate));
+                monthlyRegistrations[monthKey] = (monthlyRegistrations[monthKey] || 0) + 1;
+            }
+        }
+        
+        // Expiring soon
+        const thirtyDaysFromNow = addDays(new Date(), 30);
+        const expiringSoon = members.filter(m => 
+            m.membershipStatus === 'ACTIVE' &&
+            m.membershipEndDate &&
+            new Date(m.membershipEndDate) <= thirtyDaysFromNow
+        ).length;
+        
+        return {
+            success: true,
+            statistics: {
+                total: members.length,
+                byStatus: statusCounts,
+                byType: typeCounts,
+                expiringSoon: expiringSoon,
+                averageEngagementScore: Math.round(
+                    members.reduce((sum, m) => sum + (m.engagementScore || 0), 0) / members.length
+                ),
+                monthlyRegistrations: monthlyRegistrations
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error getting statistics:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get inactive members (no activity in X days)
+ * @param {number} daysSinceLastActivity 
+ */
+export async function getInactiveMembers(daysSinceLastActivity = 90) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const cutoffDate = addDays(new Date(), -daysSinceLastActivity);
+        
+        const inactive = await wixData.query('MemberProfiles')
+            .eq('membershipStatus', 'ACTIVE')
+            .lt('lastActivityDate', cutoffDate)
+            .find();
+        
+        return {
+            success: true,
+            count: inactive.items.length,
+            members: inactive.items.map(m => ({
+                name: `${m.firstName} ${m.lastName}`,
+                email: m.email,
+                lastActivity: m.lastActivityDate,
+                engagementScore: m.engagementScore
+            }))
+        };
+        
+    } catch (error) {
+        console.error('Error getting inactive members:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Create admin task
+ * @param {Object} taskData 
+ */
+async function createAdminTask(taskData) {
+    try {
+        await wixData.insert('AdminTasks', {
+            ...taskData,
+            status: 'pending',
+            createdAt: new Date()
+        });
+    } catch (error) {
+        console.error('Error creating admin task:', error);
+    }
+}
+
+/**
+ * Log member activity
+ * @param {string} memberId 
+ * @param {string} action 
+ * @param {string} details 
+ */
+async function logMemberActivity(memberId, action, details) {
+    try {
+        await wixData.insert('MemberActivityLog', {
+            memberId: memberId,
+            action: action,
+            details: details,
+            timestamp: new Date()
+        });
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+}
+
+/**
+ * Check if member is admin
+ * @param {string} memberId 
+ */
+async function isAdmin(memberId) {
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Add days to date
+ * @param {Date} date 
+ * @param {number} days 
+ */
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+/**
+ * Format date for display
+ * @param {Date} date 
+ */
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+/**
+ * Format month key for reporting
+ * @param {Date} date 
+ */
+function formatMonthKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}

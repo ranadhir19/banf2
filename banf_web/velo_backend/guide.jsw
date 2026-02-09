@@ -1,0 +1,564 @@
+// backend/guide.jsw
+// BANF Jacksonville Newcomer Guide - Wix Velo Backend
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// Guide categories
+const GUIDE_CATEGORIES = [
+    'housing',
+    'schools',
+    'healthcare',
+    'grocery_stores',
+    'restaurants',
+    'temples',
+    'community_centers',
+    'parks',
+    'transportation',
+    'utilities',
+    'banking',
+    'insurance',
+    'legal_services',
+    'shopping',
+    'entertainment',
+    'sports',
+    'classes',
+    'childcare',
+    'senior_services',
+    'emergency_services',
+    'government_offices',
+    'job_resources',
+    'volunteer_opportunities'
+];
+
+// Sub-regions of Jacksonville
+const JACKSONVILLE_AREAS = [
+    'downtown',
+    'southside',
+    'northside',
+    'westside',
+    'beaches',
+    'mandarin',
+    'san_marco',
+    'riverside_avondale',
+    'arlington',
+    'orange_park',
+    'st_johns',
+    'fleming_island',
+    'ponte_vedra',
+    'other'
+];
+
+/**
+ * Get guide entries by category
+ */
+export async function getGuideByCategory(category, options = { limit: 20, skip: 0, area: null }) {
+    try {
+        let query = wixData.query('JacksonvilleGuide')
+            .eq('category', category)
+            .eq('isActive', true);
+        
+        if (options.area) {
+            query = query.eq('area', options.area);
+        }
+        
+        query = query
+            .descending('rating')
+            .ascending('name')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(item => ({
+                id: item._id,
+                name: item.name,
+                category: item.category,
+                area: item.area,
+                address: item.address,
+                phone: item.phone,
+                website: item.website,
+                description: item.description,
+                rating: item.rating || 0,
+                reviewCount: item.reviewCount || 0,
+                imageUrl: item.imageUrl,
+                tags: JSON.parse(item.tags || '[]'),
+                bengaliOwned: item.bengaliOwned || false,
+                bengaliStaff: item.bengaliStaff || false
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting guide entries:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get all categories with counts
+ */
+export async function getGuideCategories() {
+    try {
+        const categoryCounts = {};
+        
+        for (const category of GUIDE_CATEGORIES) {
+            categoryCounts[category] = await wixData.query('JacksonvilleGuide')
+                .eq('category', category)
+                .eq('isActive', true)
+                .count();
+        }
+        
+        return {
+            categories: GUIDE_CATEGORIES,
+            counts: categoryCounts
+        };
+    } catch (error) {
+        console.error('Error getting categories:', error);
+        return { categories: GUIDE_CATEGORIES, counts: {} };
+    }
+}
+
+/**
+ * Search guide entries
+ */
+export async function searchGuide(searchTerm, options = { limit: 20, skip: 0, category: null }) {
+    try {
+        let query = wixData.query('JacksonvilleGuide')
+            .eq('isActive', true)
+            .contains('name', searchTerm)
+            .or(wixData.query('JacksonvilleGuide').contains('description', searchTerm))
+            .or(wixData.query('JacksonvilleGuide').contains('address', searchTerm));
+        
+        if (options.category) {
+            query = query.eq('category', options.category);
+        }
+        
+        query = query
+            .descending('rating')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(item => ({
+                id: item._id,
+                name: item.name,
+                category: item.category,
+                area: item.area,
+                address: item.address,
+                description: item.description,
+                rating: item.rating || 0,
+                bengaliOwned: item.bengaliOwned || false
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error searching guide:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get Bengali-owned/staffed businesses
+ */
+export async function getBengaliFriendlyPlaces(options = { limit: 20, skip: 0, category: null }) {
+    try {
+        let query = wixData.query('JacksonvilleGuide')
+            .eq('isActive', true)
+            .or(
+                wixData.query('JacksonvilleGuide').eq('bengaliOwned', true),
+                wixData.query('JacksonvilleGuide').eq('bengaliStaff', true)
+            );
+        
+        if (options.category) {
+            query = query.eq('category', options.category);
+        }
+        
+        query = query
+            .descending('rating')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(item => ({
+                id: item._id,
+                name: item.name,
+                category: item.category,
+                area: item.area,
+                address: item.address,
+                phone: item.phone,
+                description: item.description,
+                rating: item.rating || 0,
+                bengaliOwned: item.bengaliOwned,
+                bengaliStaff: item.bengaliStaff
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting Bengali-friendly places:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get guide entry by ID
+ */
+export async function getGuideEntryById(entryId) {
+    try {
+        const entry = await wixData.get('JacksonvilleGuide', entryId, { suppressAuth: true });
+        
+        if (!entry) return null;
+        
+        // Get reviews
+        const reviews = await wixData.query('GuideReviews')
+            .eq('guideEntryId', entryId)
+            .eq('isApproved', true)
+            .descending('_createdDate')
+            .limit(10)
+            .find({ suppressAuth: true });
+        
+        return {
+            id: entry._id,
+            name: entry.name,
+            category: entry.category,
+            area: entry.area,
+            address: entry.address,
+            phone: entry.phone,
+            email: entry.email,
+            website: entry.website,
+            description: entry.description,
+            fullDescription: entry.fullDescription,
+            hours: JSON.parse(entry.hours || '{}'),
+            rating: entry.rating || 0,
+            reviewCount: entry.reviewCount || 0,
+            imageUrl: entry.imageUrl,
+            images: JSON.parse(entry.images || '[]'),
+            tags: JSON.parse(entry.tags || '[]'),
+            bengaliOwned: entry.bengaliOwned || false,
+            bengaliStaff: entry.bengaliStaff || false,
+            acceptsCard: entry.acceptsCard,
+            parkingAvailable: entry.parkingAvailable,
+            wheelchairAccessible: entry.wheelchairAccessible,
+            latitude: entry.latitude,
+            longitude: entry.longitude,
+            reviews: reviews.items.map(r => ({
+                id: r._id,
+                rating: r.rating,
+                comment: r.comment,
+                reviewerName: r.reviewerName,
+                date: r._createdDate
+            }))
+        };
+    } catch (error) {
+        console.error('Error getting guide entry:', error);
+        return null;
+    }
+}
+
+/**
+ * Submit new guide entry (member contribution)
+ */
+export async function submitGuideEntry(entryData) {
+    try {
+        const member = await currentMember.getMember({ fieldsets: ['PUBLIC'] });
+        
+        const entry = {
+            name: entryData.name,
+            category: entryData.category,
+            area: entryData.area || 'other',
+            address: entryData.address,
+            phone: entryData.phone || '',
+            email: entryData.email || '',
+            website: entryData.website || '',
+            description: entryData.description,
+            fullDescription: entryData.fullDescription || entryData.description,
+            hours: JSON.stringify(entryData.hours || {}),
+            imageUrl: entryData.imageUrl || '',
+            images: JSON.stringify(entryData.images || []),
+            tags: JSON.stringify(entryData.tags || []),
+            bengaliOwned: entryData.bengaliOwned || false,
+            bengaliStaff: entryData.bengaliStaff || false,
+            acceptsCard: entryData.acceptsCard,
+            parkingAvailable: entryData.parkingAvailable,
+            wheelchairAccessible: entryData.wheelchairAccessible,
+            latitude: entryData.latitude || null,
+            longitude: entryData.longitude || null,
+            rating: 0,
+            reviewCount: 0,
+            isActive: false, // Pending approval
+            submittedBy: member ? member._id : null,
+            submittedByEmail: member ? member.loginEmail : entryData.submitterEmail,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('JacksonvilleGuide', entry);
+        
+        return {
+            success: true,
+            entryId: result._id,
+            message: 'Guide entry submitted for review. Thank you for contributing!'
+        };
+    } catch (error) {
+        console.error('Error submitting guide entry:', error);
+        return { success: false, error: 'Failed to submit entry' };
+    }
+}
+
+/**
+ * Submit review for guide entry
+ */
+export async function submitReview(entryId, reviewData) {
+    try {
+        const member = await currentMember.getMember({ fieldsets: ['PUBLIC'] });
+        
+        // Check if already reviewed
+        if (member) {
+            const existing = await wixData.query('GuideReviews')
+                .eq('guideEntryId', entryId)
+                .eq('reviewerId', member._id)
+                .find();
+            
+            if (existing.items.length > 0) {
+                return { success: false, error: 'You have already reviewed this place' };
+            }
+        }
+        
+        const review = {
+            guideEntryId: entryId,
+            rating: Math.min(5, Math.max(1, reviewData.rating)),
+            comment: reviewData.comment,
+            reviewerName: reviewData.name || (member ? member.name : 'Anonymous'),
+            reviewerId: member ? member._id : null,
+            reviewerEmail: member ? member.loginEmail : reviewData.email,
+            isApproved: false, // Pending moderation
+            _createdDate: new Date()
+        };
+        
+        await wixData.insert('GuideReviews', review, { suppressAuth: true });
+        
+        return { success: true, message: 'Review submitted. It will appear after moderation.' };
+    } catch (error) {
+        console.error('Error submitting review:', error);
+        return { success: false, error: 'Failed to submit review' };
+    }
+}
+
+/**
+ * Approve review and update rating (admin only)
+ */
+export async function approveReview(reviewId) {
+    try {
+        const review = await wixData.get('GuideReviews', reviewId);
+        if (!review) {
+            return { success: false, error: 'Review not found' };
+        }
+        
+        // Update review
+        await wixData.update('GuideReviews', {
+            ...review,
+            isApproved: true
+        });
+        
+        // Recalculate entry rating
+        const allReviews = await wixData.query('GuideReviews')
+            .eq('guideEntryId', review.guideEntryId)
+            .eq('isApproved', true)
+            .find();
+        
+        const totalRating = allReviews.items.reduce((sum, r) => sum + r.rating, 0);
+        const avgRating = allReviews.items.length > 0 
+            ? (totalRating / allReviews.items.length).toFixed(1)
+            : 0;
+        
+        // Update entry
+        const entry = await wixData.get('JacksonvilleGuide', review.guideEntryId);
+        if (entry) {
+            await wixData.update('JacksonvilleGuide', {
+                ...entry,
+                rating: parseFloat(avgRating),
+                reviewCount: allReviews.items.length,
+                _updatedDate: new Date()
+            });
+        }
+        
+        return { success: true, message: 'Review approved' };
+    } catch (error) {
+        console.error('Error approving review:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Approve guide entry (admin only)
+ */
+export async function approveGuideEntry(entryId, adminId) {
+    try {
+        const entry = await wixData.get('JacksonvilleGuide', entryId);
+        if (!entry) {
+            return { success: false, error: 'Entry not found' };
+        }
+        
+        await wixData.update('JacksonvilleGuide', {
+            ...entry,
+            isActive: true,
+            approvedBy: adminId,
+            approvedAt: new Date(),
+            _updatedDate: new Date()
+        });
+        
+        return { success: true, message: 'Guide entry approved and published' };
+    } catch (error) {
+        console.error('Error approving entry:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get pending entries for review (admin only)
+ */
+export async function getPendingGuideEntries() {
+    try {
+        const result = await wixData.query('JacksonvilleGuide')
+            .eq('isActive', false)
+            .descending('_createdDate')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting pending entries:', error);
+        return [];
+    }
+}
+
+/**
+ * Get pending reviews (admin only)
+ */
+export async function getPendingReviews() {
+    try {
+        const result = await wixData.query('GuideReviews')
+            .eq('isApproved', false)
+            .descending('_createdDate')
+            .find();
+        
+        // Get entry names
+        const entries = {};
+        for (const review of result.items) {
+            if (!entries[review.guideEntryId]) {
+                const entry = await wixData.get('JacksonvilleGuide', review.guideEntryId);
+                entries[review.guideEntryId] = entry ? entry.name : 'Unknown';
+            }
+        }
+        
+        return result.items.map(r => ({
+            ...r,
+            entryName: entries[r.guideEntryId]
+        }));
+    } catch (error) {
+        console.error('Error getting pending reviews:', error);
+        return [];
+    }
+}
+
+/**
+ * Get featured/recommended places
+ */
+export async function getFeaturedPlaces(limit = 10) {
+    try {
+        const result = await wixData.query('JacksonvilleGuide')
+            .eq('isActive', true)
+            .eq('isFeatured', true)
+            .descending('rating')
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        return result.items.map(item => ({
+            id: item._id,
+            name: item.name,
+            category: item.category,
+            area: item.area,
+            imageUrl: item.imageUrl,
+            rating: item.rating || 0,
+            description: item.description
+        }));
+    } catch (error) {
+        console.error('Error getting featured places:', error);
+        return [];
+    }
+}
+
+/**
+ * Get places near location (requires lat/lng)
+ */
+export async function getPlacesNearLocation(latitude, longitude, radiusMiles = 5, category = null) {
+    try {
+        // Simple distance calculation
+        // In production, would use a geospatial query or external service
+        
+        let query = wixData.query('JacksonvilleGuide')
+            .eq('isActive', true)
+            .isNotEmpty('latitude')
+            .isNotEmpty('longitude');
+        
+        if (category) {
+            query = query.eq('category', category);
+        }
+        
+        const result = await query.limit(100).find({ suppressAuth: true });
+        
+        // Filter by distance
+        const nearbyPlaces = result.items.filter(place => {
+            if (!place.latitude || !place.longitude) return false;
+            
+            const distance = calculateDistance(
+                latitude, longitude,
+                place.latitude, place.longitude
+            );
+            
+            return distance <= radiusMiles;
+        });
+        
+        // Sort by distance
+        nearbyPlaces.sort((a, b) => {
+            const distA = calculateDistance(latitude, longitude, a.latitude, a.longitude);
+            const distB = calculateDistance(latitude, longitude, b.latitude, b.longitude);
+            return distA - distB;
+        });
+        
+        return nearbyPlaces.slice(0, 20).map(place => ({
+            id: place._id,
+            name: place.name,
+            category: place.category,
+            address: place.address,
+            distance: calculateDistance(latitude, longitude, place.latitude, place.longitude).toFixed(1),
+            rating: place.rating || 0
+        }));
+    } catch (error) {
+        console.error('Error getting nearby places:', error);
+        return [];
+    }
+}
+
+// Helper function for distance calculation (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Export constants
+export const GuideCategories = GUIDE_CATEGORIES;
+export const JacksonvilleAreas = JACKSONVILLE_AREAS;

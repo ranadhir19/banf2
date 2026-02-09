@@ -1,0 +1,903 @@
+/**
+ * BANF Communication Hub Service
+ * ================================
+ * Wix Velo Backend Module for multi-channel communication
+ * 
+ * Features:
+ * - Email campaigns and newsletters
+ * - WhatsApp integration
+ * - SMS notifications
+ * - Push notifications
+ * - Communication templates
+ * - Scheduling and automation
+ * 
+ * @module backend/communication-hub.jsw
+ */
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+import { fetch } from 'wix-fetch';
+
+// =====================================================
+// COMMUNICATION TEMPLATES
+// =====================================================
+
+const MESSAGE_TEMPLATES = {
+    // Event Templates
+    EVENT_ANNOUNCEMENT: {
+        id: 'event_announcement',
+        name: 'Event Announcement',
+        category: 'events',
+        subject: '🎉 BANF {eventType}: {eventTitle}',
+        emailTemplate: 'event_announcement',
+        smsTemplate: 'BANF Event: {eventTitle} on {date}. RSVP: {rsvpLink}',
+        whatsappTemplate: '*🎉 BANF {eventType}*\n\n*{eventTitle}*\n📅 {date}\n📍 {venue}\n\n{description}\n\nRSVP: {rsvpLink}'
+    },
+    
+    EVENT_REMINDER_3DAY: {
+        id: 'event_reminder_3day',
+        name: '3-Day Event Reminder',
+        category: 'events',
+        subject: '📆 Reminder: {eventTitle} in 3 Days!',
+        emailTemplate: 'event_reminder',
+        smsTemplate: 'BANF Reminder: {eventTitle} is in 3 days! See you there.',
+        whatsappTemplate: '*📆 Event Reminder*\n\n*{eventTitle}* is coming up in *3 days*!\n\n📅 {date}\n📍 {venue}\n⏰ {time}\n\nLooking forward to seeing you! 🙏'
+    },
+    
+    EVENT_REMINDER_1DAY: {
+        id: 'event_reminder_1day',
+        name: '1-Day Event Reminder',
+        category: 'events',
+        subject: '⏰ Tomorrow: {eventTitle}',
+        emailTemplate: 'event_reminder',
+        smsTemplate: 'BANF: {eventTitle} is TOMORROW! Check your email for QR code.',
+        whatsappTemplate: '*⏰ Tomorrow\'s Event*\n\n*{eventTitle}*\n\n📅 {date}\n📍 {venue}\n⏰ {time}\n\n✅ Don\'t forget your QR code for entry!\n\nSee you there! 🎊'
+    },
+    
+    EVENT_DAYOF: {
+        id: 'event_dayof',
+        name: 'Day-of Reminder',
+        category: 'events',
+        subject: '🎊 Today: {eventTitle} - See you soon!',
+        emailTemplate: 'event_dayof',
+        smsTemplate: 'BANF: {eventTitle} TODAY at {venue}. Doors open {time}. Bring your QR code!',
+        whatsappTemplate: '*🎊 TODAY\'S EVENT*\n\n*{eventTitle}*\n\n📍 {venue}\n⏰ {time}\n\n✅ Bring your QR code\n🅿️ Parking info: {parkingInfo}\n\nExcited to see you! 🙏'
+    },
+    
+    // Membership Templates
+    MEMBERSHIP_WELCOME: {
+        id: 'membership_welcome',
+        name: 'New Member Welcome',
+        category: 'membership',
+        subject: '🙏 Welcome to BANF Family, {firstName}!',
+        emailTemplate: 'membership_welcome',
+        smsTemplate: 'Welcome to BANF! Your membership is now active. Visit banfboston.org for events.',
+        whatsappTemplate: '*🙏 Welcome to BANF!*\n\nDear {firstName},\n\nThank you for joining the BANF family!\n\n✅ Membership: {membershipType}\n✅ Valid until: {expiryDate}\n\nStay connected for upcoming events! 🎉'
+    },
+    
+    MEMBERSHIP_RENEWAL: {
+        id: 'membership_renewal',
+        name: 'Membership Renewal',
+        category: 'membership',
+        subject: '🔔 Your BANF Membership Expires Soon',
+        emailTemplate: 'membership_renewal',
+        smsTemplate: 'BANF: Your membership expires on {expiryDate}. Renew now: {renewLink}',
+        whatsappTemplate: '*🔔 Membership Renewal*\n\nYour BANF membership expires on *{expiryDate}*.\n\nRenew now to continue enjoying:\n✅ Event discounts\n✅ Early registrations\n✅ Voting rights\n\nRenew: {renewLink}'
+    },
+    
+    // Payment Templates
+    PAYMENT_RECEIVED: {
+        id: 'payment_received',
+        name: 'Payment Confirmation',
+        category: 'payment',
+        subject: '✅ Payment Received - {description}',
+        emailTemplate: 'payment_confirmation',
+        smsTemplate: 'BANF: Payment of ${amount} received for {description}. Thank you!',
+        whatsappTemplate: '*✅ Payment Confirmed*\n\nThank you for your payment!\n\n💰 Amount: ${amount}\n📝 For: {description}\n🧾 Receipt: {receiptNumber}\n\nQuestions? Reply to this message.'
+    },
+    
+    PAYMENT_FAILED: {
+        id: 'payment_failed',
+        name: 'Payment Failed',
+        category: 'payment',
+        subject: '⚠️ Payment Issue - Action Required',
+        emailTemplate: 'payment_failed',
+        smsTemplate: 'BANF: Your payment of ${amount} failed. Please update: {paymentLink}',
+        whatsappTemplate: '*⚠️ Payment Issue*\n\nYour payment of *${amount}* for *{description}* could not be processed.\n\nPlease update your payment method:\n{paymentLink}\n\nNeed help? Reply here.'
+    },
+    
+    // General Templates
+    GENERAL_ANNOUNCEMENT: {
+        id: 'general_announcement',
+        name: 'General Announcement',
+        category: 'general',
+        subject: '📢 {subject}',
+        emailTemplate: 'general_announcement',
+        smsTemplate: 'BANF: {message}',
+        whatsappTemplate: '*📢 BANF Announcement*\n\n{message}'
+    },
+    
+    EMERGENCY_ALERT: {
+        id: 'emergency_alert',
+        name: 'Emergency Alert',
+        category: 'emergency',
+        subject: '🚨 URGENT: {subject}',
+        emailTemplate: 'emergency_alert',
+        smsTemplate: 'URGENT BANF: {message}',
+        whatsappTemplate: '*🚨 URGENT NOTICE*\n\n{message}\n\nBANF Committee'
+    }
+};
+
+const CHANNEL_TYPES = {
+    EMAIL: 'email',
+    SMS: 'sms',
+    WHATSAPP: 'whatsapp',
+    PUSH: 'push'
+};
+
+// =====================================================
+// CAMPAIGN MANAGEMENT
+// =====================================================
+
+/**
+ * Create a new communication campaign
+ * @param {Object} campaignData
+ */
+export async function createCampaign(campaignData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const campaign = await wixData.insert('CommCampaigns', {
+            // Basic Info
+            name: campaignData.name,
+            description: campaignData.description || '',
+            templateId: campaignData.templateId,
+            
+            // Target Audience
+            audienceType: campaignData.audienceType, // 'all', 'members', 'specific', 'filter'
+            audienceFilter: campaignData.audienceFilter || {},
+            recipientIds: campaignData.recipientIds || [],
+            totalRecipients: 0,
+            
+            // Channels
+            channels: campaignData.channels || [CHANNEL_TYPES.EMAIL],
+            
+            // Content
+            subject: campaignData.subject,
+            content: campaignData.content || {},
+            variables: campaignData.variables || {},
+            
+            // Scheduling
+            scheduleType: campaignData.scheduleType || 'immediate', // 'immediate', 'scheduled', 'recurring'
+            scheduledDate: campaignData.scheduledDate || null,
+            recurringPattern: campaignData.recurringPattern || null,
+            
+            // Status
+            status: 'draft', // 'draft', 'scheduled', 'sending', 'sent', 'failed'
+            
+            // Stats
+            stats: {
+                sent: 0,
+                delivered: 0,
+                opened: 0,
+                clicked: 0,
+                failed: 0
+            },
+            
+            // Metadata
+            createdBy: member._id,
+            createdAt: new Date(),
+            lastModified: new Date()
+        });
+        
+        // Calculate recipients
+        const recipientCount = await calculateRecipientCount(
+            campaign.audienceType,
+            campaign.audienceFilter,
+            campaign.recipientIds
+        );
+        
+        campaign.totalRecipients = recipientCount;
+        await wixData.update('CommCampaigns', campaign);
+        
+        return {
+            success: true,
+            campaignId: campaign._id,
+            recipientCount: recipientCount,
+            message: 'Campaign created successfully'
+        };
+        
+    } catch (error) {
+        console.error('Error creating campaign:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a campaign
+ * @param {string} campaignId
+ */
+export async function sendCampaign(campaignId) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const campaign = await wixData.get('CommCampaigns', campaignId);
+        
+        if (!campaign) {
+            return { success: false, error: 'Campaign not found' };
+        }
+        
+        if (campaign.status === 'sent') {
+            return { success: false, error: 'Campaign already sent' };
+        }
+        
+        // Update status
+        campaign.status = 'sending';
+        await wixData.update('CommCampaigns', campaign);
+        
+        // Get recipients
+        const recipients = await getRecipients(
+            campaign.audienceType,
+            campaign.audienceFilter,
+            campaign.recipientIds
+        );
+        
+        // Get template
+        const template = MESSAGE_TEMPLATES[campaign.templateId] || MESSAGE_TEMPLATES.GENERAL_ANNOUNCEMENT;
+        
+        let sentCount = 0;
+        let failedCount = 0;
+        
+        for (const recipient of recipients) {
+            try {
+                // Send via each channel
+                for (const channel of campaign.channels) {
+                    const result = await sendMessage(channel, {
+                        recipient: recipient,
+                        template: template,
+                        variables: {
+                            ...campaign.variables,
+                            firstName: recipient.firstName,
+                            lastName: recipient.lastName,
+                            email: recipient.email
+                        },
+                        content: campaign.content
+                    });
+                    
+                    if (result.success) {
+                        sentCount++;
+                    } else {
+                        failedCount++;
+                    }
+                }
+                
+                // Log delivery
+                await logCommunication(campaignId, recipient._id, campaign.channels, 'sent');
+                
+            } catch (e) {
+                failedCount++;
+                await logCommunication(campaignId, recipient._id, campaign.channels, 'failed', e.message);
+            }
+        }
+        
+        // Update campaign stats
+        campaign.status = 'sent';
+        campaign.sentAt = new Date();
+        campaign.stats.sent = sentCount;
+        campaign.stats.failed = failedCount;
+        await wixData.update('CommCampaigns', campaign);
+        
+        return {
+            success: true,
+            sent: sentCount,
+            failed: failedCount,
+            message: `Campaign sent to ${sentCount} recipients`
+        };
+        
+    } catch (error) {
+        console.error('Error sending campaign:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function sendMessage(channel, data) {
+    const { recipient, template, variables, content } = data;
+    
+    switch (channel) {
+        case CHANNEL_TYPES.EMAIL:
+            return await sendEmailMessage(recipient, template, variables);
+            
+        case CHANNEL_TYPES.SMS:
+            return await sendSMSMessage(recipient, template, variables);
+            
+        case CHANNEL_TYPES.WHATSAPP:
+            return await sendWhatsAppMessage(recipient, template, variables);
+            
+        case CHANNEL_TYPES.PUSH:
+            return await sendPushNotification(recipient, content, variables);
+            
+        default:
+            return { success: false, error: 'Unknown channel' };
+    }
+}
+
+async function sendEmailMessage(recipient, template, variables) {
+    try {
+        await triggeredEmails.emailContact(
+            template.emailTemplate,
+            recipient.email,
+            { variables: variables }
+        );
+        return { success: true };
+    } catch (error) {
+        console.error('Email send error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function sendSMSMessage(recipient, template, variables) {
+    // Queue SMS for batch processing
+    let message = template.smsTemplate;
+    for (const [key, value] of Object.entries(variables)) {
+        message = message.replace(new RegExp(`{${key}}`, 'g'), value);
+    }
+    
+    await wixData.insert('SMSQueue', {
+        phone: recipient.phone,
+        message: message,
+        status: 'pending',
+        createdAt: new Date()
+    });
+    
+    return { success: true };
+}
+
+async function sendWhatsAppMessage(recipient, template, variables) {
+    // Queue WhatsApp for batch processing
+    let message = template.whatsappTemplate;
+    for (const [key, value] of Object.entries(variables)) {
+        message = message.replace(new RegExp(`{${key}}`, 'g'), value);
+    }
+    
+    await wixData.insert('WhatsAppQueue', {
+        phone: recipient.phone,
+        message: message,
+        status: 'pending',
+        createdAt: new Date()
+    });
+    
+    return { success: true };
+}
+
+async function sendPushNotification(recipient, content, variables) {
+    // Queue push notification
+    await wixData.insert('PushQueue', {
+        memberId: recipient._id,
+        title: interpolateString(content.title, variables),
+        body: interpolateString(content.body, variables),
+        data: content.data || {},
+        status: 'pending',
+        createdAt: new Date()
+    });
+    
+    return { success: true };
+}
+
+// =====================================================
+// AUTOMATED MESSAGING
+// =====================================================
+
+/**
+ * Schedule automated event reminders
+ * @param {string} eventId
+ * @param {Array} reminderTypes - ['3day', '1day', 'dayof']
+ */
+export async function scheduleEventReminders(eventId, reminderTypes = ['3day', '1day', 'dayof']) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const event = await wixData.get('Events', eventId);
+        
+        if (!event) {
+            return { success: false, error: 'Event not found' };
+        }
+        
+        const eventDate = new Date(event.eventDate);
+        const reminders = [];
+        
+        for (const type of reminderTypes) {
+            let scheduledDate;
+            let templateId;
+            
+            switch (type) {
+                case '3day':
+                    scheduledDate = new Date(eventDate);
+                    scheduledDate.setDate(scheduledDate.getDate() - 3);
+                    scheduledDate.setHours(10, 0, 0, 0); // 10 AM
+                    templateId = 'EVENT_REMINDER_3DAY';
+                    break;
+                    
+                case '1day':
+                    scheduledDate = new Date(eventDate);
+                    scheduledDate.setDate(scheduledDate.getDate() - 1);
+                    scheduledDate.setHours(18, 0, 0, 0); // 6 PM
+                    templateId = 'EVENT_REMINDER_1DAY';
+                    break;
+                    
+                case 'dayof':
+                    scheduledDate = new Date(eventDate);
+                    scheduledDate.setHours(8, 0, 0, 0); // 8 AM
+                    templateId = 'EVENT_DAYOF';
+                    break;
+                    
+                default:
+                    continue;
+            }
+            
+            // Don't schedule if date already passed
+            if (scheduledDate <= new Date()) {
+                continue;
+            }
+            
+            const reminder = await wixData.insert('ScheduledMessages', {
+                eventId: eventId,
+                type: `event_reminder_${type}`,
+                templateId: templateId,
+                channels: ['email', 'whatsapp'],
+                scheduledDate: scheduledDate,
+                variables: {
+                    eventTitle: event.title,
+                    eventType: event.eventType,
+                    date: formatDate(event.eventDate),
+                    time: event.startTime,
+                    venue: event.venueName,
+                    parkingInfo: event.parkingInfo || 'Check event page for parking details'
+                },
+                audienceType: 'event_rsvp',
+                audienceFilter: { eventId: eventId, status: 'attending' },
+                status: 'scheduled',
+                createdBy: member._id,
+                createdAt: new Date()
+            });
+            
+            reminders.push({
+                type: type,
+                scheduledDate: scheduledDate,
+                reminderId: reminder._id
+            });
+        }
+        
+        return {
+            success: true,
+            reminders: reminders,
+            message: `Scheduled ${reminders.length} reminders for ${event.title}`
+        };
+        
+    } catch (error) {
+        console.error('Error scheduling reminders:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Process scheduled messages (call from scheduler)
+ */
+export async function processScheduledMessages() {
+    try {
+        const now = new Date();
+        
+        // Find due messages
+        const dueMessages = await wixData.query('ScheduledMessages')
+            .eq('status', 'scheduled')
+            .le('scheduledDate', now)
+            .find({ suppressAuth: true });
+        
+        let processedCount = 0;
+        
+        for (const scheduled of dueMessages.items) {
+            try {
+                // Get recipients based on audience type
+                let recipients;
+                if (scheduled.audienceType === 'event_rsvp') {
+                    recipients = await getEventRSVPRecipients(
+                        scheduled.audienceFilter.eventId,
+                        scheduled.audienceFilter.status
+                    );
+                } else {
+                    recipients = await getRecipients(
+                        scheduled.audienceType,
+                        scheduled.audienceFilter,
+                        []
+                    );
+                }
+                
+                const template = MESSAGE_TEMPLATES[scheduled.templateId];
+                
+                for (const recipient of recipients) {
+                    for (const channel of scheduled.channels) {
+                        await sendMessage(channel, {
+                            recipient: recipient,
+                            template: template,
+                            variables: {
+                                ...scheduled.variables,
+                                firstName: recipient.firstName,
+                                lastName: recipient.lastName
+                            },
+                            content: {}
+                        });
+                    }
+                }
+                
+                scheduled.status = 'sent';
+                scheduled.sentAt = new Date();
+                scheduled.recipientCount = recipients.length;
+                await wixData.update('ScheduledMessages', scheduled);
+                
+                processedCount++;
+                
+            } catch (e) {
+                scheduled.status = 'failed';
+                scheduled.error = e.message;
+                await wixData.update('ScheduledMessages', scheduled);
+            }
+        }
+        
+        return {
+            success: true,
+            processed: processedCount
+        };
+        
+    } catch (error) {
+        console.error('Error processing scheduled messages:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// QUICK SEND FUNCTIONS
+// =====================================================
+
+/**
+ * Quick send message to a member
+ * @param {string} memberId
+ * @param {string} channel
+ * @param {string} message
+ */
+export async function quickSendMessage(memberId, channel, message) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        const targetMember = await wixData.get('Members/PrivateMembersData', memberId, { suppressAuth: true });
+        
+        if (!targetMember) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const recipient = {
+            _id: memberId,
+            firstName: targetMember.firstName,
+            lastName: targetMember.lastName,
+            email: targetMember.loginEmail,
+            phone: targetMember.phone || targetMember.mainPhone
+        };
+        
+        const template = MESSAGE_TEMPLATES.GENERAL_ANNOUNCEMENT;
+        
+        const result = await sendMessage(channel, {
+            recipient: recipient,
+            template: template,
+            variables: { message: message },
+            content: { title: 'BANF Message', body: message }
+        });
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Error quick sending:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send emergency alert to all members
+ * @param {Object} alertData - { subject, message, channels }
+ */
+export async function sendEmergencyAlert(alertData) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized - Emergency alerts require admin access');
+    }
+    
+    try {
+        // Get all active members
+        const members = await wixData.query('Members/PrivateMembersData')
+            .find({ suppressAuth: true });
+        
+        const template = MESSAGE_TEMPLATES.EMERGENCY_ALERT;
+        const channels = alertData.channels || ['email', 'sms', 'whatsapp'];
+        
+        let sentCount = 0;
+        
+        for (const targetMember of members.items) {
+            const recipient = {
+                _id: targetMember._id,
+                firstName: targetMember.firstName,
+                lastName: targetMember.lastName,
+                email: targetMember.loginEmail,
+                phone: targetMember.phone || targetMember.mainPhone
+            };
+            
+            for (const channel of channels) {
+                if ((channel === 'email' && recipient.email) ||
+                    ((channel === 'sms' || channel === 'whatsapp') && recipient.phone)) {
+                    await sendMessage(channel, {
+                        recipient: recipient,
+                        template: template,
+                        variables: {
+                            subject: alertData.subject,
+                            message: alertData.message
+                        },
+                        content: {}
+                    });
+                    sentCount++;
+                }
+            }
+        }
+        
+        // Log emergency alert
+        await wixData.insert('EmergencyAlertLog', {
+            subject: alertData.subject,
+            message: alertData.message,
+            channels: channels,
+            recipientCount: members.items.length,
+            sentCount: sentCount,
+            sentBy: member._id,
+            sentAt: new Date()
+        });
+        
+        return {
+            success: true,
+            sentCount: sentCount,
+            message: `Emergency alert sent to ${members.items.length} members`
+        };
+        
+    } catch (error) {
+        console.error('Error sending emergency alert:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// COMMUNICATION ANALYTICS
+// =====================================================
+
+/**
+ * Get communication statistics
+ * @param {Object} filters - { startDate, endDate, channel }
+ */
+export async function getCommunicationStats(filters = {}) {
+    const member = await currentMember.getMember();
+    if (!member || !await isAdmin(member._id)) {
+        throw new Error('Unauthorized');
+    }
+    
+    try {
+        let query = wixData.query('CommLog');
+        
+        if (filters.startDate) {
+            query = query.ge('sentAt', new Date(filters.startDate));
+        }
+        if (filters.endDate) {
+            query = query.le('sentAt', new Date(filters.endDate));
+        }
+        if (filters.channel) {
+            query = query.eq('channel', filters.channel);
+        }
+        
+        const logs = await query.find({ suppressAuth: true });
+        
+        const stats = {
+            totalSent: logs.items.length,
+            byChannel: {},
+            byStatus: {},
+            recentActivity: []
+        };
+        
+        for (const log of logs.items) {
+            stats.byChannel[log.channel] = (stats.byChannel[log.channel] || 0) + 1;
+            stats.byStatus[log.status] = (stats.byStatus[log.status] || 0) + 1;
+        }
+        
+        // Get recent campaigns
+        const campaigns = await wixData.query('CommCampaigns')
+            .eq('status', 'sent')
+            .descending('sentAt')
+            .limit(10)
+            .find({ suppressAuth: true });
+        
+        stats.recentCampaigns = campaigns.items.map(c => ({
+            name: c.name,
+            sentAt: c.sentAt,
+            sent: c.stats.sent,
+            opened: c.stats.opened,
+            openRate: c.stats.sent > 0 
+                ? Math.round((c.stats.opened / c.stats.sent) * 100) 
+                : 0
+        }));
+        
+        return {
+            success: true,
+            stats: stats
+        };
+        
+    } catch (error) {
+        console.error('Error getting comm stats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+async function calculateRecipientCount(audienceType, filter, specificIds) {
+    switch (audienceType) {
+        case 'all':
+            const allMembers = await wixData.query('Members/PrivateMembersData')
+                .count({ suppressAuth: true });
+            return allMembers;
+            
+        case 'members':
+            const members = await wixData.query('Memberships')
+                .eq('status', 'active')
+                .count({ suppressAuth: true });
+            return members;
+            
+        case 'specific':
+            return specificIds?.length || 0;
+            
+        case 'filter':
+            // Apply filter and count
+            let query = wixData.query('Members/PrivateMembersData');
+            if (filter.membershipType) {
+                query = query.eq('membershipType', filter.membershipType);
+            }
+            return await query.count({ suppressAuth: true });
+            
+        default:
+            return 0;
+    }
+}
+
+async function getRecipients(audienceType, filter, specificIds) {
+    let recipients = [];
+    
+    switch (audienceType) {
+        case 'all':
+            const all = await wixData.query('Members/PrivateMembersData')
+                .find({ suppressAuth: true });
+            recipients = all.items;
+            break;
+            
+        case 'members':
+            const memberships = await wixData.query('Memberships')
+                .eq('status', 'active')
+                .include('memberId')
+                .find({ suppressAuth: true });
+            
+            const memberIds = memberships.items.map(m => m.memberId);
+            if (memberIds.length > 0) {
+                const members = await wixData.query('Members/PrivateMembersData')
+                    .hasSome('_id', memberIds)
+                    .find({ suppressAuth: true });
+                recipients = members.items;
+            }
+            break;
+            
+        case 'specific':
+            if (specificIds?.length > 0) {
+                const specific = await wixData.query('Members/PrivateMembersData')
+                    .hasSome('_id', specificIds)
+                    .find({ suppressAuth: true });
+                recipients = specific.items;
+            }
+            break;
+            
+        case 'filter':
+            let query = wixData.query('Members/PrivateMembersData');
+            if (filter.membershipType) {
+                // Would need to join with memberships
+            }
+            const filtered = await query.find({ suppressAuth: true });
+            recipients = filtered.items;
+            break;
+    }
+    
+    return recipients.map(r => ({
+        _id: r._id,
+        firstName: r.firstName || 'Member',
+        lastName: r.lastName || '',
+        email: r.loginEmail,
+        phone: r.phone || r.mainPhone
+    }));
+}
+
+async function getEventRSVPRecipients(eventId, status) {
+    const rsvps = await wixData.query('EviteRSVPs')
+        .eq('eventId', eventId)
+        .eq('rsvpStatus', status)
+        .find({ suppressAuth: true });
+    
+    return rsvps.items.map(r => ({
+        _id: r.memberId,
+        firstName: r.attendeeName?.split(' ')[0] || 'Guest',
+        lastName: r.attendeeName?.split(' ').slice(1).join(' ') || '',
+        email: r.email,
+        phone: r.phone
+    }));
+}
+
+async function logCommunication(campaignId, recipientId, channels, status, error = null) {
+    await wixData.insert('CommLog', {
+        campaignId: campaignId,
+        recipientId: recipientId,
+        channels: channels,
+        status: status,
+        error: error,
+        sentAt: new Date()
+    });
+}
+
+function interpolateString(str, variables) {
+    if (!str) return '';
+    let result = str;
+    for (const [key, value] of Object.entries(variables)) {
+        result = result.replace(new RegExp(`{${key}}`, 'g'), value || '');
+    }
+    return result;
+}
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+async function isAdmin(memberId) {
+    if (!memberId) return false;
+    try {
+        const member = await wixData.query('Members/PrivateMembersData')
+            .eq('_id', memberId)
+            .find({ suppressAuth: true });
+        
+        if (member.items.length > 0) {
+            const roles = member.items[0].memberRoles || [];
+            return roles.some(role => 
+                role.toLowerCase().includes('admin') || 
+                role.toLowerCase().includes('ec')
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Export constants
+export { MESSAGE_TEMPLATES, CHANNEL_TYPES };

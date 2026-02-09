@@ -1,0 +1,355 @@
+// backend/complaints.jsw
+// BANF Anonymous Complaint System - Wix Velo Backend
+// Uses wix-secrets-backend for encryption key management
+
+import wixData from 'wix-data';
+import { getSecret } from 'wix-secrets-backend';
+
+// Status constants
+const COMPLAINT_STATUS = {
+    SUBMITTED: 'submitted',
+    UNDER_REVIEW: 'under_review',
+    INVESTIGATING: 'investigating',
+    RESOLVED: 'resolved',
+    CLOSED: 'closed'
+};
+
+const COMPLAINT_CATEGORIES = [
+    'general',
+    'financial',
+    'event',
+    'member_conduct',
+    'governance',
+    'safety',
+    'discrimination',
+    'other'
+];
+
+/**
+ * Submit anonymous complaint
+ * Note: In Wix, true encryption would use external services via wix-fetch
+ * For internal use, we use Wix's built-in security + data permissions
+ */
+export async function submitComplaint(complaintData) {
+    try {
+        // Generate unique complaint ID
+        const complaintId = generateComplaintId();
+        
+        // Generate access code for anonymous follow-up
+        const accessCode = generateAccessCode();
+        
+        const complaint = {
+            complaintId: complaintId,
+            accessCode: accessCode, // Hashed for storage
+            accessCodeHash: hashCode(accessCode),
+            category: complaintData.category || 'general',
+            subject: complaintData.subject,
+            description: complaintData.description,
+            incidentDate: complaintData.incidentDate ? new Date(complaintData.incidentDate) : null,
+            location: complaintData.location || '',
+            involvedParties: complaintData.involvedParties || '',
+            desiredOutcome: complaintData.desiredOutcome || '',
+            attachmentUrls: complaintData.attachmentUrls || [],
+            status: COMPLAINT_STATUS.SUBMITTED,
+            priority: 'normal',
+            isAnonymous: true,
+            submittedAt: new Date(),
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('Complaints', complaint, {
+            suppressAuth: true // Allow anonymous submission
+        });
+        
+        return {
+            success: true,
+            complaintId: complaintId,
+            accessCode: accessCode, // Return to user for their records
+            message: 'Complaint submitted successfully. Save your access code to check status.'
+        };
+    } catch (error) {
+        console.error('Error submitting complaint:', error);
+        return { success: false, error: 'Failed to submit complaint' };
+    }
+}
+
+/**
+ * Check complaint status using access code (anonymous)
+ */
+export async function checkComplaintStatus(complaintId, accessCode) {
+    try {
+        const accessCodeHash = hashCode(accessCode);
+        
+        const result = await wixData.query('Complaints')
+            .eq('complaintId', complaintId)
+            .eq('accessCodeHash', accessCodeHash)
+            .find({ suppressAuth: true });
+        
+        if (result.items.length === 0) {
+            return {
+                success: false,
+                error: 'Invalid complaint ID or access code'
+            };
+        }
+        
+        const complaint = result.items[0];
+        
+        // Return limited info for anonymous access
+        return {
+            success: true,
+            status: complaint.status,
+            category: complaint.category,
+            submittedAt: complaint.submittedAt,
+            lastUpdated: complaint._updatedDate,
+            adminResponse: complaint.adminResponse || null,
+            resolution: complaint.status === COMPLAINT_STATUS.RESOLVED ? complaint.resolution : null
+        };
+    } catch (error) {
+        console.error('Error checking complaint status:', error);
+        return { success: false, error: 'Failed to check status' };
+    }
+}
+
+/**
+ * Add follow-up to complaint (anonymous)
+ */
+export async function addComplaintFollowUp(complaintId, accessCode, followUpText) {
+    try {
+        const accessCodeHash = hashCode(accessCode);
+        
+        const result = await wixData.query('Complaints')
+            .eq('complaintId', complaintId)
+            .eq('accessCodeHash', accessCodeHash)
+            .find({ suppressAuth: true });
+        
+        if (result.items.length === 0) {
+            return { success: false, error: 'Invalid complaint ID or access code' };
+        }
+        
+        const complaint = result.items[0];
+        
+        // Parse existing follow-ups
+        let followUps = [];
+        try {
+            followUps = JSON.parse(complaint.followUps || '[]');
+        } catch (e) {
+            followUps = [];
+        }
+        
+        // Add new follow-up
+        followUps.push({
+            timestamp: new Date().toISOString(),
+            from: 'complainant',
+            message: followUpText
+        });
+        
+        // Update complaint
+        await wixData.update('Complaints', {
+            ...complaint,
+            followUps: JSON.stringify(followUps),
+            _updatedDate: new Date()
+        }, { suppressAuth: true });
+        
+        return { success: true, message: 'Follow-up added successfully' };
+    } catch (error) {
+        console.error('Error adding follow-up:', error);
+        return { success: false, error: 'Failed to add follow-up' };
+    }
+}
+
+/**
+ * Get all complaints (admin only)
+ */
+export async function getAllComplaints(options = { limit: 20, skip: 0, status: null }) {
+    try {
+        let query = wixData.query('Complaints');
+        
+        if (options.status) {
+            query = query.eq('status', options.status);
+        }
+        
+        query = query
+            .descending('submittedAt')
+            .limit(options.limit)
+            .skip(options.skip);
+        
+        const result = await query.find();
+        
+        return {
+            items: result.items.map(c => ({
+                ...c,
+                accessCode: undefined, // Remove access code
+                accessCodeHash: undefined
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting complaints:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get complaint by ID (admin only)
+ */
+export async function getComplaintById(complaintId) {
+    try {
+        const result = await wixData.query('Complaints')
+            .eq('complaintId', complaintId)
+            .find();
+        
+        if (result.items.length === 0) return null;
+        
+        const complaint = result.items[0];
+        return {
+            ...complaint,
+            accessCode: undefined,
+            accessCodeHash: undefined,
+            followUps: JSON.parse(complaint.followUps || '[]')
+        };
+    } catch (error) {
+        console.error('Error getting complaint:', error);
+        return null;
+    }
+}
+
+/**
+ * Update complaint status (admin only)
+ */
+export async function updateComplaintStatus(complaintId, statusData, adminId) {
+    try {
+        const result = await wixData.query('Complaints')
+            .eq('complaintId', complaintId)
+            .find();
+        
+        if (result.items.length === 0) {
+            return { success: false, error: 'Complaint not found' };
+        }
+        
+        const complaint = result.items[0];
+        
+        // Parse existing follow-ups
+        let followUps = [];
+        try {
+            followUps = JSON.parse(complaint.followUps || '[]');
+        } catch (e) {
+            followUps = [];
+        }
+        
+        // Add admin update as follow-up
+        if (statusData.adminResponse) {
+            followUps.push({
+                timestamp: new Date().toISOString(),
+                from: 'admin',
+                message: statusData.adminResponse,
+                adminId: adminId
+            });
+        }
+        
+        const updatedComplaint = {
+            ...complaint,
+            status: statusData.status || complaint.status,
+            priority: statusData.priority || complaint.priority,
+            assignedTo: statusData.assignedTo || complaint.assignedTo,
+            adminResponse: statusData.adminResponse || complaint.adminResponse,
+            resolution: statusData.resolution || complaint.resolution,
+            resolvedAt: statusData.status === COMPLAINT_STATUS.RESOLVED ? new Date() : complaint.resolvedAt,
+            followUps: JSON.stringify(followUps),
+            _updatedDate: new Date()
+        };
+        
+        await wixData.update('Complaints', updatedComplaint);
+        
+        return { success: true, message: 'Complaint updated successfully' };
+    } catch (error) {
+        console.error('Error updating complaint:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get complaint statistics
+ */
+export async function getComplaintStats() {
+    try {
+        const [
+            totalComplaints,
+            submittedCount,
+            underReviewCount,
+            investigatingCount,
+            resolvedCount,
+            closedCount
+        ] = await Promise.all([
+            wixData.query('Complaints').count(),
+            wixData.query('Complaints').eq('status', COMPLAINT_STATUS.SUBMITTED).count(),
+            wixData.query('Complaints').eq('status', COMPLAINT_STATUS.UNDER_REVIEW).count(),
+            wixData.query('Complaints').eq('status', COMPLAINT_STATUS.INVESTIGATING).count(),
+            wixData.query('Complaints').eq('status', COMPLAINT_STATUS.RESOLVED).count(),
+            wixData.query('Complaints').eq('status', COMPLAINT_STATUS.CLOSED).count()
+        ]);
+        
+        // Get category breakdown
+        const categoryStats = {};
+        for (const category of COMPLAINT_CATEGORIES) {
+            categoryStats[category] = await wixData.query('Complaints')
+                .eq('category', category)
+                .count();
+        }
+        
+        return {
+            total: totalComplaints,
+            byStatus: {
+                submitted: submittedCount,
+                under_review: underReviewCount,
+                investigating: investigatingCount,
+                resolved: resolvedCount,
+                closed: closedCount
+            },
+            byCategory: categoryStats,
+            pendingCount: submittedCount + underReviewCount + investigatingCount,
+            resolvedRate: totalComplaints > 0 
+                ? Math.round(((resolvedCount + closedCount) / totalComplaints) * 100) 
+                : 0
+        };
+    } catch (error) {
+        console.error('Error getting complaint stats:', error);
+        return null;
+    }
+}
+
+// Helper Functions
+
+function generateComplaintId() {
+    const prefix = 'CMP';
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+}
+
+function generateAccessCode() {
+    // Generate 12-character alphanumeric code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 12; i++) {
+        if (i > 0 && i % 4 === 0) code += '-';
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+function hashCode(str) {
+    // Simple hash for demo - in production use crypto
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+}
+
+// Export constants for frontend use
+export const ComplaintStatus = COMPLAINT_STATUS;
+export const ComplaintCategories = COMPLAINT_CATEGORIES;

@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF - Bengal Association of North Florida | Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Bangladesh Flag Colors + Complementary */
+            --green-primary: #006A4E;
+            --green-light: #00A86B;
+            --green-dark: #004D3D;
+            --red-accent: #F42A41;
+            --gold: #FFD700;
+            --gold-light: #FFF4CC;
+            
+            /* Neutrals */
+            --white: #FFFFFF;
+            --off-white: #F8F9FA;
+            --gray-100: #F1F3F5;
+            --gray-200: #E9ECEF;
+            --gray-300: #DEE2E6;
+            --gray-500: #6C757D;
+            --gray-700: #495057;
+            --gray-900: #212529;
+            
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #006A4E 0%, #00A86B 100%);
+            --gradient-hero: linear-gradient(135deg, #006A4E 0%, #004D3D 50%, #003D2E 100%);
+            --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            --gradient-dark: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            
+            /* Shadows */
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.16);
+            --shadow-xl: 0 16px 60px rgba(0,0,0,0.2);
+            --shadow-glow: 0 0 40px rgba(0,106,78,0.3);
+            
+            /* Transitions */
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--gray-900);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+            line-height: 1.2;
+        }
+        
+        /* ========== NAVIGATION ========== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            transition: var(--transition-normal);
+        }
+        
+        .navbar.scrolled {
+            background: rgba(255,255,255,0.98);
+            box-shadow: var(--shadow-md);
+            padding: 10px 0;
+        }
+        
+        .navbar.scrolled .nav-link {
+            color: var(--gray-700);
+        }
+        
+        .navbar.scrolled .nav-link:hover {
+            color: var(--green-primary);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            transition: var(--transition-normal);
+        }
+        
+        .navbar.scrolled .logo-text {
+            color: var(--green-primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            list-style: none;
+        }
+        
+        .nav-link {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 10px 18px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            transition: var(--transition-fast);
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            border: none;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.8);
+            color: white;
+        }
+        
+        .btn-outline:hover {
+            background: white;
+            color: var(--green-primary);
+            border-color: white;
+        }
+        
+        .navbar.scrolled .btn-outline {
+            border-color: var(--green-primary);
+            color: var(--green-primary);
+        }
+        
+        .navbar.scrolled .btn-outline:hover {
+            background: var(--green-primary);
+            color: white;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-gold);
+            color: var(--gray-900);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-green {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-green:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        /* ========== HERO SECTION ========== */
+        .hero {
+            min-height: 100vh;
+            background: var(--gradient-hero);
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 120px 30px 80px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-content {
+            color: white;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,215,0,0.2);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+        
+        .hero-title span {
+            color: var(--gold);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 32px;
+            font-weight: 300;
+            max-width: 500px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-item {
+            text-align: left;
+        }
+        
+        .stat-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .hero-visual {
+            position: relative;
+        }
+        
+        .hero-image-container {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .hero-image {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .hero-card {
+            position: absolute;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .hero-card.top-right {
+            top: -20px;
+            right: -20px;
+        }
+        
+        .hero-card.bottom-left {
+            bottom: -20px;
+            left: -20px;
+        }
+        
+        .hero-card-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+        
+        .hero-card-text h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .hero-card-text p {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        
+        /* ========== QUICK ACCESS STRIP ========== */
+        .quick-access {
+            background: white;
+            padding: 0;
+            position: relative;
+            margin-top: -60px;
+            z-index: 10;
+        }
+        
+        .quick-access-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        
+        .quick-access-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+        }
+        
+        .quick-item {
+            padding: 30px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: var(--gray-700);
+            transition: var(--transition-normal);
+            border-right: 1px solid var(--gray-200);
+        }
+        
+        .quick-item:last-child {
+            border-right: none;
+        }
+        
+        .quick-item:hover {
+            background: var(--green-primary);
+            color: white;
+        }
+        
+        .quick-item:hover .quick-icon {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .quick-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gray-100);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--green-primary);
+            margin: 0 auto 12px;
+            transition: var(--transition-normal);
+        }
+        
+        .quick-item h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .quick-item p {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        /* ========== SECTION STYLES ========== */
+        .section {
+            padding: 100px 0;
+        }
+        
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 60px;
+        }
+        
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gold-light);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--green-dark);
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-size: 2.75rem;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+        
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--gray-500);
+        }
+        
+        /* ========== FEATURES SECTION ========== */
+        .features {
+            background: var(--off-white);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 35px;
+            transition: var(--transition-normal);
+            border: 1px solid transparent;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--green-light);
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--gradient-primary);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: white;
+            margin-bottom: 24px;
+        }
+        
+        .feature-card h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--gray-900);
+        }
+        
+        .feature-card p {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+        
+        .feature-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--green-primary);
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .feature-link:hover {
+            gap: 12px;
+        }
+        
+        /* ========== EVENTS SECTION ========== */
+        .events-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        
+        .event-featured {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            height: 450px;
+        }
+        
+        .event-featured img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .event-featured-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 40px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            color: white;
+        }
+        
+        .event-date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--red-accent);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .event-featured h3 {
+            font-size: 1.75rem;
+            margin-bottom: 12px;
+        }
+        
+        .event-featured p {
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .event-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-normal);
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .event-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(8px);
+        }
+        
+        .event-date {
+            background: var(--green-primary);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 70px;
+        }
+        
+        .event-date .day {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .event-date .month {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .event-info h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--gray-900);
+        }
+        
+        .event-info p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+        
+        /* ========== MEMBERSHIP CTA ========== */
+        .membership-cta {
+            background: var(--gradient-hero);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .membership-cta::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: rgba(255,215,0,0.1);
+            border-radius: 50%;
+        }
+        
+        .membership-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .membership-content {
+            color: white;
+        }
+        
+        .membership-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .membership-content p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 32px;
+        }
+        
+        .membership-benefits {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .benefit-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,215,0,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold);
+        }
+        
+        .benefit-item span {
+            font-size: 0.95rem;
+        }
+        
+        .pricing-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .pricing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .pricing-card.featured {
+            border: 3px solid var(--gold);
+            transform: scale(1.02);
+        }
+        
+        .pricing-info h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .pricing-info p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+        
+        .pricing-amount {
+            text-align: right;
+        }
+        
+        .pricing-amount .price {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--green-primary);
+        }
+        
+        .pricing-amount .period {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        
+        /* ========== COMMUNITY SECTION ========== */
+        .community-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+        
+        .community-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-normal);
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .community-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .community-image {
+            height: 160px;
+            overflow: hidden;
+        }
+        
+        .community-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition-slow);
+        }
+        
+        .community-card:hover .community-image img {
+            transform: scale(1.1);
+        }
+        
+        .community-content {
+            padding: 24px;
+        }
+        
+        .community-content h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--gray-900);
+        }
+        
+        .community-content p {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 16px;
+        }
+        
+        .community-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--green-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        /* ========== RADIO SECTION ========== */
+        .radio-section {
+            background: var(--gradient-dark);
+            color: white;
+        }
+        
+        .radio-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .radio-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .radio-content p {
+            opacity: 0.9;
+            margin-bottom: 32px;
+            font-size: 1.1rem;
+        }
+        
+        .radio-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        
+        .radio-feature {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .radio-player {
+            background: rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .radio-now-playing {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .radio-album {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0,106,78,0.4); }
+            50% { box-shadow: 0 0 0 20px rgba(0,106,78,0); }
+        }
+        
+        .radio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        
+        .radio-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gradient-primary);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+        
+        .radio-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .radio-btn.play {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+        
+        /* ========== TESTIMONIALS ========== */
+        .testimonials {
+            background: var(--off-white);
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        
+        .testimonial-card {
+            background: white;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .testimonial-rating {
+            color: var(--gold);
+            margin-bottom: 16px;
+        }
+        
+        .testimonial-text {
+            font-size: 1.05rem;
+            color: var(--gray-700);
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .testimonial-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .testimonial-info h5 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .testimonial-info p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+        
+        /* ========== FOOTER ========== */
+        .footer {
+            background: var(--gradient-dark);
+            color: white;
+            padding: 80px 0 30px;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .footer-brand p {
+            opacity: 0.7;
+            margin: 16px 0 24px;
+            font-size: 0.95rem;
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .social-link {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: var(--transition-normal);
+        }
+        
+        .social-link:hover {
+            background: var(--green-primary);
+            transform: translateY(-4px);
+        }
+        
+        .footer-col h4 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--gold);
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+        
+        .footer-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition-fast);
+        }
+        
+        .footer-links a:hover {
+            color: white;
+            padding-left: 8px;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .footer-bottom a {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .footer-bottom a:hover {
+            color: white;
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1200px) {
+            .hero-title { font-size: 3rem; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .community-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 992px) {
+            .hero-container { grid-template-columns: 1fr; text-align: center; }
+            .hero-subtitle { margin: 0 auto 32px; }
+            .hero-stats { justify-content: center; }
+            .hero-buttons { justify-content: center; }
+            .hero-visual { display: none; }
+            .quick-access-grid { grid-template-columns: repeat(3, 1fr); }
+            .events-grid { grid-template-columns: 1fr; }
+            .membership-container { grid-template-columns: 1fr; }
+            .radio-container { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero-title { font-size: 2.5rem; }
+            .section-title { font-size: 2rem; }
+            .features-grid { grid-template-columns: 1fr; }
+            .quick-access-grid { grid-template-columns: repeat(2, 1fr); }
+            .testimonials-grid { grid-template-columns: 1fr; }
+            .community-grid { grid-template-columns: 1fr; }
+            .membership-benefits { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            .quick-access-grid { grid-template-columns: 1fr; }
+            .hero-stats { flex-direction: column; gap: 20px; }
+            .hero-buttons { flex-direction: column; }
+            .footer-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">ব</div>
+                <span class="logo-text">BANF</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/about" class="nav-link">About</a></li>
+                <li><a href="/events" class="nav-link">Events</a></li>
+                <li><a href="/gallery" class="nav-link">Gallery</a></li>
+                <li><a href="/radio" class="nav-link">Radio</a></li>
+                <li><a href="/magazine" class="nav-link">Magazine</a></li>
+                <li><a href="/guide" class="nav-link">Jax Guide</a></li>
+            </ul>
+            
+            <div class="nav-buttons">
+                <a href="/login" class="btn btn-outline">
+                    <i class="fas fa-user"></i> Login
+                </a>
+                <a href="/member-payment" class="btn btn-primary">
+                    <i class="fas fa-heart"></i> Join BANF
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-star"></i>
+                    Serving Jacksonville Since 1990
+                </div>
+                <h1 class="hero-title">
+                    Celebrating <span>Bengali</span> Heritage in North Florida
+                </h1>
+                <p class="hero-subtitle">
+                    Join our vibrant community of Bengali families preserving culture, 
+                    building connections, and creating lasting memories together.
+                </p>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">500+</div>
+                        <div class="stat-label">Member Families</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">35+</div>
+                        <div class="stat-label">Years Strong</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">50+</div>
+                        <div class="stat-label">Events/Year</div>
+                    </div>
+                </div>
+                
+                <div class="hero-buttons">
+                    <a href="/member-payment" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Become a Member
+                    </a>
+                    <a href="/events" class="btn btn-outline btn-lg">
+                        <i class="fas fa-calendar"></i> Upcoming Events
+                    </a>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="hero-image-container">
+                    <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800" alt="BANF Community Event" class="hero-image">
+                    
+                    <div class="hero-card top-right">
+                        <div class="hero-card-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="hero-card-text">
+                            <h4>Next Event</h4>
+                            <p>Saraswati Puja - Feb 14</p>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-card bottom-left">
+                        <div class="hero-card-icon"><i class="fas fa-broadcast-tower"></i></div>
+                        <div class="hero-card-text">
+                            <h4>BANF Radio</h4>
+                            <p>Live 24/7 Bengali Music</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Access Strip -->
+    <section class="quick-access">
+        <div class="quick-access-container">
+            <div class="quick-access-grid">
+                <a href="/member-payment" class="quick-item">
+                    <div class="quick-icon"><i class="fas fa-id-card"></i></div>
+                    <h4>Pay Membership</h4>
+                    <p>Renew or join now</p>
+                </a>
+                <a href="/events" class="quick-item">
+                    <div class="quick-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <h4>Events Calendar</h4>
+                    <p>View all events</p>
+                </a>
+                <a href="/radio" class="quick-item">
+                    <div class="quick-icon"><i class="fas fa-headphones"></i></div>
+                    <h4>BANF Radio</h4>
+                    <p>Listen live</p>
+                </a>
+                <a href="/magazine" class="quick-item">
+                    <div class="quick-icon"><i class="fas fa-book-open"></i></div>
+                    <h4>E-Magazine</h4>
+                    <p>Latest edition</p>
+                </a>
+                <a href="/guide" class="quick-item">
+                    <div class="quick-icon"><i class="fas fa-map-marked-alt"></i></div>
+                    <h4>Jacksonville Guide</h4>
+                    <p>Bengali businesses</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section features">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-sparkles"></i> What We Offer
+                </div>
+                <h2 class="section-title">Everything for Our Bengali Community</h2>
+                <p class="section-subtitle">
+                    From cultural celebrations to digital services, we provide a complete 
+                    ecosystem for Bengali families in North Florida.
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-om"></i></div>
+                    <h3>Cultural Events</h3>
+                    <p>Durga Puja, Saraswati Puja, Pohela Boishakh, and more. Experience authentic Bengali festivals with your family.</p>
+                    <a href="/events" class="feature-link">View Events <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-broadcast-tower"></i></div>
+                    <h3>24/7 Radio Station</h3>
+                    <p>Listen to Bengali music, news, and programs anytime. Member-curated playlists and live shows.</p>
+                    <a href="/radio" class="feature-link">Listen Now <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-newspaper"></i></div>
+                    <h3>E-Magazine</h3>
+                    <p>Quarterly digital magazine featuring community stories, Bengali literature, recipes, and more.</p>
+                    <a href="/magazine" class="feature-link">Read Magazine <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-store"></i></div>
+                    <h3>Jacksonville Guide</h3>
+                    <p>Find Bengali restaurants, grocery stores, doctors, and services in the Jacksonville area.</p>
+                    <a href="/guide" class="feature-link">Explore Guide <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-poll"></i></div>
+                    <h3>Community Surveys</h3>
+                    <p>Have your voice heard! Participate in polls and surveys that shape our community's future.</p>
+                    <a href="/surveys" class="feature-link">Take Survey <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+                    <h3>Meeting Minutes</h3>
+                    <p>Stay informed with transparent access to EC meeting minutes and community decisions.</p>
+                    <a href="/documents" class="feature-link">View Minutes <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-calendar-star"></i> Upcoming Events
+                </div>
+                <h2 class="section-title">Don't Miss Our Celebrations</h2>
+                <p class="section-subtitle">
+                    Join us for cultural festivals, family gatherings, and community programs.
+                </p>
+            </div>
+            
+            <div class="events-grid">
+                <div class="event-featured">
+                    <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800" alt="Saraswati Puja">
+                    <div class="event-featured-content">
+                        <div class="event-date-badge">
+                            <i class="fas fa-fire"></i> Featured Event
+                        </div>
+                        <h3>Saraswati Puja 2026</h3>
+                        <p>Join us for the celebration of knowledge and wisdom with traditional puja, cultural programs, and prasad.</p>
+                        <a href="/events/saraswati-puja" class="btn btn-primary">
+                            Register Now <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="events-list">
+                    <a href="/events/pohela-falgun" class="event-item">
+                        <div class="event-date">
+                            <span class="day">14</span>
+                            <span class="month">Feb</span>
+                        </div>
+                        <div class="event-info">
+                            <h4>Pohela Falgun</h4>
+                            <p>Spring celebration with music & dance</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/events/holi" class="event-item">
+                        <div class="event-date">
+                            <span class="day">14</span>
+                            <span class="month">Mar</span>
+                        </div>
+                        <div class="event-info">
+                            <h4>Holi Celebration</h4>
+                            <p>Festival of colors at Riverside Park</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/events/pohela-boishakh" class="event-item">
+                        <div class="event-date">
+                            <span class="day">14</span>
+                            <span class="month">Apr</span>
+                        </div>
+                        <div class="event-info">
+                            <h4>Pohela Boishakh</h4>
+                            <p>Bengali New Year 1433 celebration</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/events" class="event-item" style="background: var(--green-primary); color: white;">
+                        <div class="event-date" style="background: white; color: var(--green-primary);">
+                            <i class="fas fa-calendar-alt" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div class="event-info">
+                            <h4 style="color: white;">View All Events</h4>
+                            <p style="color: rgba(255,255,255,0.8);">See complete calendar →</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Membership CTA -->
+    <section class="section membership-cta">
+        <div class="section-container">
+            <div class="membership-container">
+                <div class="membership-content">
+                    <h2>Become a BANF Member Today</h2>
+                    <p>Join 500+ families and enjoy exclusive benefits, event discounts, and be part of our thriving community.</p>
+                    
+                    <div class="membership-benefits">
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-ticket-alt"></i></div>
+                            <span>Event Discounts</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-vote-yea"></i></div>
+                            <span>Voting Rights</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-users"></i></div>
+                            <span>Community Access</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-child"></i></div>
+                            <span>Youth Programs</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-book"></i></div>
+                            <span>E-Magazine</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon"><i class="fas fa-headphones"></i></div>
+                            <span>Radio Requests</span>
+                        </div>
+                    </div>
+                    
+                    <a href="/member-payment" class="btn btn-primary btn-lg">
+                        <i class="fas fa-heart"></i> Join Now
+                    </a>
+                </div>
+                
+                <div class="pricing-cards">
+                    <div class="pricing-card">
+                        <div class="pricing-info">
+                            <h4>Regular Individual</h4>
+                            <p>Perfect for single members</p>
+                        </div>
+                        <div class="pricing-amount">
+                            <div class="price">$150</div>
+                            <div class="period">per year</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-card featured">
+                        <div class="pricing-info">
+                            <h4>⭐ Regular Family</h4>
+                            <p>Best value for families</p>
+                        </div>
+                        <div class="pricing-amount">
+                            <div class="price">$215</div>
+                            <div class="period">per year</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <div class="pricing-info">
+                            <h4>Early Bird Family</h4>
+                            <p>Pay before Dec 31</p>
+                        </div>
+                        <div class="pricing-amount">
+                            <div class="price">$340</div>
+                            <div class="period">for 2 years</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <div class="pricing-info">
+                            <h4>Student</h4>
+                            <p>Valid student ID required</p>
+                        </div>
+                        <div class="pricing-amount">
+                            <div class="price">$100</div>
+                            <div class="period">per year</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Resources -->
+    <section class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-compass"></i> Community Resources
+                </div>
+                <h2 class="section-title">Explore & Connect</h2>
+                <p class="section-subtitle">
+                    Discover resources designed to help Bengali families thrive in Jacksonville.
+                </p>
+            </div>
+            
+            <div class="community-grid">
+                <a href="/guide/restaurants" class="community-card">
+                    <div class="community-image">
+                        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400" alt="Bengali Restaurants">
+                    </div>
+                    <div class="community-content">
+                        <h4>Bengali Restaurants</h4>
+                        <p>Find authentic Bengali cuisine in Jacksonville</p>
+                        <span class="community-link">Explore <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+                
+                <a href="/guide/grocery" class="community-card">
+                    <div class="community-image">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=400" alt="Grocery Stores">
+                    </div>
+                    <div class="community-content">
+                        <h4>Grocery Stores</h4>
+                        <p>Indian & Bengali grocery shops nearby</p>
+                        <span class="community-link">Find Stores <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+                
+                <a href="/guide/doctors" class="community-card">
+                    <div class="community-image">
+                        <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=400" alt="Doctors">
+                    </div>
+                    <div class="community-content">
+                        <h4>Bengali Doctors</h4>
+                        <p>Healthcare providers who speak Bengali</p>
+                        <span class="community-link">View Directory <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+                
+                <a href="/guide/services" class="community-card">
+                    <div class="community-image">
+                        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400" alt="Services">
+                    </div>
+                    <div class="community-content">
+                        <h4>Local Services</h4>
+                        <p>Lawyers, realtors, tutors & more</p>
+                        <span class="community-link">Browse Services <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Radio Section -->
+    <section class="section radio-section">
+        <div class="section-container">
+            <div class="radio-container">
+                <div class="radio-content">
+                    <div class="section-badge" style="background: rgba(255,215,0,0.2); color: var(--gold);">
+                        <i class="fas fa-broadcast-tower"></i> BANF Radio
+                    </div>
+                    <h2>24/7 Bengali Music & Programs</h2>
+                    <p>Tune in to BANF Radio for non-stop Bengali music, news, talk shows, and cultural programs. Request your favorite songs!</p>
+                    
+                    <div class="radio-features">
+                        <span class="radio-feature"><i class="fas fa-music"></i> Bengali Songs</span>
+                        <span class="radio-feature"><i class="fas fa-microphone"></i> Live Shows</span>
+                        <span class="radio-feature"><i class="fas fa-newspaper"></i> News Updates</span>
+                        <span class="radio-feature"><i class="fas fa-child"></i> Kids Programs</span>
+                    </div>
+                    
+                    <a href="/radio" class="btn btn-primary btn-lg">
+                        <i class="fas fa-headphones"></i> Go to Radio Page
+                    </a>
+                </div>
+                
+                <div class="radio-player">
+                    <div class="radio-now-playing">
+                        <div class="radio-album">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <h3 style="margin-bottom: 8px;">Now Playing</h3>
+                        <p style="opacity: 0.7;">Rabindra Sangeet Collection</p>
+                    </div>
+                    
+                    <div class="radio-controls">
+                        <button class="radio-btn"><i class="fas fa-backward"></i></button>
+                        <button class="radio-btn play"><i class="fas fa-play"></i></button>
+                        <button class="radio-btn"><i class="fas fa-forward"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section testimonials">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-quote-left"></i> Testimonials
+                </div>
+                <h2 class="section-title">What Our Members Say</h2>
+            </div>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"BANF has been our family's home away from home. The Durga Puja celebrations feel just like being back in Kolkata!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SC</div>
+                        <div class="testimonial-info">
+                            <h5>Sumita Chakraborty</h5>
+                            <p>Member since 2015</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"My kids have learned so much about Bengali culture through BANF's youth programs. It's invaluable for our next generation."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">RD</div>
+                        <div class="testimonial-info">
+                            <h5>Rajib Das</h5>
+                            <p>Member since 2018</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"The Jacksonville Guide helped us so much when we first moved here. Found Bengali doctors and grocery stores easily!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">PM</div>
+                        <div class="testimonial-info">
+                            <h5>Priya Mukherjee</h5>
+                            <p>Member since 2022</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="section-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">ব</div>
+                        <span class="logo-text">BANF</span>
+                    </a>
+                    <p>Bengal Association of North Florida - Preserving Bengali culture and building community in Jacksonville since 1990.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-youtube"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="/about">About Us</a></li>
+                        <li><a href="/events">Events</a></li>
+                        <li><a href="/gallery">Photo Gallery</a></li>
+                        <li><a href="/membership">Membership</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="/radio">BANF Radio</a></li>
+                        <li><a href="/magazine">E-Magazine</a></li>
+                        <li><a href="/guide">Jacksonville Guide</a></li>
+                        <li><a href="/documents">Meeting Minutes</a></li>
+                        <li><a href="/surveys">Community Surveys</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Members</h4>
+                    <ul class="footer-links">
+                        <li><a href="/login">Member Login</a></li>
+                        <li><a href="/member-payment">Pay Dues</a></li>
+                        <li><a href="/complaints">Submit Feedback</a></li>
+                        <li><a href="/sponsors">Our Sponsors</a></li>
+                        <li><a href="/vendors">Vendors</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <ul class="footer-links">
+                        <li><a href="mailto:info@jaxbengali.org"><i class="fas fa-envelope"></i> info@jaxbengali.org</a></li>
+                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> Jacksonville, FL</a></li>
+                        <li><a href="#"><i class="fas fa-phone"></i> (904) XXX-XXXX</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2026 Bengal Association of North Florida. All rights reserved.</p>
+                <p>
+                    <a href="/privacy">Privacy Policy</a> | 
+                    <a href="/terms">Terms of Service</a> | 
+                    <a href="/admin/login">Admin</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

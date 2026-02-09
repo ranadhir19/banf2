@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANF Admin Console | Complete Management Dashboard</title>
+    
+    <!-- Bootstrap 5.3.0 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6.4.0 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Poppins & Hind Siliguri -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar for Scheduling -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        :root {
+            /* Kolkata Color Palette */
+            --banf-saffron: #ff6b35;
+            --banf-orange: #f7931e;
+            --banf-yellow: #f5af19;
+            --banf-deep-red: #8B0000;
+            --banf-burgundy: #722f37;
+            --banf-green: #006A4E;
+            --banf-gold: #daa520;
+            
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            --gradient-hero: linear-gradient(135deg, #8B0000 0%, #ff6b35 50%, #f7931e 100%);
+            --gradient-bengal: linear-gradient(135deg, #006A4E 0%, #f7931e 50%, #8B0000 100%);
+            
+            /* Admin Specific */
+            --sidebar-bg: #1a1a2e;
+            --sidebar-hover: #16213e;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f4f6f9;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar */
+        .admin-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            color: #fff;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .admin-sidebar.collapsed {
+            width: 70px;
+        }
+        
+        .sidebar-brand {
+            padding: 20px;
+            background: var(--gradient-hero);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-brand img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+        
+        .sidebar-brand h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .sidebar-brand span {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        
+        .nav-section-title {
+            padding: 10px 20px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #ccc;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background: var(--sidebar-hover);
+            color: #fff;
+            border-left-color: var(--banf-saffron);
+        }
+        
+        .nav-item i {
+            width: 30px;
+            font-size: 1rem;
+        }
+        
+        .nav-item .nav-text {
+            flex: 1;
+        }
+        
+        .nav-item .badge {
+            background: var(--banf-saffron);
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+        
+        /* Main Content */
+        .admin-main {
+            margin-left: 260px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-main.expanded {
+            margin-left: 70px;
+        }
+        
+        /* Top Header */
+        .admin-header {
+            background: #fff;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--banf-deep-red);
+            cursor: pointer;
+        }
+        
+        .page-title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--banf-deep-red);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .notification-bell {
+            position: relative;
+            font-size: 1.3rem;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        .notification-bell .badge {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background: var(--banf-saffron);
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            border-radius: 50%;
+            color: #fff;
+        }
+        
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .admin-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--banf-gold);
+        }
+        
+        .admin-profile-info span {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        /* Content Area */
+        .admin-content {
+            padding: 30px;
+        }
+        
+        /* Dashboard Cards */
+        .stat-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card .icon-box.bg-saffron { background: var(--gradient-primary); }
+        .stat-card .icon-box.bg-green { background: linear-gradient(135deg, #006A4E, #00a67d); }
+        .stat-card .icon-box.bg-gold { background: linear-gradient(135deg, #daa520, #f7931e); }
+        .stat-card .icon-box.bg-burgundy { background: linear-gradient(135deg, #722f37, #8B0000); }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--banf-deep-red);
+        }
+        
+        .stat-card p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .stat-card .stat-trend {
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .stat-card .stat-trend.up { color: #28a745; }
+        .stat-card .stat-trend.down { color: #dc3545; }
+        
+        /* Module Sections */
+        .module-section {
+            display: none;
+        }
+        
+        .module-section.active {
+            display: block;
+        }
+        
+        /* Quick Actions Panel */
+        .quick-actions {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .quick-actions h5 {
+            color: var(--banf-deep-red);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--banf-saffron);
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: var(--gradient-primary);
+            color: #fff;
+            border-color: transparent;
+        }
+        
+        .action-btn i {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 8px;
+            color: var(--banf-saffron);
+        }
+        
+        .action-btn:hover i {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        
+        /* Video Streaming Section */
+        .stream-card {
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .stream-preview {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stream-preview .live-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #dc3545;
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stream-info {
+            padding: 20px;
+        }
+        
+        .stream-info h5 {
+            margin: 0 0 10px;
+            color: var(--banf-deep-red);
+        }
+        
+        .stream-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .stream-actions {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Radio Scheduler */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .schedule-day {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .schedule-day h6 {
+            color: var(--banf-deep-red);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--banf-saffron);
+        }
+        
+        .schedule-slot {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .schedule-slot.bengali { background: #fff3cd; }
+        .schedule-slot.rabindra { background: #d4edda; }
+        .schedule-slot.modern { background: #d1ecf1; }
+        .schedule-slot.film { background: #e2d5f3; }
+        .schedule-slot.classical { background: #f8d7da; }
+        
+        .schedule-slot:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .schedule-slot .time {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .schedule-slot .program {
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        /* Now Playing Widget */
+        .now-playing {
+            background: var(--gradient-hero);
+            color: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .now-playing-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .live-indicator {
+            width: 12px;
+            height: 12px;
+            background: #28a745;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        
+        .now-playing-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .now-playing-track {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+        
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .audio-controls button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .audio-controls button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .audio-controls button.play-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            background: #fff;
+            color: var(--banf-deep-red);
+        }
+        
+        .volume-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+        
+        /* Data Tables */
+        .data-table-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .data-table-card .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .data-table-card h5 {
+            margin: 0;
+            color: var(--banf-deep-red);
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 25px;
+            padding: 8px 15px;
+        }
+        
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            padding: 5px 10px;
+            width: 200px;
+        }
+        
+        .search-box i {
+            color: #666;
+        }
+        
+        .data-table {
+            width: 100%;
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        
+        .data-table tr:hover {
+            background: #fafafa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-badge.active { background: #d4edda; color: #155724; }
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        .status-badge.expired { background: #f8d7da; color: #721c24; }
+        .status-badge.live { background: #dc3545; color: #fff; }
+        .status-badge.scheduled { background: #d1ecf1; color: #0c5460; }
+        
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-control {
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--banf-saffron);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        /* Buttons */
+        .btn-banf {
+            background: var(--gradient-primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-banf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+            color: #fff;
+        }
+        
+        .btn-outline-banf {
+            background: transparent;
+            color: var(--banf-saffron);
+            border: 2px solid var(--banf-saffron);
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-banf:hover {
+            background: var(--banf-saffron);
+            color: #fff;
+        }
+        
+        /* Modals */
+        .modal-content {
+            border: none;
+            border-radius: 20px;
+        }
+        
+        .modal-header {
+            background: var(--gradient-hero);
+            color: #fff;
+            border-radius: 20px 20px 0 0;
+            padding: 20px 30px;
+        }
+        
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        .modal-body {
+            padding: 30px;
+        }
+        
+        .modal-footer {
+            padding: 15px 30px 25px;
+            border: none;
+        }
+        
+        /* Calendar Styles */
+        #radioCalendar {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .fc-toolbar-title {
+            color: var(--banf-deep-red) !important;
+        }
+        
+        .fc-button-primary {
+            background: var(--banf-saffron) !important;
+            border-color: var(--banf-saffron) !important;
+        }
+        
+        .fc-event {
+            border-radius: 5px;
+            padding: 2px 5px;
+        }
+        
+        /* Analytics Charts */
+        .chart-container {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+        }
+        
+        .chart-container h5 {
+            color: var(--banf-deep-red);
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .admin-main {
+                margin-left: 0;
+            }
+            
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .admin-content {
+                padding: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-brand">
+            <img src="https://via.placeholder.com/50/8B0000/fff?text=BANF" alt="BANF">
+            <div>
+                <h4>BANF Admin</h4>
+                <span>Management Console</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Main</div>
+            <a class="nav-item active" data-section="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            
+            <div class="nav-section-title">Members</div>
+            <a class="nav-item" data-section="members">
+                <i class="fas fa-users"></i>
+                <span class="nav-text">Member Management</span>
+                <span class="badge">210</span>
+            </a>
+            <a class="nav-item" data-section="payments">
+                <i class="fas fa-credit-card"></i>
+                <span class="nav-text">Payments</span>
+                <span class="badge">8</span>
+            </a>
+            
+            <div class="nav-section-title">Media</div>
+            <a class="nav-item" data-section="streaming">
+                <i class="fas fa-video"></i>
+                <span class="nav-text">Video Streaming</span>
+            </a>
+            <a class="nav-item" data-section="radio">
+                <i class="fas fa-broadcast-tower"></i>
+                <span class="nav-text">Radio Scheduler</span>
+            </a>
+            
+            <div class="nav-section-title">Events</div>
+            <a class="nav-item" data-section="events">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="nav-text">Event Management</span>
+                <span class="badge">3</span>
+            </a>
+            <a class="nav-item" data-section="rsvp">
+                <i class="fas fa-ticket-alt"></i>
+                <span class="nav-text">RSVPs & Tickets</span>
+            </a>
+            
+            <div class="nav-section-title">Partners</div>
+            <a class="nav-item" data-section="sponsors">
+                <i class="fas fa-handshake"></i>
+                <span class="nav-text">Sponsors</span>
+            </a>
+            <a class="nav-item" data-section="vendors">
+                <i class="fas fa-store"></i>
+                <span class="nav-text">Vendors</span>
+            </a>
+            
+            <div class="nav-section-title">Communication</div>
+            <a class="nav-item" data-section="email">
+                <i class="fas fa-envelope"></i>
+                <span class="nav-text">Email Campaigns</span>
+            </a>
+            <a class="nav-item" data-section="ai-assistant">
+                <i class="fas fa-robot"></i>
+                <span class="nav-text">AI Assistant</span>
+            </a>
+            
+            <div class="nav-section-title">Reports</div>
+            <a class="nav-item" data-section="analytics">
+                <i class="fas fa-chart-line"></i>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a class="nav-item" data-section="reports">
+                <i class="fas fa-file-alt"></i>
+                <span class="nav-text">Financial Reports</span>
+            </a>
+            
+            <div class="nav-section-title">System</div>
+            <a class="nav-item" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span class="nav-text">Settings</span>
+            </a>
+            <a class="nav-item" data-section="audit">
+                <i class="fas fa-shield-alt"></i>
+                <span class="nav-text">Audit Log</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main" id="adminMain">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">5</span>
+                </div>
+                <div class="admin-profile">
+                    <img src="https://via.placeholder.com/40/722f37/fff?text=RG" alt="Admin">
+                    <div class="admin-profile-info">
+                        <strong>Dr. Ranadhir Ghosh</strong>
+                        <span>Super Admin</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="admin-content">
+            
+            <!-- ==================== DASHBOARD SECTION ==================== -->
+            <section class="module-section active" id="section-dashboard">
+                <!-- Stats Row -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-saffron">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3>210</h3>
+                            <p>Active Members</p>
+                            <div class="stat-trend up">
+                                <i class="fas fa-arrow-up"></i> 12% from last year
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-green">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h3>$24,850</h3>
+                            <p>YTD Revenue</p>
+                            <div class="stat-trend up">
+                                <i class="fas fa-arrow-up"></i> 8% from last year
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-gold">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h3>3</h3>
+                            <p>Upcoming Events</p>
+                            <div class="stat-trend">
+                                Next: Saraswati Puja
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-burgundy">
+                                <i class="fas fa-handshake"></i>
+                            </div>
+                            <h3>15</h3>
+                            <p>Active Sponsors</p>
+                            <div class="stat-trend up">
+                                <i class="fas fa-arrow-up"></i> 5 new this year
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions & Recent Activity -->
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="quick-actions">
+                            <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                            <div class="action-btn" onclick="showSection('streaming')">
+                                <i class="fas fa-video"></i>
+                                <div>
+                                    <strong>Create Live Stream</strong>
+                                    <small class="d-block text-muted">Schedule or go live now</small>
+                                </div>
+                            </div>
+                            <div class="action-btn" onclick="showSection('members')">
+                                <i class="fas fa-user-plus"></i>
+                                <div>
+                                    <strong>Add Member</strong>
+                                    <small class="d-block text-muted">Register new member</small>
+                                </div>
+                            </div>
+                            <div class="action-btn" onclick="showSection('events')">
+                                <i class="fas fa-calendar-plus"></i>
+                                <div>
+                                    <strong>Create Event</strong>
+                                    <small class="d-block text-muted">Schedule new event</small>
+                                </div>
+                            </div>
+                            <div class="action-btn" onclick="showSection('email')">
+                                <i class="fas fa-paper-plane"></i>
+                                <div>
+                                    <strong>Send Announcement</strong>
+                                    <small class="d-block text-muted">Email all members</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="data-table-card">
+                            <div class="table-header">
+                                <h5><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                                <button class="btn btn-outline-banf btn-sm">View All</button>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Activity</th>
+                                        <th>User</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><i class="fas fa-user-plus text-success me-2"></i>New Member Registration</td>
+                                        <td>Ananya Mukherjee</td>
+                                        <td>2 hours ago</td>
+                                        <td><span class="status-badge active">Completed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-credit-card text-primary me-2"></i>Payment Received</td>
+                                        <td>Debabrata Sen</td>
+                                        <td>5 hours ago</td>
+                                        <td><span class="status-badge active">Completed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-calendar-check text-warning me-2"></i>Event RSVP</td>
+                                        <td>Supriya Das</td>
+                                        <td>1 day ago</td>
+                                        <td><span class="status-badge pending">Processing</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-video text-danger me-2"></i>Stream Scheduled</td>
+                                        <td>Admin</td>
+                                        <td>2 days ago</td>
+                                        <td><span class="status-badge scheduled">Scheduled</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== STREAMING SECTION ==================== -->
+            <section class="module-section" id="section-streaming">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4><i class="fas fa-video me-2"></i>Video Streaming Console</h4>
+                            <button class="btn btn-banf" data-bs-toggle="modal" data-bs-target="#createStreamModal">
+                                <i class="fas fa-plus me-2"></i>Create Stream Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active/Scheduled Streams -->
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview">
+                                <span class="live-badge">🔴 LIVE</span>
+                                <i class="fas fa-play-circle fa-4x text-white-50"></i>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Saraswati Puja 2025</h5>
+                                <p class="text-muted mb-2">Live cultural program and puja aarti</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-eye me-1"></i>145 viewers</span>
+                                    <span><i class="fas fa-clock me-1"></i>1h 23m</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-danger btn-sm">End Stream</button>
+                                <button class="btn btn-outline-secondary btn-sm">Copy Link</button>
+                                <button class="btn btn-outline-secondary btn-sm">Analytics</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview">
+                                <i class="fas fa-calendar-alt fa-4x text-white-50"></i>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Holi Milan 2025</h5>
+                                <p class="text-muted mb-2">Spring festival celebration</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-calendar me-1"></i>Mar 14, 2025</span>
+                                    <span><i class="fas fa-clock me-1"></i>11:00 AM</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-success btn-sm">Go Live</button>
+                                <button class="btn btn-outline-secondary btn-sm">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview">
+                                <i class="fas fa-calendar-alt fa-4x text-white-50"></i>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Pohela Boishakh 2025</h5>
+                                <p class="text-muted mb-2">Bengali New Year celebration</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-calendar me-1"></i>Apr 14, 2025</span>
+                                    <span><i class="fas fa-clock me-1"></i>4:00 PM</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-success btn-sm">Go Live</button>
+                                <button class="btn btn-outline-secondary btn-sm">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stream History -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="data-table-card">
+                            <div class="table-header">
+                                <h5>Past Streams</h5>
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search streams...">
+                                </div>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Date</th>
+                                        <th>Duration</th>
+                                        <th>Viewers</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Durga Puja 2024 - Day 1</td>
+                                        <td>Oct 11, 2024</td>
+                                        <td>4h 30m</td>
+                                        <td>312</td>
+                                        <td><span class="status-badge active">Archived</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">View</button>
+                                            <button class="btn btn-sm btn-outline-secondary">Download</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Durga Puja 2024 - Day 2</td>
+                                        <td>Oct 12, 2024</td>
+                                        <td>5h 15m</td>
+                                        <td>428</td>
+                                        <td><span class="status-badge active">Archived</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">View</button>
+                                            <button class="btn btn-sm btn-outline-secondary">Download</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== RADIO SCHEDULER SECTION ==================== -->
+            <section class="module-section" id="section-radio">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4><i class="fas fa-broadcast-tower me-2"></i>BANF Radio Scheduler</h4>
+                            <div>
+                                <button class="btn btn-outline-banf me-2" data-bs-toggle="modal" data-bs-target="#addProgramModal">
+                                    <i class="fas fa-plus me-2"></i>Add Program
+                                </button>
+                                <button class="btn btn-banf" data-bs-toggle="modal" data-bs-target="#managePlaylistModal">
+                                    <i class="fas fa-list me-2"></i>Manage Playlists
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Now Playing Widget -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="now-playing">
+                            <div class="now-playing-header">
+                                <div class="live-indicator"></div>
+                                <span>NOW PLAYING</span>
+                            </div>
+                            <div class="now-playing-title">রবীন্দ্র সঙ্গীত (Rabindra Sangeet)</div>
+                            <div class="now-playing-track">
+                                <i class="fas fa-music me-2"></i>
+                                "আমার সোনার বাংলা" - Various Artists
+                            </div>
+                            <div class="audio-controls">
+                                <button><i class="fas fa-step-backward"></i></button>
+                                <button class="play-btn" id="radioPlayBtn"><i class="fas fa-pause"></i></button>
+                                <button><i class="fas fa-step-forward"></i></button>
+                                <i class="fas fa-volume-up text-white ms-3"></i>
+                                <input type="range" class="volume-slider" min="0" max="100" value="70">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Weekly Schedule Grid -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="data-table-card">
+                            <h5 class="mb-3">Weekly Program Schedule</h5>
+                            <p class="text-muted mb-4">Click on any slot to edit. Drag to rearrange.</p>
+                            
+                            <div class="schedule-grid">
+                                <!-- Sunday -->
+                                <div class="schedule-day">
+                                    <h6>Sunday</h6>
+                                    <div class="schedule-slot bengali" onclick="editScheduleSlot('sun', '6am')">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra" onclick="editScheduleSlot('sun', '10am')">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern" onclick="editScheduleSlot('sun', '2pm')">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film" onclick="editScheduleSlot('sun', '6pm')">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical" onclick="editScheduleSlot('sun', '9pm')">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Monday -->
+                                <div class="schedule-day">
+                                    <h6>Monday</h6>
+                                    <div class="schedule-slot bengali" onclick="editScheduleSlot('mon', '6am')">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra" onclick="editScheduleSlot('mon', '10am')">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern" onclick="editScheduleSlot('mon', '2pm')">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film" onclick="editScheduleSlot('mon', '6pm')">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical" onclick="editScheduleSlot('mon', '9pm')">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tuesday -->
+                                <div class="schedule-day">
+                                    <h6>Tuesday</h6>
+                                    <div class="schedule-slot bengali">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Wednesday -->
+                                <div class="schedule-day">
+                                    <h6>Wednesday</h6>
+                                    <div class="schedule-slot bengali">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Thursday -->
+                                <div class="schedule-day">
+                                    <h6>Thursday</h6>
+                                    <div class="schedule-slot bengali">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Friday -->
+                                <div class="schedule-day">
+                                    <h6>Friday</h6>
+                                    <div class="schedule-slot bengali">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot" style="background: #ffeaa7;">
+                                        <div class="time">7 PM - 9 PM</div>
+                                        <div class="program">⭐ Community Hour</div>
+                                    </div>
+                                    <div class="schedule-slot classical">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Saturday -->
+                                <div class="schedule-day">
+                                    <h6>Saturday</h6>
+                                    <div class="schedule-slot bengali">
+                                        <div class="time">6 AM - 10 AM</div>
+                                        <div class="program">সকালের সুর</div>
+                                    </div>
+                                    <div class="schedule-slot rabindra">
+                                        <div class="time">10 AM - 2 PM</div>
+                                        <div class="program">রবীন্দ্র সঙ্গীত</div>
+                                    </div>
+                                    <div class="schedule-slot modern">
+                                        <div class="time">2 PM - 6 PM</div>
+                                        <div class="program">আধুনিক বাংলা</div>
+                                    </div>
+                                    <div class="schedule-slot film">
+                                        <div class="time">6 PM - 9 PM</div>
+                                        <div class="program">চলচ্চিত্রের গান</div>
+                                    </div>
+                                    <div class="schedule-slot classical">
+                                        <div class="time">9 PM - 12 AM</div>
+                                        <div class="program">শাস্ত্রীয় সঙ্গীত</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Legend -->
+                            <div class="mt-4 d-flex flex-wrap gap-3">
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#fff3cd"></span> Bengali Songs</span>
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#d4edda"></span> Rabindra Sangeet</span>
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#d1ecf1"></span> Modern Bengali</span>
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#e2d5f3"></span> Film Songs</span>
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#f8d7da"></span> Classical</span>
+                                <span><span class="d-inline-block rounded" style="width:20px;height:20px;background:#ffeaa7"></span> Special Program</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== MEMBERS SECTION ==================== -->
+            <section class="module-section" id="section-members">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4><i class="fas fa-users me-2"></i>Member Management</h4>
+                            <button class="btn btn-banf" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                                <i class="fas fa-user-plus me-2"></i>Add Member
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Member Stats -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-saffron"><i class="fas fa-users"></i></div>
+                            <h3>210</h3>
+                            <p>Total Members</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-green"><i class="fas fa-user-check"></i></div>
+                            <h3>185</h3>
+                            <p>Active</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-gold"><i class="fas fa-clock"></i></div>
+                            <h3>18</h3>
+                            <p>Expiring Soon</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="icon-box bg-burgundy"><i class="fas fa-user-times"></i></div>
+                            <h3>7</h3>
+                            <p>Expired</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Member Table -->
+                <div class="data-table-card">
+                    <div class="table-header">
+                        <h5>All Members</h5>
+                        <div class="d-flex gap-3">
+                            <select class="form-select" style="width:150px">
+                                <option>All Status</option>
+                                <option>Active</option>
+                                <option>Pending</option>
+                                <option>Expired</option>
+                            </select>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search members...">
+                            </div>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Email</th>
+                                <th>Type</th>
+                                <th>Joined</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="https://via.placeholder.com/35" class="rounded-circle">
+                                        Dr. Ranadhir Ghosh
+                                    </div>
+                                </td>
+                                <td>president@jaxbengali.org</td>
+                                <td>Family</td>
+                                <td>Jan 2018</td>
+                                <td>Dec 2025</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-envelope"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="https://via.placeholder.com/35" class="rounded-circle">
+                                        Rajanya Ghosh
+                                    </div>
+                                </td>
+                                <td>secretary@jaxbengali.org</td>
+                                <td>Family</td>
+                                <td>Mar 2019</td>
+                                <td>Dec 2025</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-envelope"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="https://via.placeholder.com/35" class="rounded-circle">
+                                        Amit Chandak
+                                    </div>
+                                </td>
+                                <td>treasurer@jaxbengali.org</td>
+                                <td>Family</td>
+                                <td>Jun 2020</td>
+                                <td>Jan 2025</td>
+                                <td><span class="status-badge pending">Expiring</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-envelope"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-muted">Showing 1-10 of 210 members</span>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== EVENTS SECTION ==================== -->
+            <section class="module-section" id="section-events">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4><i class="fas fa-calendar-alt me-2"></i>Event Management</h4>
+                            <button class="btn btn-banf" data-bs-toggle="modal" data-bs-target="#createEventModal">
+                                <i class="fas fa-plus me-2"></i>Create Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Events -->
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview" style="background: linear-gradient(135deg, #f7931e, #ff6b35);">
+                                <h3 class="text-white">Feb 2</h3>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Saraswati Puja 2025</h5>
+                                <p class="text-muted mb-2">Annual celebration of Goddess Saraswati</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-map-marker-alt me-1"></i>Community Center</span>
+                                    <span><i class="fas fa-users me-1"></i>120 RSVPs</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-primary btn-sm">Manage</button>
+                                <button class="btn btn-outline-secondary btn-sm">View RSVPs</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview" style="background: linear-gradient(135deg, #006A4E, #00a67d);">
+                                <h3 class="text-white">Mar 14</h3>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Holi Milan 2025</h5>
+                                <p class="text-muted mb-2">Festival of colors celebration</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-map-marker-alt me-1"></i>Riverside Park</span>
+                                    <span><i class="fas fa-users me-1"></i>85 RSVPs</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-primary btn-sm">Manage</button>
+                                <button class="btn btn-outline-secondary btn-sm">View RSVPs</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stream-card">
+                            <div class="stream-preview" style="background: linear-gradient(135deg, #8B0000, #722f37);">
+                                <h3 class="text-white">Apr 14</h3>
+                            </div>
+                            <div class="stream-info">
+                                <h5>Pohela Boishakh 2025</h5>
+                                <p class="text-muted mb-2">Bengali New Year celebration</p>
+                                <div class="stream-meta">
+                                    <span><i class="fas fa-map-marker-alt me-1"></i>TBD</span>
+                                    <span><i class="fas fa-users me-1"></i>42 RSVPs</span>
+                                </div>
+                            </div>
+                            <div class="stream-actions">
+                                <button class="btn btn-primary btn-sm">Manage</button>
+                                <button class="btn btn-outline-secondary btn-sm">View RSVPs</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== AI ASSISTANT SECTION ==================== -->
+            <section class="module-section" id="section-ai-assistant">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <h4><i class="fas fa-robot me-2"></i>AI Assistant Configuration</h4>
+                        <p class="text-muted">Configure the AI-powered chat assistant for member support</p>
+                    </div>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="data-table-card">
+                            <h5>Knowledge Base</h5>
+                            <p class="text-muted mb-3">Add documents and FAQs to train the AI</p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Organization Info</label>
+                                <textarea class="form-control" rows="4">BANF (Bengali Association of North Florida) is a 501(c)(3) cultural organization established in 2008 with 200+ member families...</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Common FAQs</label>
+                                <div class="border rounded p-3 mb-2">
+                                    <strong>Q: How do I become a member?</strong>
+                                    <p class="mb-0 text-muted small">A: Visit our membership page and complete the registration...</p>
+                                </div>
+                                <div class="border rounded p-3 mb-2">
+                                    <strong>Q: What are the membership fees?</strong>
+                                    <p class="mb-0 text-muted small">A: Individual: $50/year, Family: $100/year, Senior: $35/year</p>
+                                </div>
+                                <button class="btn btn-outline-banf btn-sm mt-2">
+                                    <i class="fas fa-plus me-2"></i>Add FAQ
+                                </button>
+                            </div>
+                            
+                            <button class="btn btn-banf">
+                                <i class="fas fa-save me-2"></i>Save Knowledge Base
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="data-table-card">
+                            <h5>AI Response Settings</h5>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Greeting Message</label>
+                                <input type="text" class="form-control" value="নমস্কার! Welcome to BANF. How can I help you today?">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Response Tone</label>
+                                <select class="form-select">
+                                    <option>Friendly & Warm</option>
+                                    <option>Professional</option>
+                                    <option>Formal</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Language Support</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                    <label class="form-check-label">English</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                    <label class="form-check-label">Bengali (বাংলা)</label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Escalation Email</label>
+                                <input type="email" class="form-control" value="support@jaxbengali.org">
+                                <small class="text-muted">AI will escalate complex queries to this email</small>
+                            </div>
+                            
+                            <button class="btn btn-banf">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== ANALYTICS SECTION ==================== -->
+            <section class="module-section" id="section-analytics">
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <h4><i class="fas fa-chart-line me-2"></i>Analytics Dashboard</h4>
+                    </div>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-8">
+                        <div class="chart-container">
+                            <h5>Member Growth</h5>
+                            <canvas id="memberGrowthChart" height="300"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chart-container">
+                            <h5>Revenue Distribution</h5>
+                            <canvas id="revenueChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other sections (payments, sponsors, vendors, etc.) would follow similar patterns -->
+
+        </div>
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Create Stream Modal -->
+    <div class="modal fade" id="createStreamModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-video me-2"></i>Create Streaming Event</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Event Title *</label>
+                                <input type="text" class="form-control" placeholder="e.g., Durga Puja Live 2025">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select class="form-select">
+                                    <option>Cultural Event</option>
+                                    <option>Puja Ceremony</option>
+                                    <option>Community Meeting</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Scheduled Date *</label>
+                                <input type="date" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Time *</label>
+                                <input type="time" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" rows="3" placeholder="Describe the event..."></textarea>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label>Stream Source URL</label>
+                                <input type="url" class="form-control" placeholder="YouTube Live / Vimeo / Custom RTMP URL">
+                                <small class="text-muted">Leave empty to use BANF's streaming server</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label>Thumbnail Image</label>
+                                <input type="file" class="form-control" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="sendNotification" checked>
+                                <label class="form-check-label" for="sendNotification">
+                                    Send email notification to all members
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="autoReminder" checked>
+                                <label class="form-check-label" for="autoReminder">
+                                    Send automatic reminders (24h & 1h before)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-banf">
+                        <i class="fas fa-calendar-plus me-2"></i>Create Stream Event
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Program Modal (Radio) -->
+    <div class="modal fade" id="addProgramModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-broadcast-tower me-2"></i>Add Special Program</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Program Title</label>
+                        <input type="text" class="form-control" placeholder="e.g., Mahalaya Special">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select class="form-select">
+                            <option value="bengali">সকালের সুর (Bengali Songs)</option>
+                            <option value="rabindra">রবীন্দ্র সঙ্গীত (Rabindra Sangeet)</option>
+                            <option value="modern">আধুনিক বাংলা (Modern Bengali)</option>
+                            <option value="film">চলচ্চিত্রের গান (Film Songs)</option>
+                            <option value="classical">শাস্ত্রীয় সঙ্গীত (Classical)</option>
+                            <option value="special">Special Program</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Start Date/Time</label>
+                                <input type="datetime-local" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>End Date/Time</label>
+                                <input type="datetime-local" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Stream URL (optional)</label>
+                        <input type="url" class="form-control" placeholder="Custom stream URL">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-banf">Add Program</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    
+    <script>
+        // Sidebar Navigation
+        document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+            item.addEventListener('click', function() {
+                const section = this.dataset.section;
+                showSection(section);
+            });
+        });
+        
+        function showSection(sectionId) {
+            // Update nav active state
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
+            
+            // Show/hide sections
+            document.querySelectorAll('.module-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`section-${sectionId}`)?.classList.add('active');
+            
+            // Update page title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'members': 'Member Management',
+                'payments': 'Payment Tracking',
+                'streaming': 'Video Streaming',
+                'radio': 'Radio Scheduler',
+                'events': 'Event Management',
+                'rsvp': 'RSVPs & Tickets',
+                'sponsors': 'Sponsor Management',
+                'vendors': 'Vendor Management',
+                'email': 'Email Campaigns',
+                'ai-assistant': 'AI Assistant',
+                'analytics': 'Analytics',
+                'reports': 'Financial Reports',
+                'settings': 'Settings',
+                'audit': 'Audit Log'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId] || 'Dashboard';
+        }
+        
+        // Sidebar Toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('adminSidebar').classList.toggle('collapsed');
+            document.getElementById('adminMain').classList.toggle('expanded');
+        });
+        
+        // Radio Play/Pause
+        let isPlaying = true;
+        document.getElementById('radioPlayBtn')?.addEventListener('click', function() {
+            isPlaying = !isPlaying;
+            this.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        });
+        
+        // Schedule Slot Edit
+        function editScheduleSlot(day, time) {
+            alert(`Edit slot: ${day} at ${time}\n\nIn the real implementation, this would open an edit modal.`);
+        }
+        
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Member Growth Chart
+            const ctx1 = document.getElementById('memberGrowthChart')?.getContext('2d');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [{
+                            label: '2024',
+                            data: [180, 182, 185, 188, 190, 193, 195, 198, 200, 205, 208, 210],
+                            borderColor: '#ff6b35',
+                            tension: 0.3,
+                            fill: false
+                        }, {
+                            label: '2023',
+                            data: [150, 155, 160, 165, 168, 170, 172, 175, 177, 178, 180, 182],
+                            borderColor: '#006A4E',
+                            tension: 0.3,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Revenue Chart
+            const ctx2 = document.getElementById('revenueChart')?.getContext('2d');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Memberships', 'Event Tickets', 'Sponsorships', 'Donations'],
+                        datasets: [{
+                            data: [12500, 5200, 4500, 2650],
+                            backgroundColor: ['#ff6b35', '#006A4E', '#daa520', '#722f37']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

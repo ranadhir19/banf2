@@ -1,0 +1,454 @@
+// backend/magazine.jsw
+// BANF E-Magazine System - Wix Velo Backend
+
+import wixData from 'wix-data';
+import { currentMember } from 'wix-members-backend';
+
+// Article status constants
+const ARTICLE_STATUS = {
+    DRAFT: 'draft',
+    PENDING_REVIEW: 'pending_review',
+    PUBLISHED: 'published',
+    ARCHIVED: 'archived'
+};
+
+// Article categories
+const ARTICLE_CATEGORIES = [
+    'community_news',
+    'culture',
+    'events',
+    'poetry',
+    'short_story',
+    'recipe',
+    'travel',
+    'opinion',
+    'youth',
+    'health',
+    'education',
+    'sports',
+    'tech',
+    'business'
+];
+
+/**
+ * Get published magazines
+ */
+export async function getPublishedMagazines(options = { limit: 12, skip: 0 }) {
+    try {
+        const result = await wixData.query('EMagazines')
+            .eq('isPublished', true)
+            .descending('issueDate')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(mag => ({
+                id: mag._id,
+                title: mag.title,
+                issueNumber: mag.issueNumber,
+                issueDate: mag.issueDate,
+                coverImageUrl: mag.coverImageUrl,
+                description: mag.description,
+                articleCount: mag.articleCount || 0
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting magazines:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Get latest magazine
+ */
+export async function getLatestMagazine() {
+    try {
+        const result = await wixData.query('EMagazines')
+            .eq('isPublished', true)
+            .descending('issueDate')
+            .limit(1)
+            .find({ suppressAuth: true });
+        
+        if (result.items.length === 0) return null;
+        
+        const magazine = result.items[0];
+        
+        // Get articles for this magazine
+        const articles = await wixData.query('EMagazineArticles')
+            .eq('magazineId', magazine._id)
+            .eq('status', ARTICLE_STATUS.PUBLISHED)
+            .ascending('orderIndex')
+            .find({ suppressAuth: true });
+        
+        return {
+            ...magazine,
+            articles: articles.items.map(a => ({
+                id: a._id,
+                title: a.title,
+                author: a.authorName,
+                category: a.category,
+                excerpt: a.excerpt
+            }))
+        };
+    } catch (error) {
+        console.error('Error getting latest magazine:', error);
+        return null;
+    }
+}
+
+/**
+ * Get magazine by ID with articles
+ */
+export async function getMagazineById(magazineId) {
+    try {
+        const magazine = await wixData.get('EMagazines', magazineId, { suppressAuth: true });
+        
+        if (!magazine) return null;
+        
+        // Get articles for this magazine
+        const articles = await wixData.query('EMagazineArticles')
+            .eq('magazineId', magazineId)
+            .eq('status', ARTICLE_STATUS.PUBLISHED)
+            .ascending('orderIndex')
+            .find({ suppressAuth: true });
+        
+        return {
+            id: magazine._id,
+            title: magazine.title,
+            issueNumber: magazine.issueNumber,
+            issueDate: magazine.issueDate,
+            coverImageUrl: magazine.coverImageUrl,
+            description: magazine.description,
+            editorNote: magazine.editorNote,
+            articles: articles.items.map(a => ({
+                id: a._id,
+                title: a.title,
+                author: a.authorName,
+                category: a.category,
+                excerpt: a.excerpt,
+                thumbnailUrl: a.thumbnailUrl
+            }))
+        };
+    } catch (error) {
+        console.error('Error getting magazine:', error);
+        return null;
+    }
+}
+
+/**
+ * Get article by ID
+ */
+export async function getArticleById(articleId) {
+    try {
+        const article = await wixData.get('EMagazineArticles', articleId, { suppressAuth: true });
+        
+        if (!article) return null;
+        
+        // Increment view count
+        await wixData.update('EMagazineArticles', {
+            ...article,
+            viewCount: (article.viewCount || 0) + 1
+        });
+        
+        return {
+            id: article._id,
+            title: article.title,
+            authorName: article.authorName,
+            authorBio: article.authorBio,
+            category: article.category,
+            content: article.content,
+            excerpt: article.excerpt,
+            thumbnailUrl: article.thumbnailUrl,
+            images: JSON.parse(article.images || '[]'),
+            tags: JSON.parse(article.tags || '[]'),
+            publishedDate: article.publishedDate,
+            viewCount: (article.viewCount || 0) + 1,
+            magazineId: article.magazineId
+        };
+    } catch (error) {
+        console.error('Error getting article:', error);
+        return null;
+    }
+}
+
+/**
+ * Get articles by category
+ */
+export async function getArticlesByCategory(category, options = { limit: 20, skip: 0 }) {
+    try {
+        const result = await wixData.query('EMagazineArticles')
+            .eq('category', category)
+            .eq('status', ARTICLE_STATUS.PUBLISHED)
+            .descending('publishedDate')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(a => ({
+                id: a._id,
+                title: a.title,
+                author: a.authorName,
+                excerpt: a.excerpt,
+                thumbnailUrl: a.thumbnailUrl,
+                publishedDate: a.publishedDate,
+                magazineId: a.magazineId
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error getting articles by category:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Search articles
+ */
+export async function searchArticles(searchTerm, options = { limit: 20, skip: 0 }) {
+    try {
+        const result = await wixData.query('EMagazineArticles')
+            .eq('status', ARTICLE_STATUS.PUBLISHED)
+            .contains('title', searchTerm)
+            .or(wixData.query('EMagazineArticles').contains('content', searchTerm))
+            .or(wixData.query('EMagazineArticles').contains('authorName', searchTerm))
+            .descending('publishedDate')
+            .limit(options.limit)
+            .skip(options.skip)
+            .find({ suppressAuth: true });
+        
+        return {
+            items: result.items.map(a => ({
+                id: a._id,
+                title: a.title,
+                author: a.authorName,
+                category: a.category,
+                excerpt: a.excerpt,
+                publishedDate: a.publishedDate
+            })),
+            totalCount: result.totalCount,
+            hasNext: result.hasNext()
+        };
+    } catch (error) {
+        console.error('Error searching articles:', error);
+        return { items: [], totalCount: 0, hasNext: false };
+    }
+}
+
+/**
+ * Submit article for publication (member contribution)
+ */
+export async function submitArticle(articleData) {
+    try {
+        const member = await currentMember.getMember({ fieldsets: ['PUBLIC'] });
+        
+        const article = {
+            title: articleData.title,
+            authorName: articleData.authorName || (member ? member.name : 'Anonymous'),
+            authorEmail: articleData.authorEmail || (member ? member.loginEmail : ''),
+            authorMemberId: member ? member._id : null,
+            authorBio: articleData.authorBio || '',
+            category: articleData.category || 'community_news',
+            content: articleData.content,
+            excerpt: articleData.excerpt || articleData.content.substring(0, 200) + '...',
+            thumbnailUrl: articleData.thumbnailUrl || '',
+            images: JSON.stringify(articleData.images || []),
+            tags: JSON.stringify(articleData.tags || []),
+            status: ARTICLE_STATUS.PENDING_REVIEW,
+            submittedAt: new Date(),
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('EMagazineArticles', article);
+        
+        return {
+            success: true,
+            articleId: result._id,
+            message: 'Article submitted for review. You will be notified once reviewed.'
+        };
+    } catch (error) {
+        console.error('Error submitting article:', error);
+        return { success: false, error: 'Failed to submit article' };
+    }
+}
+
+/**
+ * Create magazine issue (admin only)
+ */
+export async function createMagazine(magazineData, adminId) {
+    try {
+        // Get next issue number
+        const lastMagazine = await wixData.query('EMagazines')
+            .descending('issueNumber')
+            .limit(1)
+            .find();
+        
+        const nextIssueNumber = lastMagazine.items.length > 0 
+            ? lastMagazine.items[0].issueNumber + 1 
+            : 1;
+        
+        const magazine = {
+            title: magazineData.title || `Issue ${nextIssueNumber}`,
+            issueNumber: nextIssueNumber,
+            issueDate: magazineData.issueDate ? new Date(magazineData.issueDate) : new Date(),
+            coverImageUrl: magazineData.coverImageUrl || '',
+            description: magazineData.description || '',
+            editorNote: magazineData.editorNote || '',
+            isPublished: false,
+            articleCount: 0,
+            createdBy: adminId,
+            _createdDate: new Date(),
+            _updatedDate: new Date()
+        };
+        
+        const result = await wixData.insert('EMagazines', magazine);
+        
+        return { success: true, magazineId: result._id, issueNumber: nextIssueNumber };
+    } catch (error) {
+        console.error('Error creating magazine:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Add article to magazine (admin only)
+ */
+export async function addArticleToMagazine(articleId, magazineId, orderIndex) {
+    try {
+        const article = await wixData.get('EMagazineArticles', articleId);
+        if (!article) {
+            return { success: false, error: 'Article not found' };
+        }
+        
+        await wixData.update('EMagazineArticles', {
+            ...article,
+            magazineId: magazineId,
+            orderIndex: orderIndex || 0,
+            status: ARTICLE_STATUS.PUBLISHED,
+            publishedDate: new Date(),
+            _updatedDate: new Date()
+        });
+        
+        // Update magazine article count
+        const magazine = await wixData.get('EMagazines', magazineId);
+        if (magazine) {
+            await wixData.update('EMagazines', {
+                ...magazine,
+                articleCount: (magazine.articleCount || 0) + 1,
+                _updatedDate: new Date()
+            });
+        }
+        
+        return { success: true, message: 'Article added to magazine' };
+    } catch (error) {
+        console.error('Error adding article to magazine:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Publish magazine (admin only)
+ */
+export async function publishMagazine(magazineId, adminId) {
+    try {
+        const magazine = await wixData.get('EMagazines', magazineId);
+        if (!magazine) {
+            return { success: false, error: 'Magazine not found' };
+        }
+        
+        await wixData.update('EMagazines', {
+            ...magazine,
+            isPublished: true,
+            publishedAt: new Date(),
+            publishedBy: adminId,
+            _updatedDate: new Date()
+        });
+        
+        return { success: true, message: 'Magazine published successfully' };
+    } catch (error) {
+        console.error('Error publishing magazine:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get pending articles for review (admin only)
+ */
+export async function getPendingArticles() {
+    try {
+        const result = await wixData.query('EMagazineArticles')
+            .eq('status', ARTICLE_STATUS.PENDING_REVIEW)
+            .descending('submittedAt')
+            .find();
+        
+        return result.items;
+    } catch (error) {
+        console.error('Error getting pending articles:', error);
+        return [];
+    }
+}
+
+/**
+ * Review article (admin only)
+ */
+export async function reviewArticle(articleId, decision, feedback, adminId) {
+    try {
+        const article = await wixData.get('EMagazineArticles', articleId);
+        if (!article) {
+            return { success: false, error: 'Article not found' };
+        }
+        
+        const newStatus = decision === 'approve' 
+            ? ARTICLE_STATUS.DRAFT  // Approved but not yet in magazine
+            : ARTICLE_STATUS.ARCHIVED; // Rejected
+        
+        await wixData.update('EMagazineArticles', {
+            ...article,
+            status: newStatus,
+            reviewedAt: new Date(),
+            reviewedBy: adminId,
+            reviewFeedback: feedback || '',
+            _updatedDate: new Date()
+        });
+        
+        // TODO: Send email notification to author
+        
+        return { success: true, message: `Article ${decision}d successfully` };
+    } catch (error) {
+        console.error('Error reviewing article:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get popular articles
+ */
+export async function getPopularArticles(limit = 10) {
+    try {
+        const result = await wixData.query('EMagazineArticles')
+            .eq('status', ARTICLE_STATUS.PUBLISHED)
+            .descending('viewCount')
+            .limit(limit)
+            .find({ suppressAuth: true });
+        
+        return result.items.map(a => ({
+            id: a._id,
+            title: a.title,
+            author: a.authorName,
+            category: a.category,
+            viewCount: a.viewCount || 0
+        }));
+    } catch (error) {
+        console.error('Error getting popular articles:', error);
+        return [];
+    }
+}
+
+// Export constants
+export const ArticleStatus = ARTICLE_STATUS;
+export const ArticleCategories = ARTICLE_CATEGORIES;
