@@ -1,0 +1,314 @@
+/**
+ * BANF Member Authentication Backend Module
+ * Handles member login, registration, and session management
+ * 
+ * File: backend/member-auth.jsw
+ * Deploy to: Wix Velo Backend
+ * 
+ * NOTE: This module is integrated with member-registration-flow.jsw
+ * for the complete registration flow with fee verification and registration codes.
+ */
+
+import wixData from 'wix-data';
+import wixUsersBackend from 'wix-users-backend';
+import { authentication } from 'wix-members-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+// Re-export functions from registration flow for convenience
+export { 
+    initiateSignUp,
+    verifyRegistrationCode,
+    completeRegistration,
+    loginMember as loginWithCode,
+    getCurrentProfile,
+    updateProfile,
+    requestPasswordReset as resetPassword,
+    getVisitorNotice,
+    MEMBER_ROLES,
+    ROLE_COLORS
+} from 'backend/member-registration-flow.jsw';
+
+/**
+ * Register a new member
+ * @param {object} memberData - Member registration data
+ * @returns {object} - Registration result
+ */
+export async function registerMember(memberData) {
+    const {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        address,
+        membershipType,
+        familyMembers
+    } = memberData;
+    
+    try {
+        // Check if email already exists
+        const existingMember = await wixData.query('Members')
+            .eq('email', email.toLowerCase())
+            .find({ suppressAuth: true });
+        
+        if (existingMember.items.length > 0) {
+            return { success: false, error: 'Email already registered' };
+        }
+        
+        // Register with Wix Members
+        const registrationResult = await authentication.register(email, password, {
+            contactInfo: {
+                firstName,
+                lastName,
+                phones: [phone],
+                addresses: [{ 
+                    addressLine: address,
+                    city: 'Jacksonville',
+                    subdivision: 'FL',
+                    country: 'US'
+                }]
+            }
+        });
+        
+        // Create member record in CMS
+        const member = await wixData.insert('Members', {
+            wixMemberId: registrationResult.member._id,
+            email: email.toLowerCase(),
+            firstName,
+            lastName,
+            fullName: `${firstName} ${lastName}`,
+            phone,
+            address,
+            membershipType: membershipType || 'Pending',
+            membershipStatus: 'pending_payment',
+            familyMembers: familyMembers || [],
+            registrationDate: new Date(),
+            isVerified: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        
+        // Send welcome email
+        try {
+            await triggeredEmails.emailMember('welcome_email', registrationResult.member._id, {
+                variables: {
+                    firstName,
+                    membershipType: membershipType || 'New Member'
+                }
+            });
+        } catch (emailError) {
+            console.error('Welcome email failed:', emailError);
+        }
+        
+        return {
+            success: true,
+            memberId: member._id,
+            message: 'Registration successful! Please complete your membership payment.',
+            sessionToken: registrationResult.sessionToken
+        };
+    } catch (error) {
+        console.error('Member registration failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Login member
+ * @param {string} email - Member email
+ * @param {string} password - Member password
+ * @returns {object} - Login result
+ */
+export async function loginMember(email, password) {
+    try {
+        const loginResult = await authentication.login(email, password);
+        
+        // Get member details
+        const members = await wixData.query('Members')
+            .eq('email', email.toLowerCase())
+            .find({ suppressAuth: true });
+        
+        let memberData = null;
+        if (members.items.length > 0) {
+            memberData = {
+                id: members.items[0]._id,
+                fullName: members.items[0].fullName,
+                email: members.items[0].email,
+                membershipType: members.items[0].membershipType,
+                membershipStatus: members.items[0].membershipStatus,
+                isVerified: members.items[0].isVerified
+            };
+            
+            // Update last login
+            await wixData.update('Members', {
+                ...members.items[0],
+                lastLogin: new Date(),
+                updatedAt: new Date()
+            });
+        }
+        
+        return {
+            success: true,
+            sessionToken: loginResult.sessionToken,
+            member: memberData
+        };
+    } catch (error) {
+        console.error('Member login failed:', error);
+        return { success: false, error: 'Invalid email or password' };
+    }
+}
+
+/**
+ * Get current member profile
+ * @param {string} memberId - Wix Member ID
+ * @returns {object} - Member profile
+ */
+export async function getMemberProfile(memberId) {
+    try {
+        const members = await wixData.query('Members')
+            .eq('wixMemberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (members.items.length === 0) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const member = members.items[0];
+        
+        return {
+            success: true,
+            profile: {
+                id: member._id,
+                fullName: member.fullName,
+                firstName: member.firstName,
+                lastName: member.lastName,
+                email: member.email,
+                phone: member.phone,
+                address: member.address,
+                membershipType: member.membershipType,
+                membershipStatus: member.membershipStatus,
+                membershipPaidDate: member.membershipPaidDate,
+                membershipExpiryDate: member.membershipExpiryDate,
+                familyMembers: member.familyMembers || [],
+                isVerified: member.isVerified,
+                registrationDate: member.registrationDate
+            }
+        };
+    } catch (error) {
+        console.error('Failed to get member profile:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Update member profile
+ * @param {string} memberId - Wix Member ID
+ * @param {object} updates - Profile updates
+ * @returns {object} - Update result
+ */
+export async function updateMemberProfile(memberId, updates) {
+    try {
+        const members = await wixData.query('Members')
+            .eq('wixMemberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (members.items.length === 0) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const member = members.items[0];
+        
+        // Only allow certain fields to be updated
+        const allowedUpdates = ['phone', 'address', 'familyMembers'];
+        const filteredUpdates = {};
+        
+        allowedUpdates.forEach(field => {
+            if (updates[field] !== undefined) {
+                filteredUpdates[field] = updates[field];
+            }
+        });
+        
+        await wixData.update('Members', {
+            ...member,
+            ...filteredUpdates,
+            updatedAt: new Date()
+        });
+        
+        return { success: true, message: 'Profile updated successfully' };
+    } catch (error) {
+        console.error('Failed to update member profile:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Request password reset
+ * @param {string} email - Member email
+ * @returns {object} - Result
+ */
+export async function requestPasswordReset(email) {
+    try {
+        await authentication.sendSetPasswordEmail(email);
+        return { success: true, message: 'Password reset email sent' };
+    } catch (error) {
+        console.error('Password reset request failed:', error);
+        return { success: false, error: 'Failed to send reset email' };
+    }
+}
+
+/**
+ * Check if member has active membership
+ * @param {string} memberId - Member ID
+ * @returns {object} - Membership status
+ */
+export async function checkMembershipStatus(memberId) {
+    try {
+        const members = await wixData.query('Members')
+            .eq('wixMemberId', memberId)
+            .find({ suppressAuth: true });
+        
+        if (members.items.length === 0) {
+            return { success: false, error: 'Member not found' };
+        }
+        
+        const member = members.items[0];
+        const now = new Date();
+        
+        let isActive = member.membershipStatus === 'active';
+        let isExpired = false;
+        let daysUntilExpiry = null;
+        
+        if (member.membershipExpiryDate) {
+            const expiryDate = new Date(member.membershipExpiryDate);
+            isExpired = expiryDate < now;
+            
+            if (!isExpired) {
+                daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+            }
+            
+            if (isExpired && isActive) {
+                // Auto-update expired membership
+                await wixData.update('Members', {
+                    ...member,
+                    membershipStatus: 'expired',
+                    updatedAt: new Date()
+                });
+                isActive = false;
+            }
+        }
+        
+        return {
+            success: true,
+            status: {
+                isActive,
+                isExpired,
+                membershipType: member.membershipType,
+                expiryDate: member.membershipExpiryDate,
+                daysUntilExpiry,
+                needsRenewal: daysUntilExpiry !== null && daysUntilExpiry <= 30
+            }
+        };
+    } catch (error) {
+        console.error('Failed to check membership status:', error);
+        return { success: false, error: error.message };
+    }
+}
