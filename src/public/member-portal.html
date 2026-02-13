@@ -1178,30 +1178,34 @@
                 localStorage.removeItem('banf_member_token');
                 sessionStorage.removeItem('banf_member_data');
                 
-                // Redirect to home
+                // Redirect to login
                 if (window.parent !== window) {
                     window.parent.postMessage({ type: 'LOGOUT' }, '*');
                 } else {
-                    window.location.href = '/';
+                    window.location.href = 'member-login.html';
                 }
             }
         }
         
         // ========== MEMBER DATA ==========
         function loadMemberData() {
-            // Check for stored member data
+            // Check for stored member data - redirect if not authenticated
             const memberData = sessionStorage.getItem('banf_member_data');
-            if (memberData) {
-                const member = JSON.parse(memberData);
-                document.getElementById('userName').textContent = member.name || 'Member';
-                document.getElementById('memberNameDisplay').textContent = member.name?.split(' ')[0] || 'Member';
-                
-                // Populate profile form
-                if (member.firstName) document.getElementById('firstName').value = member.firstName;
-                if (member.lastName) document.getElementById('lastName').value = member.lastName;
-                if (member.email) document.getElementById('email').value = member.email;
-                if (member.phone) document.getElementById('phone').value = member.phone;
+            if (!memberData) {
+                // Not authenticated, redirect to login
+                window.location.href = 'member-login.html';
+                return;
             }
+            
+            const member = JSON.parse(memberData);
+            document.getElementById('userName').textContent = member.name || 'Member';
+            document.getElementById('memberNameDisplay').textContent = member.name?.split(' ')[0] || 'Member';
+            
+            // Populate profile form
+            if (member.firstName) document.getElementById('firstName').value = member.firstName;
+            if (member.lastName) document.getElementById('lastName').value = member.lastName;
+            if (member.email) document.getElementById('email').value = member.email;
+            if (member.phone) document.getElementById('phone').value = member.phone;
         }
         
         // ========== API CALLS ==========
