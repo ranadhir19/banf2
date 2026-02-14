@@ -1131,12 +1131,116 @@
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.2rem; }
             .hero-bengali { font-size: 1.4rem; }
+            .hero { padding: 2rem 1rem; }
+            .hero-subtitle { font-size: 1rem; }
+            .hero-buttons { flex-direction: column; gap: 0.5rem; }
+            .hero-buttons .btn-primary-custom,
+            .hero-buttons .btn-outline-custom { width: 100%; justify-content: center; }
             .stat-number { font-size: 2.5rem; }
             .president-body { padding: 1.5rem; }
+            .president-header .d-flex { flex-direction: column; text-align: center; }
             .pricing-card.featured { transform: scale(1); }
             .pricing-card.featured:hover { transform: scale(1); }
             section { padding: 3.5rem 0; }
             .section-header h2 { font-size: 1.8rem; }
+            /* Quick Access Bar — horizontal scroll on mobile */
+            .quick-access .row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding-bottom: 0.5rem; }
+            .quick-access .row > .col { flex: 0 0 auto; width: 80px; scroll-snap-align: start; }
+            .quick-access .quick-item span { font-size: 0.65rem; }
+            /* Sponsorship tiers — full-width stack */
+            .pricing-card { margin-bottom: 1rem; }
+            /* Touch targets — minimum 44px */
+            .btn, .admin-nav-item, .portal-nav-item, .quick-item, a.btn { min-height: 44px; }
+        }
+
+        /* ========== SMALL MOBILE (≤480px) — Sidebar drawer mode ========== */
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.6rem; }
+            .hero-badge { font-size: 0.75rem; padding: 0.35rem 0.8rem; }
+            .hero-bengali { font-size: 1.1rem; }
+            .stat-number { font-size: 2rem; }
+            .stat-label { font-size: 0.7rem; }
+            .section-header h2 { font-size: 1.4rem; }
+            .section-header p { font-size: 0.85rem; }
+            .ec-card h6 { font-size: 0.8rem; }
+            .ec-card .ec-short-bio { display: none; }
+        }
+
+        /* ===== iPhone SE / very small phones (375px and below) ===== */
+        @media (max-width: 375px) {
+            /* Hero — tighter fit */
+            .hero { min-height: 55vh; padding: 2rem 0.5rem; }
+            .hero h1 { font-size: 1.35rem; line-height: 1.3; }
+            .hero-subtitle { font-size: 0.8rem; line-height: 1.4; padding: 0 0.25rem; }
+            .hero-bengali { font-size: 0.95rem; }
+            .hero-badge { font-size: 0.7rem; padding: 0.3rem 0.6rem; }
+            .hero-buttons { flex-direction: column; gap: 0.5rem; }
+            .hero-buttons a { width: 100%; text-align: center; font-size: 0.85rem; padding: 0.6rem 1rem; }
+
+            /* Navigation — compact */
+            .navbar-brand { font-size: 1rem; }
+            .navbar-brand .logo-icon { font-size: 1.1rem; width: 28px; height: 28px; }
+            .nav-link { font-size: 0.8rem; padding: 0.4rem 0.5rem !important; }
+
+            /* Section headers */
+            .section-header h2 { font-size: 1.2rem; }
+            .section-header p { font-size: 0.8rem; }
+
+            /* Stats — single column */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .stat-number { font-size: 1.6rem; }
+            .stat-label { font-size: 0.65rem; }
+
+            /* EC team grid — single column on tiny screens */
+            .ec-team-grid { grid-template-columns: 1fr !important; gap: 0.75rem; }
+            .ec-card { padding: 0.75rem; }
+            .ec-card .ec-photo { width: 60px; height: 60px; }
+            .ec-card h6 { font-size: 0.75rem; }
+            .ec-card .ec-role { font-size: 0.65rem; }
+
+            /* Buttons — full width, proper touch targets */
+            .btn, .btn-primary-custom, .btn-outline-custom {
+                min-height: 44px;
+                font-size: 0.8rem;
+                padding: 0.5rem 0.75rem;
+                width: 100%;
+            }
+
+            /* Cards & containers — reduce padding */
+            .card, .feature-card, .service-card { padding: 0.75rem; }
+            .container { padding-left: 0.75rem; padding-right: 0.75rem; }
+
+            /* Tables — compact text */
+            table th, table td { font-size: 0.7rem; padding: 0.35rem 0.4rem; }
+
+            /* Member portal — tighter spacing */
+            .portal-content-area { padding: 0.5rem !important; }
+            .portal-page-header h2 { font-size: 1.1rem; }
+
+            /* Admin portal — tighter spacing */
+            .admin-main-content { padding: 0.5rem !important; }
+            .admin-section-header h3 { font-size: 1rem; }
+
+            /* Quick access bar — smaller icons */
+            .quick-item { min-width: 60px; font-size: 0.65rem; padding: 0.4rem; }
+            .quick-item i { font-size: 1rem; }
+
+            /* Modals — ensure full screen */
+            .modal-dialog { margin: 0 !important; }
+            .modal-header h5 { font-size: 1rem; }
+            .modal-body { padding: 0.75rem; font-size: 0.85rem; }
+
+            /* Careers section */
+            .career-card { padding: 0.75rem; }
+            .career-card h6 { font-size: 0.85rem; }
+
+            /* DB Explorer — compact */
+            .db-explorer-controls { flex-direction: column; gap: 0.5rem; }
+            .db-explorer-controls input,
+            .db-explorer-controls select { width: 100%; font-size: 0.8rem; }
+
+            /* Form inputs — prevent zoom on iOS */
+            input, select, textarea { font-size: 16px !important; }
         }
     </style>
 </head>
@@ -1156,6 +1260,7 @@
                     <li class="nav-item"><a class="nav-link" href="#about"><i class="fas fa-info-circle"></i>About</a></li>
                     <li class="nav-item"><a class="nav-link" href="#ec-team"><i class="fas fa-users"></i>Leadership</a></li>
                     <li class="nav-item"><a class="nav-link" href="#services"><i class="fas fa-th-large"></i>Services</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#careers-guidance"><i class="fas fa-briefcase"></i>Careers</a></li>
                     <li class="nav-item"><a class="nav-link" href="#events"><i class="fas fa-calendar-alt"></i>Events</a></li>
                     <li class="nav-item"><a class="nav-link" href="#radio"><i class="fas fa-broadcast-tower"></i>Radio</a></li>
                     <li class="nav-item"><a class="nav-link" href="#membership"><i class="fas fa-id-card"></i>Membership</a></li>
@@ -1394,140 +1499,9 @@
                 <h2>Executive Committee</h2>
                 <p>2025-26 Leadership Team — Dedicated to serving our community</p>
             </div>
-            <div class="row g-4">
-                <!-- President -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <img src="https://static.wixstatic.com/media/c62f94_d6f7e8a5b3c14f4f8a7f9e0d1c2b3a4d~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/rana.jpg" alt="Dr Ranadhir Ghosh" class="ec-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                            <div class="ec-avatar" style="display:none;">RG</div>
-                        </div>
-                        <span class="ec-position">President</span>
-                        <h6>Dr. Ranadhir Ghosh</h6>
-                        <p class="ec-short-bio">AI thought leader & educator. Rooted in philosophy, arts & music.</p>
-                        <a class="ec-view-profile" onclick="openProfileModal('rana')" style="cursor:pointer;"><i class="fas fa-user-circle me-1"></i>View Profile</a>
-                        <div class="ec-contact mt-2">
-                            <a href="mailto:president@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Vice President -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <img src="https://static.wixstatic.com/media/c62f94_vp_partha~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/partha.jpg" alt="Partha Mukhopadhyay" class="ec-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #006A4E, #00856F); display:none;">PM</div>
-                        </div>
-                        <span class="ec-position" style="background: var(--gradient-green);">Vice President</span>
-                        <h6>Partha Mukhopadhyay</h6>
-                        <p class="ec-short-bio">Deputy Executive & Operations Leadership</p>
-                        <div class="ec-contact">
-                            <a href="mailto:vp@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Treasurer -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #D4AF37, #E5C158);">AC</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #D4AF37, #E5C158);">Treasurer</span>
-                        <h6>Amit Chandak</h6>
-                        <p class="ec-short-bio">Financial Management</p>
-                        <div class="ec-contact">
-                            <a href="mailto:treasurer@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- General Secretary -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <img src="https://static.wixstatic.com/media/c62f94_gs_rajanya~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/rajanya.jpg" alt="Rajanya Ghosh" class="ec-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #8B0000, #a52a2a); display:none;">RG</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #8B0000, #a52a2a);">Gen. Secretary</span>
-                        <h6>Rajanya Ghosh</h6>
-                        <p class="ec-short-bio">Future leader, passionate about culture & community service.</p>
-                        <a class="ec-view-profile" onclick="openProfileModal('rajanya')" style="cursor:pointer;"><i class="fas fa-user-circle me-1"></i>View Profile</a>
-                        <div class="ec-contact mt-2">
-                            <a href="mailto:secretary@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Cultural Secretary -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <img src="https://static.wixstatic.com/media/c62f94_cs_moumita~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/moumita.jpg" alt="Dr. Moumita Ghosh" class="ec-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #9C27B0, #E91E63); display:none;">MG</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #9C27B0, #E91E63);">Cultural Sec.</span>
-                        <h6>Dr. Moumita Ghosh</h6>
-                        <p class="ec-short-bio">Creative visionary, educator, and cultural program director.</p>
-                        <div class="ec-contact">
-                            <a href="mailto:cultural@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Food Coordinator -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #FF5722, #FF9800);">BD</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #FF5722, #FF9800);">Food Coord.</span>
-                        <h6>Banty Dutta</h6>
-                        <p class="ec-short-bio">Food & Catering</p>
-                        <div class="ec-contact">
-                            <a href="mailto:food@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Event Coordinator -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #2196F3, #03A9F4);">SG</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #2196F3, #03A9F4);">Event Coord.</span>
-                        <h6>Dr. Sumanta Ghosh</h6>
-                        <p class="ec-short-bio">Event Planning & Logistics</p>
-                        <div class="ec-contact">
-                            <a href="mailto:events@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Puja Coordinator -->
-                <div class="col-lg-3 col-md-4 col-6">
-                    <div class="ec-card">
-                        <div class="ec-avatar-wrapper">
-                            <div class="ec-avatar" style="background: linear-gradient(135deg, #673AB7, #9C27B0);">RC</div>
-                        </div>
-                        <span class="ec-position" style="background: linear-gradient(135deg, #673AB7, #9C27B0);">Puja Coord.</span>
-                        <h6>Rwiti Choudhury</h6>
-                        <p class="ec-short-bio">Puja Coordination</p>
-                        <div class="ec-contact">
-                            <a href="mailto:puja@jaxbengali.org" title="Email"><i class="fas fa-envelope"></i></a>
-                            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        </div>
-                    </div>
-                </div>
+            <!-- Feature 4: Dynamically populated from EC_MEMBERS data array -->
+            <div class="row g-4" id="ec-team-grid">
+                <!-- Rendered by renderECTeam() on page load -->
             </div>
         </div>
     </section>
@@ -1703,6 +1677,55 @@
                         Learn More <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CAREERS & PROFESSIONAL NETWORK SECTION ========== -->
+    <section id="careers-guidance" class="py-5" style="background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%);">
+        <div class="container">
+            <div class="section-header">
+                <h2>🎯 Careers & Professional Network</h2>
+                <p>Connect with fellow BANF members for career guidance, mentorship, and professional networking</p>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div class="row mb-4 g-2">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Search by name, skill, or industry..." id="careerSearch" oninput="renderCareerCards()">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="industryFilter" onchange="renderCareerCards()">
+                        <option value="">All Industries</option>
+                        <option>Technology</option>
+                        <option>Healthcare</option>
+                        <option>Finance</option>
+                        <option>Education</option>
+                        <option>Engineering</option>
+                        <option>Legal</option>
+                        <option>Business</option>
+                        <option>Arts & Media</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="guidanceFilter" onchange="renderCareerCards()">
+                        <option value="">All Guidance Types</option>
+                        <option>Career Mentorship</option>
+                        <option>Resume Review</option>
+                        <option>Interview Prep</option>
+                        <option>Networking</option>
+                        <option>Industry Insights</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Member Cards Grid -->
+            <div class="row g-4" id="careerCardGrid">
+                <!-- Dynamically populated by renderCareerCards() -->
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-muted"><i class="fas fa-lock me-1"></i>Logged-in members can create their own career profile from the Member Portal.</p>
             </div>
         </div>
     </section>
@@ -2256,7 +2279,7 @@
         <div class="container">
             <div class="row g-4" id="ad-carousel-container">
                 <!-- Ad Slot 1 - Business Ad -->
-                <div class="col-md-4" data-ad-slot="1">
+                <div class="col-12 col-sm-6 col-md-4" data-ad-slot="1">
                     <div class="ad-card h-100 p-4 rounded-4 text-center shadow-sm" style="background: white; border: 2px dashed #ccc; min-height: 200px;">
                         <div class="ad-content">
                             <i class="fas fa-bullhorn fa-3x mb-3" style="color: #FF6B35;"></i>
@@ -2270,7 +2293,7 @@
                 </div>
                 
                 <!-- Ad Slot 2 - Featured Sponsor -->
-                <div class="col-md-4" data-ad-slot="2">
+                <div class="col-12 col-sm-6 col-md-4" data-ad-slot="2">
                     <div class="ad-card h-100 p-4 rounded-4 text-center shadow" style="background: linear-gradient(135deg, #006A4E, #00856F); color: white; min-height: 200px;">
                         <div class="ad-content">
                             <div style="font-size: 2rem; margin-bottom: 10px;">🍖</div>
@@ -2283,7 +2306,7 @@
                 </div>
                 
                 <!-- Ad Slot 3 - Community Announcement -->
-                <div class="col-md-4" data-ad-slot="3">
+                <div class="col-12 col-sm-6 col-md-4" data-ad-slot="3">
                     <div class="ad-card h-100 p-4 rounded-4 text-center shadow" style="background: linear-gradient(135deg, #8B0000, #A52A2A); color: white; min-height: 200px;">
                         <div class="ad-content">
                             <i class="fas fa-newspaper fa-2x mb-2"></i>
@@ -2715,104 +2738,7 @@
         </div>
     </section>
 
-    <!-- ========== PROFILE MODALS ========== -->
-    <!-- Profile Modal: Dr. Ranadhir Ghosh (President) -->
-    <div class="modal fade" id="profileRana" tabindex="-1" aria-labelledby="profileRanaLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: none; border-radius: 20px;">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title text-white" id="profileRanaLabel"><i class="fas fa-user-circle me-2 text-warning"></i>President's Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-white p-4">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-3">
-                            <img src="https://static.wixstatic.com/media/c62f94_d6f7e8a5b3c14f4f8a7f9e0d1c2b3a4d~mv2.jpg/v1/fill/w_250,h_250,al_c,q_80/rana.jpg" alt="Dr. Ranadhir Ghosh" class="rounded-circle shadow" style="width: 180px; height: 180px; object-fit: cover; border: 4px solid #ffc107;" onerror="this.style.background='linear-gradient(135deg, #F97316, #DC2626)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<span style=font-size:3rem>RG</span>';">
-                            <h4 class="mt-3 mb-1" style="color: #ffc107;">Dr. Ranadhir Ghosh</h4>
-                            <span class="badge bg-warning text-dark">President 2024-2026</span>
-                        </div>
-                        <div class="col-md-8">
-                            <p class="lead" style="color: #ddd;">AI thought leader, educator, philosopher, artist, and musician with a passion for bridging technology and humanity.</p>
-                            <hr style="border-color: rgba(255,255,255,0.2);">
-                            <p><i class="fas fa-briefcase text-info me-2"></i><strong>Professional:</strong> Vice President – Artificial Intelligence at FIS Global, leading enterprise AI strategy across payments and banking.</p>
-                            <p><i class="fas fa-graduation-cap text-success me-2"></i><strong>Education:</strong> PhD in Computer Science (Machine Learning), B.Tech from IIT Kharagpur</p>
-                            <p><i class="fas fa-award text-warning me-2"></i><strong>Passion:</strong> Rooted in Indian philosophy, classical arts, Rabindra Sangeet, and community service.</p>
-                            <p><i class="fas fa-heart text-danger me-2"></i><strong>Vision:</strong> Making BANF a model Bengali community organization through technology, inclusion, and cultural preservation.</p>
-                            <div class="mt-3">
-                                <a href="https://linkedin.com/in/ranadhirghosh" target="_blank" class="btn btn-outline-info btn-sm me-2"><i class="fab fa-linkedin me-1"></i>LinkedIn</a>
-                                <a href="mailto:president@jaxbengali.org" class="btn btn-outline-warning btn-sm"><i class="fas fa-envelope me-1"></i>Email</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Modal: Dr. Payel Banerjee (General Secretary - Previous Term) -->
-    <div class="modal fade" id="profilePayel" tabindex="-1" aria-labelledby="profilePayelLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: none; border-radius: 20px;">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title text-white" id="profilePayelLabel"><i class="fas fa-user-circle me-2 text-info"></i>Leadership Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-white p-4">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-3">
-                            <img src="https://static.wixstatic.com/media/c62f94_payel~mv2.jpg/v1/fill/w_250,h_250,al_c,q_80/payel.jpg" alt="Dr. Payel Banerjee" class="rounded-circle shadow" style="width: 180px; height: 180px; object-fit: cover; border: 4px solid #17a2b8;" onerror="this.style.background='linear-gradient(135deg, #3B82F6, #8B5CF6)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<span style=font-size:3rem>PB</span>';">
-                            <h4 class="mt-3 mb-1" style="color: #17a2b8;">Dr. Payel Banerjee</h4>
-                            <span class="badge bg-info text-dark">Past President & Advisor</span>
-                        </div>
-                        <div class="col-md-8">
-                            <p class="lead" style="color: #ddd;">Global HR executive with deep expertise in organizational transformation and cross-cultural integration.</p>
-                            <hr style="border-color: rgba(255,255,255,0.2);">
-                            <p><i class="fas fa-briefcase text-info me-2"></i><strong>Professional:</strong> Senior Vice President – HR at FIS Global, leading people strategies for 60,000+ employees worldwide.</p>
-                            <p><i class="fas fa-globe text-success me-2"></i><strong>Expertise:</strong> Organizational Development, Talent Management, Change Management, DEI Initiatives</p>
-                            <p><i class="fas fa-heart text-danger me-2"></i><strong>Community:</strong> Pioneer in establishing BANF's organizational structure and community programs.</p>
-                            <div class="mt-3">
-                                <a href="#" target="_blank" class="btn btn-outline-info btn-sm me-2"><i class="fab fa-linkedin me-1"></i>LinkedIn</a>
-                                <a href="mailto:advisor@jaxbengali.org" class="btn btn-outline-warning btn-sm"><i class="fas fa-envelope me-1"></i>Email</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Modal: Rajanya Ghosh (General Secretary) -->
-    <div class="modal fade" id="profileRajanya" tabindex="-1" aria-labelledby="profileRajanLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: none; border-radius: 20px;">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title text-white" id="profileRajanLabel"><i class="fas fa-user-circle me-2 text-danger"></i>General Secretary Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-white p-4">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-3">
-                            <img src="https://static.wixstatic.com/media/c62f94_rajanya~mv2.jpg/v1/fill/w_250,h_250,al_c,q_80/rajanya.jpg" alt="Rajanya Ghosh" class="rounded-circle shadow" style="width: 180px; height: 180px; object-fit: cover; border: 4px solid #dc3545;" onerror="this.style.background='linear-gradient(135deg, #8B0000, #a52a2a)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<span style=font-size:3rem>RG</span>';">
-                            <h4 class="mt-3 mb-1" style="color: #dc3545;">Rajanya Ghosh</h4>
-                            <span class="badge bg-danger">General Secretary 2024-2026</span>
-                        </div>
-                        <div class="col-md-8">
-                            <p class="lead" style="color: #ddd;">Emerging leader with passion for Bengali culture, community service, and youth engagement.</p>
-                            <hr style="border-color: rgba(255,255,255,0.2);">
-                            <p><i class="fas fa-graduation-cap text-info me-2"></i><strong>Education:</strong> Current student pursuing higher education with focus on technology and business.</p>
-                            <p><i class="fas fa-music text-success me-2"></i><strong>Interests:</strong> Classical dance, Bengali music, community organizing, and volunteer coordination.</p>
-                            <p><i class="fas fa-tasks text-warning me-2"></i><strong>Role:</strong> Managing BANF communications, membership coordination, and event support.</p>
-                            <p><i class="fas fa-star text-info me-2"></i><strong>Vision:</strong> Engaging next-generation Bengalis in preserving and evolving our cultural identity.</p>
-                            <div class="mt-3">
-                                <a href="#" target="_blank" class="btn btn-outline-info btn-sm me-2"><i class="fab fa-linkedin me-1"></i>LinkedIn</a>
-                                <a href="mailto:secretary@jaxbengali.org" class="btn btn-outline-warning btn-sm"><i class="fas fa-envelope me-1"></i>Email</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Profile modals are now dynamically generated by openProfileModal() from EC_MEMBERS data -->
 
     <!-- ========== FOOTER ========== -->
     <footer class="footer">
@@ -2861,22 +2787,272 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SheetJS for Excel (.xlsx/.xls) parsing — Feature 7 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script>
         // ========== PROFILE MODAL FUNCTIONS ==========
-        /**
-         * Open EC Member Profile Modal
-         */
-        function openProfileModal(member) {
-            const modalId = {
-                'rana': 'profileRana',
-                'payel': 'profilePayel',
-                'rajanya': 'profileRajanya'
-            }[member];
-            
-            if (modalId) {
-                const modal = new bootstrap.Modal(document.getElementById(modalId));
-                modal.show();
+
+        // ===== Feature 4: EC Member Data Array (single source of truth) =====
+        const EC_MEMBERS = [
+            {
+                id: 'rana',
+                name: 'Dr. Ranadhir Ghosh',
+                firstName: 'Ranadhir',
+                role: 'President',
+                positionStyle: '',
+                photoUrl: 'https://static.wixstatic.com/media/c62f94_d6f7e8a5b3c14f4f8a7f9e0d1c2b3a4d~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/rana.jpg',
+                fallbackInitials: 'RG',
+                fallbackGradient: 'linear-gradient(135deg, #DC143C, #8B0000)',
+                bio: 'AI thought leader & educator. Rooted in philosophy, arts & music.',
+                email: 'president@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: true,
+                profileData: {
+                    fullBio: 'Visionary leader blending technology, philosophy, and community building. Dr. Ghosh brings expertise in AI/ML, data engineering, and cultural arts to drive BANF\'s digital transformation.',
+                    education: 'Ph.D., Computer Science',
+                    profession: 'AI/ML Engineering Lead',
+                    interests: ['AI & Machine Learning', 'Bengali Literature', 'Rabindra Sangeet', 'Philosophy'],
+                    quote: '"Technology should serve culture, and culture should inspire technology."',
+                    yearJoined: 2020
+                }
+            },
+            {
+                id: 'partha',
+                name: 'Partha Mukhopadhyay',
+                firstName: 'Partha',
+                role: 'Vice President',
+                positionStyle: 'background: var(--gradient-green);',
+                photoUrl: 'https://static.wixstatic.com/media/c62f94_vp_partha~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/partha.jpg',
+                fallbackInitials: 'PM',
+                fallbackGradient: 'linear-gradient(135deg, #006A4E, #00856F)',
+                bio: 'Deputy Executive & Operations Leadership',
+                email: 'vp@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'Deputy executive overseeing operations and strategic planning for BANF community initiatives.',
+                    profession: 'Operations Leader',
+                    interests: ['Community Service', 'Strategic Planning'],
+                    yearJoined: 2021
+                }
+            },
+            {
+                id: 'amit',
+                name: 'Amit Chandak',
+                firstName: 'Amit',
+                role: 'Treasurer',
+                positionStyle: 'background: linear-gradient(135deg, #D4AF37, #E5C158);',
+                photoUrl: null,
+                fallbackInitials: 'AC',
+                fallbackGradient: 'linear-gradient(135deg, #D4AF37, #E5C158)',
+                bio: 'Financial Management',
+                email: 'treasurer@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'Managing BANF\'s financial operations including budgeting, payments, and sponsorship accounting.',
+                    profession: 'Finance Professional',
+                    interests: ['Financial Planning', 'Community Volunteering'],
+                    yearJoined: 2022
+                }
+            },
+            {
+                id: 'rajanya',
+                name: 'Rajanya Ghosh',
+                firstName: 'Rajanya',
+                role: 'Gen. Secretary',
+                positionStyle: 'background: linear-gradient(135deg, #8B0000, #a52a2a);',
+                photoUrl: 'https://static.wixstatic.com/media/c62f94_gs_rajanya~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/rajanya.jpg',
+                fallbackInitials: 'RG',
+                fallbackGradient: 'linear-gradient(135deg, #8B0000, #a52a2a)',
+                bio: 'Future leader, passionate about culture & community service.',
+                email: 'secretary@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: true,
+                profileData: {
+                    fullBio: 'Young, passionate leader dedicated to bridging generations within the Bengali community. Rajanya drives organizational excellence and community engagement.',
+                    profession: 'Student Leader',
+                    interests: ['Cultural Arts', 'Youth Leadership', 'Community Outreach'],
+                    yearJoined: 2023
+                }
+            },
+            {
+                id: 'moumita',
+                name: 'Dr. Moumita Ghosh',
+                firstName: 'Moumita',
+                role: 'Cultural Sec.',
+                positionStyle: 'background: linear-gradient(135deg, #9C27B0, #E91E63);',
+                photoUrl: 'https://static.wixstatic.com/media/c62f94_cs_moumita~mv2.jpg/v1/fill/w_200,h_200,al_c,q_80/moumita.jpg',
+                fallbackInitials: 'MG',
+                fallbackGradient: 'linear-gradient(135deg, #9C27B0, #E91E63)',
+                bio: 'Creative visionary, educator, and cultural program director.',
+                email: 'cultural@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'A creative visionary and educator who directs BANF\'s cultural programs — from Rabindra Jayanti to Durga Puja cultural evenings.',
+                    education: 'Ph.D., Education',
+                    profession: 'Educator & Cultural Director',
+                    interests: ['Dance', 'Rabindra Sangeet', 'Cultural Programming', 'Education'],
+                    yearJoined: 2021
+                }
+            },
+            {
+                id: 'banty',
+                name: 'Banty Dutta',
+                firstName: 'Banty',
+                role: 'Food Coord.',
+                positionStyle: 'background: linear-gradient(135deg, #FF5722, #FF9800);',
+                photoUrl: null,
+                fallbackInitials: 'BD',
+                fallbackGradient: 'linear-gradient(135deg, #FF5722, #FF9800)',
+                bio: 'Food & Catering',
+                email: 'food@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'Coordinates authentic Bengali cuisine for all BANF events, managing vendor relationships and menu planning.',
+                    profession: 'Food & Catering Coordinator',
+                    interests: ['Bengali Cuisine', 'Event Catering', 'Vendor Management'],
+                    yearJoined: 2023
+                }
+            },
+            {
+                id: 'sumanta',
+                name: 'Dr. Sumanta Ghosh',
+                firstName: 'Sumanta',
+                role: 'Event Coord.',
+                positionStyle: 'background: linear-gradient(135deg, #2196F3, #03A9F4);',
+                photoUrl: null,
+                fallbackInitials: 'SG',
+                fallbackGradient: 'linear-gradient(135deg, #2196F3, #03A9F4)',
+                bio: 'Event Planning & Logistics',
+                email: 'events@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'Manages end-to-end event planning and logistics for BANF\'s community gatherings and celebrations.',
+                    profession: 'Event Planner',
+                    interests: ['Event Management', 'Community Building', 'Logistics'],
+                    yearJoined: 2022
+                }
+            },
+            {
+                id: 'rwiti',
+                name: 'Rwiti Choudhury',
+                firstName: 'Rwiti',
+                role: 'Puja Coord.',
+                positionStyle: 'background: linear-gradient(135deg, #673AB7, #9C27B0);',
+                photoUrl: null,
+                fallbackInitials: 'RC',
+                fallbackGradient: 'linear-gradient(135deg, #673AB7, #9C27B0)',
+                bio: 'Puja Coordination',
+                email: 'puja@jaxbengali.org',
+                linkedin: '#',
+                hasProfile: false,
+                profileData: {
+                    fullBio: 'Coordinates Durga Puja and other religious/cultural ceremonies for the BANF community.',
+                    profession: 'Puja Coordinator',
+                    interests: ['Puja Organization', 'Cultural Traditions', 'Volunteer Management'],
+                    yearJoined: 2023
+                }
             }
+        ];
+
+        /**
+         * Render EC team cards dynamically from EC_MEMBERS data array (Feature 4)
+         */
+        function renderECTeam() {
+            const grid = document.getElementById('ec-team-grid');
+            if (!grid) return;
+            grid.innerHTML = EC_MEMBERS.map(m => `
+                <div class="col-lg-3 col-md-4 col-6">
+                    <div class="ec-card">
+                        <div class="ec-avatar-wrapper">
+                            ${m.photoUrl
+                                ? `<img src="${m.photoUrl}" alt="${m.name}" class="ec-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                   <div class="ec-avatar" style="background:${m.fallbackGradient};display:none;">${m.fallbackInitials}</div>`
+                                : `<div class="ec-avatar" style="background:${m.fallbackGradient};">${m.fallbackInitials}</div>`
+                            }
+                        </div>
+                        <span class="ec-position" ${m.positionStyle ? `style="${m.positionStyle}"` : ''}>${m.role}</span>
+                        <h6>${m.name}</h6>
+                        <p class="ec-short-bio">${m.bio}</p>
+                        <a class="ec-view-profile" onclick="openProfileModal('${m.id}')" style="cursor:pointer;"><i class="fas fa-user-circle me-1"></i>View Profile</a>
+                        <div class="ec-contact mt-2">
+                            <a href="mailto:${m.email}" title="Email"><i class="fas fa-envelope"></i></a>
+                            <a href="${m.linkedin}" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Open EC Member Profile Modal (Feature 5: dynamic modal from EC_MEMBERS data)
+         */
+        function openProfileModal(memberId) {
+            const member = EC_MEMBERS.find(m => m.id === memberId);
+            if (!member) return;
+
+            // Remove existing dynamic modal if any
+            const existing = document.getElementById('ecProfileModal');
+            if (existing) existing.remove();
+
+            const pd = member.profileData || {};
+            const interestsHtml = (pd.interests || []).map(i => `<span class="badge bg-primary bg-opacity-75 me-1 mb-1">${i}</span>`).join('');
+            
+            const modalHtml = `
+            <div class="modal fade" id="ecProfileModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid var(--gold); border-radius: 20px; overflow: hidden;">
+                        <div class="modal-header border-0" style="background: ${member.fallbackGradient}; padding: 2rem;">
+                            <div class="d-flex align-items-center gap-3 w-100">
+                                <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,0.5);flex-shrink:0;">
+                                    ${member.photoUrl
+                                        ? `<img src="${member.photoUrl}" alt="${member.name}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:1.5rem;font-weight:bold;color:#fff;background:${member.fallbackGradient.replace(/'/g, "\\'")}\\'>${member.fallbackInitials}</div>'">`
+                                        : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:1.5rem;font-weight:bold;color:#fff;background:${member.fallbackGradient}">${member.fallbackInitials}</div>`
+                                    }
+                                </div>
+                                <div>
+                                    <h4 class="text-white mb-1">${member.name}</h4>
+                                    <span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.9rem;">${member.role}</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            ${pd.quote ? `<blockquote class="blockquote text-center mb-4"><p class="text-warning fst-italic" style="font-size:1rem;">${pd.quote}</p></blockquote>` : ''}
+                            <div class="row g-4">
+                                <div class="col-md-8">
+                                    <h6 class="text-warning mb-2"><i class="fas fa-user me-2"></i>About</h6>
+                                    <p class="text-light">${pd.fullBio || member.bio}</p>
+                                    ${pd.education ? `<p class="text-light mb-1"><i class="fas fa-graduation-cap me-2 text-info"></i><strong>Education:</strong> ${pd.education}</p>` : ''}
+                                    ${pd.profession ? `<p class="text-light mb-3"><i class="fas fa-briefcase me-2 text-info"></i><strong>Profession:</strong> ${pd.profession}</p>` : ''}
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-warning mb-2"><i class="fas fa-info-circle me-2"></i>Details</h6>
+                                    <p class="text-light mb-1"><i class="fas fa-envelope me-2 text-muted"></i><a href="mailto:${member.email}" class="text-info" style="text-decoration:none">${member.email}</a></p>
+                                    ${pd.yearJoined ? `<p class="text-light mb-1"><i class="fas fa-calendar-alt me-2 text-muted"></i>EC since ${pd.yearJoined}</p>` : ''}
+                                    ${interestsHtml ? `<div class="mt-3"><h6 class="text-warning mb-2"><i class="fas fa-heart me-2"></i>Interests</h6>${interestsHtml}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('ecProfileModal'));
+            modal.show();
+
+            // Clean up on close
+            document.getElementById('ecProfileModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
         }
 
         // ========== RADIO PLAYER FUNCTIONALITY ==========
@@ -3672,6 +3848,10 @@
         // Initialize API integration
         document.addEventListener('DOMContentLoaded', function() {
             setupActionLinks();
+            // Render EC team cards dynamically from EC_MEMBERS data
+            if (typeof renderECTeam === 'function') renderECTeam();
+            // Render Career Directory cards on landing page
+            if (typeof renderCareerCards === 'function') renderCareerCards();
             // Uncomment to enable dynamic loading when deployed to Wix:
             // loadDynamicContent();
             console.log('BANF Landing Page - API Integration Ready');
@@ -3695,6 +3875,9 @@
                     </div>
                 </div>
                 <div class="portal-user-menu">
+                    <button class="portal-mobile-toggle btn btn-sm btn-outline-secondary me-2" style="display:none;" onclick="togglePortalSidebar()" aria-label="Toggle sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <div class="portal-user-avatar" id="portalUserAvatar">
                         <i class="fas fa-user"></i>
                     </div>
@@ -3710,6 +3893,8 @@
         </header>
         
         <div class="portal-main-container">
+            <!-- Mobile sidebar backdrop -->
+            <div class="portal-sidebar-backdrop" onclick="togglePortalSidebar()"></div>
             <!-- Sidebar Navigation -->
             <nav class="portal-sidebar">
                 <div class="sidebar-section">
@@ -3759,6 +3944,10 @@
                     <a href="#" class="portal-nav-item" onclick="showPortalSection('directory', this); return false;">
                         <i class="fas fa-address-book"></i>
                         <span>Member Directory</span>
+                    </a>
+                    <a href="#" class="portal-nav-item" onclick="showPortalSection('careerProfile', this); return false;">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Career Profile</span>
                     </a>
                     <a href="#" class="portal-nav-item" onclick="showPortalSection('volunteer', this); return false;">
                         <i class="fas fa-hands-helping"></i>
@@ -4072,22 +4261,29 @@
                         <div class="portal-stat-card">
                             <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
                             <div class="stat-info">
-                                <h3>$0.00</h3>
+                                <h3 id="portalBalanceDue">$0.00</h3>
                                 <p>Balance Due</p>
                             </div>
                         </div>
                         <div class="portal-stat-card">
                             <div class="stat-icon orange"><i class="fas fa-history"></i></div>
                             <div class="stat-info">
-                                <h3>$250.00</h3>
+                                <h3 id="portalTotalPaid">$250.00</h3>
                                 <p>Total Paid (2026)</p>
+                            </div>
+                        </div>
+                        <div class="portal-stat-card">
+                            <div class="stat-icon" style="background:#e8e0ff; color:#6528F7;"><i class="fas fa-bolt"></i></div>
+                            <div class="stat-info">
+                                <h3 id="portalZelleStatus" style="font-size:0.95rem; color:#28a745;">✅ Auto-Tracking</h3>
+                                <p>Zelle Detection</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="portal-form-card">
                         <h4 style="margin-bottom: 1rem;"><i class="fas fa-university me-2"></i>Zelle Payment Info</h4>
-                        <p class="text-muted">Use Zelle to send payments. Include your membership ID in the memo.</p>
+                        <p class="text-muted">Send payments via Zelle. Your payment will be <strong>automatically detected</strong> from Gmail and matched to your account.</p>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Zelle Recipient</label>
@@ -4098,8 +4294,12 @@
                                 <input class="form-control" value="Membership - [Your Name]" readonly>
                             </div>
                         </div>
-                        <button class="portal-feature-btn" onclick="alert('Payment marked sent (Demo)')">
-                            <i class="fas fa-check-circle"></i> Mark Payment Sent
+                        <div style="padding:0.75rem; background:#e8f5e9; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                            <i class="fas fa-magic" style="color:#6528F7; margin-right:0.5rem;"></i>
+                            <strong>Auto-Detection Active:</strong> When you send a Zelle payment, our system automatically detects the email notification and updates your account. No manual verification needed!
+                        </div>
+                        <button class="portal-feature-btn" onclick="portalRefreshPayments()">
+                            <i class="fas fa-sync-alt"></i> Refresh Payment Status
                         </button>
                     </div>
                     
@@ -4111,15 +4311,17 @@
                                     <th>Date</th>
                                     <th>Description</th>
                                     <th>Amount</th>
+                                    <th>Method</th>
                                     <th>Status</th>
                                     <th>Receipt</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="portalPaymentHistoryBody">
                                 <tr>
                                     <td>Feb 01, 2026</td>
                                     <td>Annual Membership - Family</td>
                                     <td>$150.00</td>
+                                    <td><i class="fas fa-bolt" style="color:#6528F7;"></i> Zelle</td>
                                     <td><span class="status-badge active">Paid</span></td>
                                     <td><a href="#" class="text-primary" onclick="alert('Download Receipt - Demo'); return false;"><i class="fas fa-download"></i> PDF</a></td>
                                 </tr>
@@ -4127,6 +4329,7 @@
                                     <td>Feb 02, 2026</td>
                                     <td>Saraswati Puja Registration</td>
                                     <td>$100.00</td>
+                                    <td><i class="fas fa-bolt" style="color:#6528F7;"></i> Zelle</td>
                                     <td><span class="status-badge active">Paid</span></td>
                                     <td><a href="#" class="text-primary" onclick="alert('Download Receipt - Demo'); return false;"><i class="fas fa-download"></i> PDF</a></td>
                                 </tr>
@@ -4512,6 +4715,87 @@
                     </div>
                 </section>
                 
+                <!-- CAREER PROFILE SECTION -->
+                <section id="portalCareerProfile" class="portal-section">
+                    <div class="portal-page-header">
+                        <h2><i class="fas fa-briefcase me-2"></i>My Career Profile</h2>
+                        <p>Create or edit your career guidance profile to appear in the BANF professional network</p>
+                    </div>
+                    <div class="portal-form-card">
+                        <form onsubmit="event.preventDefault(); saveMyCareerProfile();">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="careerProfileVisible" checked>
+                                    <label class="form-check-label" for="careerProfileVisible"><strong>Visible in Public Directory</strong></label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Professional Title</label>
+                                    <input type="text" class="form-control" id="careerTitle" placeholder="e.g. Software Engineer, Doctor, Teacher" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company / Organization</label>
+                                    <input type="text" class="form-control" id="careerCompany" placeholder="Your current employer">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Industry</label>
+                                    <select class="form-select" id="careerIndustry" required>
+                                        <option value="">Select...</option>
+                                        <option>Technology</option><option>Healthcare</option><option>Finance</option>
+                                        <option>Education</option><option>Engineering</option><option>Legal</option>
+                                        <option>Business</option><option>Arts & Media</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Years of Experience</label>
+                                    <input type="number" class="form-control" id="careerYears" min="0" max="60" value="5">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Education</label>
+                                    <input type="text" class="form-control" id="careerEducation" placeholder="e.g. M.S. Computer Science">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Skills (comma-separated)</label>
+                                <input type="text" class="form-control" id="careerSkills" placeholder="Python, Project Management, Data Analysis...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Guidance I Can Offer</label>
+                                <div class="d-flex flex-wrap gap-2" id="guidanceCheckboxes">
+                                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="Career Mentorship"> Career Mentorship</label>
+                                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="Resume Review"> Resume Review</label>
+                                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="Interview Prep"> Interview Prep</label>
+                                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="Networking"> Networking</label>
+                                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="Industry Insights"> Industry Insights</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Short Bio</label>
+                                <textarea class="form-control" id="careerBio" rows="3" placeholder="Tell other members how you can help..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">LinkedIn URL (optional)</label>
+                                    <input type="url" class="form-control" id="careerLinkedin" placeholder="https://linkedin.com/in/...">
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="careerAvailable" checked>
+                                        <label class="form-check-label" for="careerAvailable">Available for meetings</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Profile</button>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteMyCareerProfile()"><i class="fas fa-trash me-1"></i>Remove Profile</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
                 <!-- MAGAZINE SECTION -->
                 <section id="portalMagazine" class="portal-section">
                     <div class="portal-page-header">
@@ -4589,6 +4873,9 @@
                     </div>
                 </div>
                 <div class="admin-user-menu">
+                    <button class="admin-mobile-toggle btn btn-sm btn-outline-light me-2" style="display:none;" onclick="toggleAdminSidebar()" aria-label="Toggle sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <span class="admin-role-badge" id="adminRoleBadge">EC Member</span>
                     <div class="admin-user-avatar">
                         <i class="fas fa-user-shield"></i>
@@ -4608,27 +4895,37 @@
         </header>
 
         <div class="admin-portal-container">
+            <!-- Mobile sidebar backdrop -->
+            <div class="admin-sidebar-backdrop" onclick="toggleAdminSidebar()"></div>
             <!-- Sidebar Navigation -->
             <nav class="admin-sidebar">
                 <div class="admin-sidebar-section">
                     <h6>Dashboard</h6>
-                    <a href="#" class="admin-nav-item active" onclick="showAdminSection('dashboard', this); return false;">
+                    <a href="#" class="admin-nav-item active" data-section="dashboard" onclick="showAdminSection('dashboard', this); return false;">
                         <i class="fas fa-chart-line"></i>
                         <span>Overview</span>
+                    </a>
+                    <a href="#" class="admin-nav-item" data-section="siteConfig" data-permission="site_config" onclick="showAdminSection('siteConfig', this); return false;">
+                        <i class="fas fa-wrench"></i>
+                        <span>Site Configuration</span>
                     </a>
                 </div>
 
                 <div class="admin-sidebar-section">
                     <h6>Member Management</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('members', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="members" data-permission="members" onclick="showAdminSection('members', this); return false;">
                         <i class="fas fa-users"></i>
                         <span>All Members</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('dataImport', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="dataImport" data-permission="members" onclick="showAdminSection('dataImport', this); return false;">
                         <i class="fas fa-file-excel"></i>
                         <span>Data Import (Excel)</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('payments', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="dbExplorer" data-permission="members" onclick="showAdminSection('dbExplorer', this); return false;">
+                        <i class="fas fa-database"></i>
+                        <span>DB Explorer</span>
+                    </a>
+                    <a href="#" class="admin-nav-item" data-section="payments" data-permission="payments" onclick="showAdminSection('payments', this); return false;">
                         <i class="fas fa-credit-card"></i>
                         <span>Payment Verification</span>
                         <span class="admin-badge warning">5</span>
@@ -4637,7 +4934,7 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Email</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('gmail', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="gmail" data-permission="communications" onclick="showAdminSection('gmail', this); return false;">
                         <i class="fas fa-envelope"></i>
                         <span>Email Management</span>
                         <span class="admin-badge" id="gmailUnreadBadge" style="display:none">0</span>
@@ -4646,15 +4943,15 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Events</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('events', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="events" data-permission="events" onclick="showAdminSection('events', this); return false;">
                         <i class="fas fa-calendar-alt"></i>
                         <span>Event Management</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('evite', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="evite" data-permission="evite" onclick="showAdminSection('evite', this); return false;">
                         <i class="fas fa-envelope-open-text"></i>
                         <span>Evite / Invitations</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('rsvps', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="rsvps" data-permission="rsvps" onclick="showAdminSection('rsvps', this); return false;">
                         <i class="fas fa-user-check"></i>
                         <span>RSVPs & Check-ins</span>
                     </a>
@@ -4662,16 +4959,16 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Communication</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('complaints', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="complaints" data-permission="complaints" onclick="showAdminSection('complaints', this); return false;">
                         <i class="fas fa-exclamation-circle"></i>
                         <span>Complaints</span>
                         <span class="admin-badge">3</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('surveys', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="surveys" data-permission="surveys" onclick="showAdminSection('surveys', this); return false;">
                         <i class="fas fa-poll"></i>
                         <span>Survey Admin</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('announcements', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="announcements" data-permission="announcements" onclick="showAdminSection('announcements', this); return false;">
                         <i class="fas fa-bullhorn"></i>
                         <span>Announcements</span>
                     </a>
@@ -4679,23 +4976,31 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Media</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('radio', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="radio" data-permission="radio" onclick="showAdminSection('radio', this); return false;">
                         <i class="fas fa-broadcast-tower"></i>
                         <span>Radio Control</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('magazine', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="magazine" data-permission="magazine" onclick="showAdminSection('magazine', this); return false;">
                         <i class="fas fa-newspaper"></i>
                         <span>Magazine Admin</span>
                     </a>
                 </div>
 
                 <div class="admin-sidebar-section">
+                    <h6>Professional</h6>
+                    <a href="#" class="admin-nav-item" data-section="careers" data-permission="careers" onclick="showAdminSection('careers', this); return false;">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Career Directory</span>
+                    </a>
+                </div>
+
+                <div class="admin-sidebar-section">
                     <h6>Finance</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('budget', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="budget" data-permission="budget" onclick="showAdminSection('budget', this); return false;">
                         <i class="fas fa-wallet"></i>
                         <span>Budget & Finance</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('vendors', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="vendors" data-permission="vendors" onclick="showAdminSection('vendors', this); return false;">
                         <i class="fas fa-store"></i>
                         <span>Vendors & Sponsors</span>
                     </a>
@@ -4703,11 +5008,11 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Operations</h6>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('volunteers', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="volunteers" data-permission="volunteers" onclick="showAdminSection('volunteers', this); return false;">
                         <i class="fas fa-hands-helping"></i>
                         <span>Volunteers</span>
                     </a>
-                    <a href="#" class="admin-nav-item" onclick="showAdminSection('meetings', this); return false;">
+                    <a href="#" class="admin-nav-item" data-section="meetings" data-permission="meetings" onclick="showAdminSection('meetings', this); return false;">
                         <i class="fas fa-clipboard-list"></i>
                         <span>Meeting Minutes</span>
                     </a>
@@ -4858,37 +5163,110 @@
                 <section id="adminPayments" class="admin-section">
                     <div class="admin-page-header">
                         <div>
-                            <h2>Payment Verification</h2>
-                            <p>Review and verify pending payments</p>
+                            <h2><i class="fas fa-bolt me-2" style="color: #6528F7;"></i>Zelle Payment Automation</h2>
+                            <p>Auto-detect Zelle payments from Gmail &amp; manage member payments</p>
                         </div>
-                        <button class="admin-primary"><i class="fas fa-check-circle"></i> Approve All</button>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <button class="admin-primary" onclick="zelleManualScan()" id="btnZelleScan">
+                                <i class="fas fa-search"></i> Scan Gmail Now
+                            </button>
+                            <button class="admin-secondary" id="btnZelleAutoToggle" onclick="zelleTogglePoller()">
+                                <i class="fas fa-sync-alt"></i> Auto-Poll: OFF
+                            </button>
+                        </div>
                     </div>
-                    <div class="admin-table">
-                        <table>
+
+                    <!-- Zelle Stats Cards -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem;" id="zelleStatsGrid">
+                        <div class="admin-stat-card" style="border-left:4px solid #6528F7;">
+                            <div class="stat-label">Total Detected</div>
+                            <div class="stat-value" id="zelleTotalDetected">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #FFC107;">
+                            <div class="stat-label">Pending Review</div>
+                            <div class="stat-value" id="zellePendingCount" style="color:#FFC107;">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #28a745;">
+                            <div class="stat-label">Verified</div>
+                            <div class="stat-value" id="zelleVerifiedCount" style="color:#28a745;">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #17a2b8;">
+                            <div class="stat-label">Auto-Matched</div>
+                            <div class="stat-value" id="zelleAutoMatched">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #28a745;">
+                            <div class="stat-label">Total Collected</div>
+                            <div class="stat-value" id="zelleTotalAmount" style="color:#28a745;">$0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #6c757d;">
+                            <div class="stat-label">Last Scan</div>
+                            <div class="stat-value" id="zelleLastScan" style="font-size:0.9rem;">Never</div>
+                        </div>
+                    </div>
+
+                    <!-- Scan Status Banner -->
+                    <div id="zelleScanBanner" style="display:none; padding:1rem; border-radius:8px; margin-bottom:1rem; background:#e8f5e9; border:1px solid #4caf50;">
+                        <i class="fas fa-check-circle" style="color:#4caf50; margin-right:0.5rem;"></i>
+                        <span id="zelleScanMessage">Scan complete</span>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+                        <button class="admin-primary" onclick="zelleFilterPayments('all')" id="zelleFilterAll" style="font-size:0.85rem;">All</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('pending')" id="zelleFilterPending" style="font-size:0.85rem;">⏳ Pending</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('auto_verified')" id="zelleFilterAuto" style="font-size:0.85rem;">🤖 Auto-Verified</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('verified')" id="zelleFilterVerified" style="font-size:0.85rem;">✅ Verified</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('rejected')" id="zelleFilterRejected" style="font-size:0.85rem;">❌ Rejected</button>
+                        <button class="admin-secondary" onclick="zelleSeedTestData()" style="font-size:0.85rem; margin-left:auto;">
+                            <i class="fas fa-flask"></i> Load Test Data
+                        </button>
+                    </div>
+
+                    <!-- Payments Table -->
+                    <div class="admin-table" style="overflow-x:auto;">
+                        <table id="zellePaymentsTable">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Date</th>
-                                    <th>Member</th>
-                                    <th>Type</th>
+                                    <th>From (Zelle)</th>
                                     <th>Amount</th>
+                                    <th>Memo</th>
+                                    <th>Bank</th>
+                                    <th>Matched Member</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="zellePaymentsBody">
                                 <tr>
-                                    <td>Feb 12, 2026</td>
-                                    <td>Sunil Banerjee</td>
-                                    <td>Membership - Family</td>
-                                    <td>$150.00</td>
-                                    <td><span class="status-badge pending">Pending</span></td>
-                                    <td>
-                                        <button class="admin-primary">Approve</button>
-                                        <button class="admin-secondary">Reject</button>
+                                    <td colspan="9" class="text-center" style="padding:2rem; color:#999;">
+                                        <i class="fas fa-inbox" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+                                        No Zelle payments detected yet. Click "Scan Gmail Now" or "Load Test Data" to start.
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Member Match Modal (inline) -->
+                    <div id="zelleMatchModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+                        <div style="background:white; border-radius:12px; padding:2rem; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
+                            <h4><i class="fas fa-link me-2"></i>Match Payment to Member</h4>
+                            <p style="color:#666;">Payment: <strong id="zelleMatchPaymentInfo"></strong></p>
+                            <div style="margin:1rem 0;">
+                                <label class="form-label">Select Member</label>
+                                <select class="form-select" id="zelleMatchMemberSelect">
+                                    <option value="">-- Select a member --</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                                <button class="admin-secondary" onclick="zelleCloseMatchModal()">Cancel</button>
+                                <button class="admin-primary" onclick="zelleConfirmMatch()">
+                                    <i class="fas fa-check"></i> Match & Verify
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -5193,6 +5571,95 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========== DB EXPLORER SECTION (Feature 7) ========== -->
+                <section id="adminDbExplorer" class="admin-section">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-database me-2"></i>Member Database Explorer</h2>
+                            <p>Search, filter, and manage the member universe</p>
+                        </div>
+                        <div class="admin-actions">
+                            <button class="admin-primary" id="dbExpAddBtn" onclick="MemberDBExplorer.showAddModal()" style="display:none"><i class="fas fa-plus me-1"></i> Add Member</button>
+                            <button class="admin-secondary" id="dbExpExportCsvBtn" onclick="MemberDBExplorer.exportCSV()" style="display:none"><i class="fas fa-file-csv me-1"></i> Export CSV</button>
+                            <button class="admin-secondary" id="dbExpExportXlsxBtn" onclick="MemberDBExplorer.exportExcel()" style="display:none"><i class="fas fa-file-excel me-1"></i> Export Excel</button>
+                            <button class="admin-secondary" onclick="MemberDBExplorer.render()"><i class="fas fa-sync-alt me-1"></i> Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="admin-card-grid" id="dbExpStats" style="margin-bottom:1.5rem;"></div>
+
+                    <!-- Search & Filter Controls -->
+                    <div class="admin-card" style="margin-bottom: 1.5rem;">
+                        <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
+                            <div style="flex:2; min-width:200px;">
+                                <label style="font-size:0.85rem; font-weight:600; margin-bottom:4px; display:block;">Search</label>
+                                <input type="text" id="dbExpSearch" class="form-control" placeholder="Search by name, email, phone…" oninput="MemberDBExplorer.applyFilters()">
+                            </div>
+                            <div style="flex:1; min-width:140px;">
+                                <label style="font-size:0.85rem; font-weight:600; margin-bottom:4px; display:block;">Status</label>
+                                <select id="dbExpFilterStatus" class="form-select" onchange="MemberDBExplorer.applyFilters()">
+                                    <option value="">All Statuses</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Expired">Expired</option>
+                                    <option value="Pending">Pending</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; min-width:140px;">
+                                <label style="font-size:0.85rem; font-weight:600; margin-bottom:4px; display:block;">Type</label>
+                                <select id="dbExpFilterType" class="form-select" onchange="MemberDBExplorer.applyFilters()">
+                                    <option value="">All Types</option>
+                                    <option value="Family">Family</option>
+                                    <option value="Individual">Individual</option>
+                                    <option value="Couple">Couple</option>
+                                    <option value="Student">Student</option>
+                                    <option value="Senior">Senior</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; min-width:140px;">
+                                <label style="font-size:0.85rem; font-weight:600; margin-bottom:4px; display:block;">Sort By</label>
+                                <select id="dbExpSort" class="form-select" onchange="MemberDBExplorer.applyFilters()">
+                                    <option value="lastName">Last Name</option>
+                                    <option value="firstName">First Name</option>
+                                    <option value="joinDate">Join Date</option>
+                                    <option value="type">Membership Type</option>
+                                    <option value="status">Status</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="admin-card">
+                        <div class="admin-table" style="max-height: 500px; overflow-y: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dbExpTableBody"></tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding:0 0.5rem;">
+                            <span id="dbExpPageInfo" style="font-size:0.85rem; color:#666;"></span>
+                            <div>
+                                <button class="admin-secondary" onclick="MemberDBExplorer.prevPage()" id="dbExpPrevBtn" style="margin-right:0.5rem;"><i class="fas fa-chevron-left me-1"></i>Prev</button>
+                                <button class="admin-secondary" onclick="MemberDBExplorer.nextPage()" id="dbExpNextBtn">Next<i class="fas fa-chevron-right ms-1"></i></button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -5648,6 +6115,60 @@
                             <div id="gmailReaderBody" style="white-space:pre-wrap;line-height:1.6;max-height:500px;overflow-y:auto;"></div>
                             <div id="gmailReaderAttachments" style="margin-top:1rem;"></div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- ========== CAREERS DIRECTORY ADMIN (Feature 6) ========== -->
+                <section id="adminCareers" class="admin-section" style="display:none;">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-briefcase me-2"></i>Career Directory Management</h2>
+                            <p>Review, approve, and manage member career profiles</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="admin-btn" onclick="exportCareerDirectory()"><i class="fas fa-download me-1"></i>Export CSV</button>
+                            <button class="admin-btn admin-btn-primary" onclick="openAddCareerModal()"><i class="fas fa-plus me-1"></i>Add Profile</button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-3"><div class="admin-stat-card"><div class="admin-stat-number" id="careerTotalStat">0</div><div class="admin-stat-label">Total Profiles</div></div></div>
+                        <div class="col-sm-3"><div class="admin-stat-card"><div class="admin-stat-number text-success" id="careerVisibleStat">0</div><div class="admin-stat-label">Visible</div></div></div>
+                        <div class="col-sm-3"><div class="admin-stat-card"><div class="admin-stat-number text-warning" id="careerHiddenStat">0</div><div class="admin-stat-label">Hidden</div></div></div>
+                        <div class="col-sm-3"><div class="admin-stat-card"><div class="admin-stat-number text-info" id="careerIndustryStat">0</div><div class="admin-stat-label">Industries</div></div></div>
+                    </div>
+
+                    <!-- Profiles Table -->
+                    <div class="admin-table">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Title</th>
+                                    <th>Industry</th>
+                                    <th>Guidance Types</th>
+                                    <th>Visible</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminCareerTableBody">
+                                <tr><td colspan="6" class="text-center text-muted py-3">Loading career profiles...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ========== SITE CONFIGURATION SECTION (Feature 1) ========== -->
+                <section id="adminSiteConfig" class="admin-section" style="display:none;">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-wrench me-2"></i>Site Configuration</h2>
+                            <p>Manage landing page sections, membership plans, sponsorship tiers, and ad slots</p>
+                        </div>
+                    </div>
+                    <div id="siteConfigContent">
+                        <div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading configuration...</div>
                     </div>
                 </section>
             </main>
@@ -6761,7 +7282,13 @@
             background: #fff;
             border-radius: 14px;
             overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .admin-table table {
+            min-width: 600px;
         }
 
         .admin-table table {
@@ -6872,6 +7399,132 @@
             .portal-page-header h2 {
                 font-size: 1.25rem;
             }
+
+            /* Portal sidebar — slide-in drawer on small screens */
+            .portal-main-container { flex-direction: column; position: relative; }
+            .portal-sidebar {
+                position: fixed;
+                left: -270px;
+                top: 70px;
+                width: 260px;
+                height: calc(100vh - 70px);
+                z-index: 1050;
+                transition: left 0.3s ease;
+                flex-direction: column;
+                overflow-y: auto;
+                overflow-x: hidden;
+                border-right: 1px solid #e0e0e0;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            }
+            .portal-sidebar.open { left: 0; }
+            .sidebar-section { flex-direction: column; }
+            .sidebar-section h6 { display: block; }
+            .portal-nav-item span { display: inline; }
+            .portal-content-area { margin-left: 0; padding: 1rem; height: calc(100vh - 70px); }
+            .portal-mobile-toggle { display: flex !important; }
+            .portal-sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 1049;
+            }
+            .portal-sidebar-backdrop.show { display: block; }
+
+            /* Admin sidebar — slide-in drawer on small screens */
+            .admin-portal-container { flex-direction: column; position: relative; }
+            .admin-sidebar {
+                position: fixed;
+                left: -280px;
+                top: 70px;
+                width: 270px;
+                height: calc(100vh - 70px);
+                z-index: 1050;
+                transition: left 0.3s ease;
+                flex-direction: column;
+                overflow-y: auto;
+                overflow-x: hidden;
+                border-right: 1px solid #e0e0e0;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            }
+            .admin-sidebar.open { left: 0; }
+            .admin-sidebar-section { flex-direction: column; }
+            .admin-sidebar-section h6 { display: block; }
+            .admin-nav-item span { display: inline; }
+            .admin-main-content { margin-left: 0; padding: 1rem; height: calc(100vh - 70px); }
+            .admin-mobile-toggle { display: flex !important; }
+            .admin-sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 1049;
+            }
+            .admin-sidebar-backdrop.show { display: block; }
+
+            /* Admin user menu — compact on mobile */
+            .admin-user-name { display: none; }
+            .admin-role-badge { font-size: 0.6rem; padding: 0.2rem 0.4rem; }
+            .admin-btn { padding: 0.35rem 0.5rem; font-size: 0.75rem; }
+
+            /* Modals — fullscreen on small screens */
+            .modal-dialog { margin: 0; max-width: 100%; height: 100%; }
+            .modal-content { border-radius: 0; height: 100%; }
+        }
+
+        /* ===== iPhone SE / very small phones — portal & admin (375px) ===== */
+        @media (max-width: 375px) {
+            /* Portal sidebar drawer — narrower for tiny screens */
+            .portal-sidebar {
+                left: -240px;
+                width: 230px;
+            }
+            .portal-sidebar.open { left: 0; }
+            .portal-nav-item { font-size: 0.8rem; padding: 0.5rem 0.75rem; }
+            .portal-content-area { padding: 0.5rem !important; }
+            .portal-page-header h2 { font-size: 1.1rem; }
+            .portal-page-header p { font-size: 0.8rem; }
+            .portal-features-grid { gap: 0.5rem; }
+            .portal-feature-card { padding: 0.75rem; }
+            .portal-feature-card h5 { font-size: 0.9rem; }
+            .portal-feature-card p { font-size: 0.75rem; }
+            .portal-header-bar { padding: 0.4rem 0.75rem; }
+            .portal-logo-text h1 { font-size: 0.9rem; }
+
+            /* Admin sidebar drawer — narrower for tiny screens */
+            .admin-sidebar {
+                left: -240px;
+                width: 230px;
+            }
+            .admin-sidebar.open { left: 0; }
+            .admin-nav-item { font-size: 0.8rem; padding: 0.5rem 0.75rem; }
+            .admin-main-content { padding: 0.5rem !important; }
+            .admin-section-header h3 { font-size: 1rem; }
+            .admin-section-header p { font-size: 0.75rem; }
+            .admin-btn { padding: 0.3rem 0.4rem; font-size: 0.7rem; }
+            .admin-role-badge { font-size: 0.55rem; }
+            .admin-stat-card h4 { font-size: 1.1rem; }
+            .admin-stat-card p { font-size: 0.7rem; }
+            .admin-stat-card { padding: 0.75rem; }
+
+            /* Login/Registration forms — compact */
+            .portal-login-card { padding: 1rem; }
+            .portal-login-card h3 { font-size: 1.1rem; }
+            .portal-login-card .form-control { font-size: 16px; padding: 0.5rem; }
+            .portal-login-card .btn { width: 100%; font-size: 0.85rem; }
+
+            /* Tables inside portals */
+            .admin-main-content table th,
+            .admin-main-content table td,
+            .portal-content-area table th,
+            .portal-content-area table td { font-size: 0.7rem; padding: 0.3rem; }
+
+            /* Modals — tighter on tiny screens */
+            .modal-header { padding: 0.5rem 0.75rem; }
+            .modal-header h5 { font-size: 0.95rem; }
+            .modal-body { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+            .modal-footer { padding: 0.5rem 0.75rem; }
+            .modal-footer .btn { font-size: 0.8rem; }
         }
     </style>
     
@@ -6938,6 +7591,37 @@
         function isAdminRoleValue(roleValue) {
             return ADMIN_ROLE_ALLOWLIST.has(normalizeRoleValue(roleValue));
         }
+
+        // ===== SECTION-TO-PERMISSION MAPPING (Feature 3: Role-Based Enforcement) =====
+        // Maps each admin sidebar section to the ecPermission string required to access it.
+        // null = always visible (e.g. dashboard).  President/super_admin bypass all checks.
+        const SECTION_PERMISSIONS = {
+            dashboard:      null,           // always visible
+            members:        'members',
+            dataImport:     'members',      // data-import is a sub-feature of member mgmt
+            dbExplorer:     'members',      // DB Explorer is a sub-feature of member mgmt
+            payments:       'payments',
+            gmail:          'communications',
+            events:         'events',
+            evite:          'evite',
+            rsvps:          'rsvps',
+            complaints:     'complaints',
+            surveys:        'surveys',
+            announcements:  'announcements',
+            radio:          'radio',
+            magazine:       'magazine',
+            budget:         'budget',
+            vendors:        'vendors',
+            volunteers:     'volunteers',
+            meetings:       'meetings',
+            siteConfig:     'site_config',
+            careers:        'careers'
+        };
+
+        // Roles that bypass all permission checks (full access)
+        const FULL_ACCESS_ROLES = new Set([
+            'super_admin', 'admin', 'president', 'vice_president', 'vp'
+        ]);
 
         function getRoleBadgeClass(roleValue) {
             const normalized = normalizeRoleValue(roleValue) || 'member';
@@ -7280,6 +7964,64 @@
                         expiresOn: '2026-12-31',
                         ecPermissions: ['vendors', 'announcements']
                     }
+                },
+                // ===== NEW EC ACCOUNTS (Feature 3: VP, Cultural Sec, Puja Coord) =====
+                'ec_vp': {
+                    password: 'vp123',
+                    member: {
+                        id: 'ec_vp_001',
+                        firstName: 'Debashis',
+                        lastName: 'Majumdar',
+                        fullName: 'Debashis Majumdar',
+                        email: 'vp@banf.org',
+                        phone: '(904) 555-2009',
+                        role: 'vice_president',
+                        roles: ['member', 'ec_member', 'vice_president'],
+                        adminRole: 'Vice President',
+                        isAdmin: true,
+                        membershipType: 'Family',
+                        memberSince: '2021-01-01',
+                        expiresOn: '2026-12-31',
+                        ecPermissions: ['events', 'members', 'meetings', 'budget']
+                    }
+                },
+                'ec_cultural': {
+                    password: 'cultural123',
+                    member: {
+                        id: 'ec_cultural_001',
+                        firstName: 'Indrani',
+                        lastName: 'Chakraborty',
+                        fullName: 'Indrani Chakraborty',
+                        email: 'cultural@banf.org',
+                        phone: '(904) 555-2010',
+                        role: 'cultural_secretary',
+                        roles: ['member', 'ec_member', 'cultural_secretary'],
+                        adminRole: 'Cultural Secretary',
+                        isAdmin: true,
+                        membershipType: 'Family',
+                        memberSince: '2022-06-01',
+                        expiresOn: '2026-12-31',
+                        ecPermissions: ['events', 'evite', 'magazine', 'announcements']
+                    }
+                },
+                'ec_puja': {
+                    password: 'puja123',
+                    member: {
+                        id: 'ec_puja_001',
+                        firstName: 'Sanjib',
+                        lastName: 'Bhattacharya',
+                        fullName: 'Sanjib Bhattacharya',
+                        email: 'puja@banf.org',
+                        phone: '(904) 555-2011',
+                        role: 'puja_coord',
+                        roles: ['member', 'ec_member', 'puja_coord'],
+                        adminRole: 'Puja Coordinator',
+                        isAdmin: true,
+                        membershipType: 'Family',
+                        memberSince: '2023-01-01',
+                        expiresOn: '2026-12-31',
+                        ecPermissions: ['events', 'volunteers', 'budget']
+                    }
                 }
             },
             // ===== EVITE / INVITATION DATA =====
@@ -7423,6 +8165,28 @@
         }
         
         /**
+         * Toggle portal sidebar drawer on mobile (≤576px)
+         */
+        function togglePortalSidebar() {
+            const sidebar = document.querySelector('.portal-sidebar');
+            const backdrop = document.querySelector('.portal-sidebar-backdrop');
+            if (!sidebar) return;
+            sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('show');
+        }
+
+        /**
+         * Toggle admin sidebar drawer on mobile (≤576px)
+         */
+        function toggleAdminSidebar() {
+            const sidebar = document.querySelector('.admin-sidebar');
+            const backdrop = document.querySelector('.admin-sidebar-backdrop');
+            if (!sidebar) return;
+            sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('show');
+        }
+        
+        /**
          * Switch between portal sections
          */
         function showPortalSection(sectionId, clickedNav) {
@@ -7450,6 +8214,14 @@
             });
             if (clickedNav) {
                 clickedNav.classList.add('active');
+            }
+
+            // Close sidebar drawer on mobile after nav click
+            if (window.innerWidth <= 576) {
+                const sidebar = document.querySelector('.portal-sidebar');
+                const backdrop = document.querySelector('.portal-sidebar-backdrop');
+                if (sidebar) sidebar.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('show');
             }
 
             // Auto-render content for specific sections
@@ -7584,6 +8356,16 @@
             document.getElementById('adminRoleBadge').textContent = roleLabel;
             document.getElementById('adminPortalName').textContent = normalizedAdmin.firstName || normalizedAdmin.email || 'Admin';
 
+            // ===== Feature 3: Permission-based sidebar filtering =====
+            const adminPermissions = adminData.ecPermissions || normalizedAdmin.ecPermissions || [];
+            const adminRoles = extractRolesFromMember(adminData);
+            const hasFullAccess = adminRoles.some(r => FULL_ACCESS_ROLES.has(r));
+            AdminPortal.permissions = adminPermissions;
+            AdminPortal.hasFullAccess = hasFullAccess;
+
+            enforceAdminPermissions(adminPermissions, hasFullAccess);
+            console.log(`🔐 Admin permissions: ${hasFullAccess ? 'FULL ACCESS' : adminPermissions.join(', ') || 'none'}`);
+
             showAdminSection('dashboard', document.querySelector('.admin-nav-item.active'));
 
             const adminModal = document.getElementById('adminLoginModal');
@@ -7594,6 +8376,33 @@
 
             overlay.style.display = 'block';
             document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Enforce admin permissions: hide/show sidebar nav items and section headers
+         * based on the logged-in admin's ecPermissions array.
+         */
+        function enforceAdminPermissions(permissions, hasFullAccess) {
+            const navItems = document.querySelectorAll('.admin-nav-item[data-permission]');
+            const permsSet = new Set(permissions);
+
+            navItems.forEach(nav => {
+                const requiredPerm = nav.getAttribute('data-permission');
+                if (!requiredPerm || hasFullAccess || permsSet.has(requiredPerm)) {
+                    nav.style.display = '';
+                } else {
+                    nav.style.display = 'none';
+                }
+            });
+
+            // Hide sidebar section headers if ALL their child nav items are hidden
+            document.querySelectorAll('.admin-sidebar-section').forEach(section => {
+                const visibleNavs = section.querySelectorAll('.admin-nav-item:not([style*="display: none"])');
+                const header = section.querySelector('h6');
+                if (header) {
+                    header.style.display = visibleNavs.length > 0 ? '' : 'none';
+                }
+            });
         }
 
         /**
@@ -7608,14 +8417,49 @@
         }
 
         /**
-         * Switch admin sections
+         * Switch admin sections (with permission enforcement)
          */
         function showAdminSection(sectionId, clickedNav) {
+            // ===== Feature 3: Check permission before switching =====
+            const requiredPerm = SECTION_PERMISSIONS[sectionId];
+            if (requiredPerm && AdminPortal.admin && !AdminPortal.hasFullAccess) {
+                const perms = AdminPortal.permissions || [];
+                if (!perms.includes(requiredPerm)) {
+                    console.warn(`🚫 Access denied to "${sectionId}" — requires "${requiredPerm}" permission`);
+                    // Show brief toast instead of hard-blocking
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed top-0 start-50 translate-middle-x mt-3 px-4 py-2 rounded-pill shadow';
+                    toast.style.cssText = 'background:#dc3545;color:#fff;z-index:99999;font-size:0.9rem;opacity:0;transition:opacity 0.3s';
+                    toast.innerHTML = '<i class="fas fa-lock me-2"></i>You don\'t have access to this section';
+                    document.body.appendChild(toast);
+                    requestAnimationFrame(() => toast.style.opacity = '1');
+                    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
+                    return;
+                }
+            }
+
             const targetId = 'admin' + capitalizeFirst(sectionId);
             document.querySelectorAll('.admin-section').forEach(section => section.classList.remove('active'));
             const target = document.getElementById(targetId);
             if (target) {
                 target.classList.add('active');
+                // Feature 1: Render site config panel when section is activated
+                if (sectionId === 'siteConfig') {
+                    SiteConfigManager.renderConfigPanel();
+                }
+                // Feature 7: Render DB Explorer when section is activated
+                if (sectionId === 'dbExplorer') {
+                    MemberDBExplorer.render();
+                }
+                // Feature 6: Render Career Directory when section is activated
+                if (sectionId === 'careers') {
+                    renderAdminCareerTable();
+                }
+                // Zelle: Load payment data when payments section is activated (cloud service — always available)
+                if (sectionId === 'payments') {
+                    zelleLoadPayments();
+                    zelleLoadStats();
+                }
             } else {
                 document.getElementById('adminDashboard')?.classList.add('active');
             }
@@ -7623,6 +8467,14 @@
             document.querySelectorAll('.admin-nav-item').forEach(nav => nav.classList.remove('active'));
             if (clickedNav) clickedNav.classList.add('active');
             AdminPortal.currentSection = sectionId;
+
+            // Close sidebar drawer on mobile after nav click
+            if (window.innerWidth <= 576) {
+                const sidebar = document.querySelector('.admin-sidebar');
+                const backdrop = document.querySelector('.admin-sidebar-backdrop');
+                if (sidebar) sidebar.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('show');
+            }
         }
 
         /**
@@ -7900,21 +8752,41 @@
         function handleExcelUpload(type, inputEl) {
             const file = inputEl.files[0];
             if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const ext = file.name.split('.').pop().toLowerCase();
-
-                if (ext === 'csv') {
-                    parseCSVData(text, type, file.name);
-                } else {
-                    // For .xlsx/.xls files, we parse as CSV (simplified for demo)
-                    alert('📊 For this demo, please use CSV format.\nUse the "Download Template" button to get a pre-formatted CSV.');
-                    inputEl.value = '';
-                }
-            };
-            reader.readAsText(file);
+            if (ext === 'csv') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseCSVData(e.target.result, type, file.name);
+                };
+                reader.readAsText(file);
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const workbook = XLSX.read(e.target.result, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        if (jsonData.length < 2) { alert('❌ Excel file is empty or has no data rows.'); inputEl.value = ''; return; }
+                        const headers = jsonData[0].map(h => String(h || '').trim());
+                        const rows = jsonData.slice(1).map(row => {
+                            const obj = {};
+                            headers.forEach((h, i) => obj[h] = row[i] !== undefined ? String(row[i]).trim() : '');
+                            return obj;
+                        }).filter(row => Object.values(row).some(v => v));
+                        if (rows.length === 0) { alert('❌ No valid data rows found in Excel file.'); inputEl.value = ''; return; }
+                        pendingImportData = { type, rows, headers };
+                        showImportPreview(type, headers, rows, file.name);
+                    } catch (err) {
+                        alert('❌ Error reading Excel file: ' + err.message);
+                        inputEl.value = '';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('❌ Unsupported file format. Please use .xlsx, .xls, or .csv files.');
+                inputEl.value = '';
+            }
         }
 
         function parseCSVData(csvText, type, fileName) {
@@ -7968,9 +8840,15 @@
                         lastName: row['Last Name'] || row['LastName'] || '',
                         email: row['Email'] || '',
                         phone: row['Phone'] || '',
-                        membershipType: row['Membership Type'] || row['Type'] || 'Individual',
+                        type: row['Membership Type'] || row['Type'] || 'Individual',
                         status: 'Active',
-                        joinDate: new Date().toISOString().split('T')[0]
+                        joinDate: row['Join Date'] || row['JoinDate'] || new Date().toISOString().split('T')[0],
+                        address: row['Address'] || '',
+                        city: row['City'] || '',
+                        state: row['State'] || '',
+                        zip: row['Zip'] || '',
+                        familyMembers: row['Family Members'] || '',
+                        expiryDate: row['Expiry Date'] || row['ExpiryDate'] || ''
                     });
                 });
             }
@@ -7997,7 +8875,9 @@
         function downloadTemplate(type) {
             let csv = '';
             if (type === 'members') {
-                csv = 'First Name,Last Name,Email,Phone,Membership Type\nJohn,Doe,john@example.com,555-0101,Family\nJane,Smith,jane@example.com,555-0102,Individual\n';
+                csv = 'First Name,Last Name,Email,Phone,Membership Type,Address,City,State,Zip,Family Members,Join Date,Expiry Date\n'
+                    + 'John,Doe,john@example.com,555-0101,Family,123 Main St,Jacksonville,FL,32256,3,2026-01-01,2027-01-01\n'
+                    + 'Jane,Smith,jane@example.com,555-0102,Individual,456 Oak Ave,Jacksonville,FL,32257,1,2026-02-15,2027-02-15\n';
             } else if (type === 'events') {
                 csv = 'Event Name,Date,Time,Venue,Description\nSample Event,2026-06-01,5:00 PM,Community Center,Annual celebration\n';
             } else if (type === 'payments') {
@@ -8009,6 +8889,202 @@
             a.href = url; a.download = `banf_${type}_template.csv`; a.click();
             URL.revokeObjectURL(url);
         }
+
+        /* ================================================================
+         *  MEMBER DB EXPLORER (Feature 7)
+         * ================================================================ */
+
+        const MemberDBExplorer = {
+            currentPage: 1,
+            perPage: 15,
+            filtered: [],
+
+            // Role-based CRUD permissions
+            CRUD_ROLES: {
+                add:      new Set(['president', 'secretary', 'super_admin']),
+                edit:     new Set(['president', 'secretary', 'super_admin']),
+                delete:   new Set(['president', 'super_admin']),
+                export:   new Set(['president', 'treasurer', 'secretary', 'super_admin']),
+                bulkImport: new Set(['president', 'secretary', 'super_admin'])
+            },
+
+            canDo(action) {
+                if (!AdminPortal.admin) return false;
+                const role = normalizeRoleValue(AdminPortal.admin.role || '');
+                if (FULL_ACCESS_ROLES.has(role)) return true;
+                return this.CRUD_ROLES[action] && this.CRUD_ROLES[action].has(role);
+            },
+
+            render() {
+                this.renderStats();
+                this.applyFilters();
+                this.renderActionButtons();
+            },
+
+            renderStats() {
+                const members = DemoData.memberDirectory;
+                const active = members.filter(m => (m.status || '').toLowerCase() === 'active').length;
+                const expired = members.filter(m => (m.status || '').toLowerCase() === 'expired').length;
+                const pending = members.filter(m => (m.status || '').toLowerCase() === 'pending').length;
+                const types = {};
+                members.forEach(m => { const t = m.type || m.membershipType || 'Unknown'; types[t] = (types[t] || 0) + 1; });
+                const topType = Object.entries(types).sort((a,b) => b[1] - a[1])[0];
+
+                document.getElementById('dbExpStats').innerHTML = `
+                    <div class="admin-card" style="text-align:center;"><h3 style="color:#1a237e;">${members.length}</h3><p style="margin:0;font-size:0.85rem;">Total Members</p></div>
+                    <div class="admin-card" style="text-align:center;"><h3 style="color:#4CAF50;">${active}</h3><p style="margin:0;font-size:0.85rem;">Active</p></div>
+                    <div class="admin-card" style="text-align:center;"><h3 style="color:#f44336;">${expired}</h3><p style="margin:0;font-size:0.85rem;">Expired</p></div>
+                    <div class="admin-card" style="text-align:center;"><h3 style="color:#ff9800;">${pending || 0}</h3><p style="margin:0;font-size:0.85rem;">Pending</p></div>
+                    <div class="admin-card" style="text-align:center;"><h3 style="color:#673ab7;">${topType ? topType[0] : '-'}</h3><p style="margin:0;font-size:0.85rem;">Top Type (${topType ? topType[1] : 0})</p></div>
+                `;
+            },
+
+            renderActionButtons() {
+                const show = (id, action) => { const el = document.getElementById(id); if (el) el.style.display = this.canDo(action) ? '' : 'none'; };
+                show('dbExpAddBtn', 'add');
+                show('dbExpExportCsvBtn', 'export');
+                show('dbExpExportXlsxBtn', 'export');
+            },
+
+            applyFilters() {
+                const search = (document.getElementById('dbExpSearch')?.value || '').toLowerCase();
+                const statusFilter = document.getElementById('dbExpFilterStatus')?.value || '';
+                const typeFilter = document.getElementById('dbExpFilterType')?.value || '';
+                const sortBy = document.getElementById('dbExpSort')?.value || 'lastName';
+
+                let data = DemoData.memberDirectory.slice();
+
+                // Filter
+                if (search) {
+                    data = data.filter(m => {
+                        const haystack = [m.firstName, m.lastName, m.email, m.phone, m.id].join(' ').toLowerCase();
+                        return haystack.includes(search);
+                    });
+                }
+                if (statusFilter) data = data.filter(m => (m.status || '') === statusFilter);
+                if (typeFilter) data = data.filter(m => (m.type || m.membershipType || '') === typeFilter);
+
+                // Sort
+                data.sort((a, b) => {
+                    const valA = String(a[sortBy] || '').toLowerCase();
+                    const valB = String(b[sortBy] || '').toLowerCase();
+                    return valA.localeCompare(valB);
+                });
+
+                this.filtered = data;
+                this.currentPage = 1;
+                this.renderTable();
+            },
+
+            renderTable() {
+                const start = (this.currentPage - 1) * this.perPage;
+                const page = this.filtered.slice(start, start + this.perPage);
+                const totalPages = Math.max(1, Math.ceil(this.filtered.length / this.perPage));
+                const canEdit = this.canDo('edit');
+                const canDelete = this.canDo('delete');
+
+                const tbody = document.getElementById('dbExpTableBody');
+                if (!tbody) return;
+                tbody.innerHTML = page.map((m, i) => {
+                    const statusClass = (m.status || '').toLowerCase() === 'active' ? 'active' : (m.status || '').toLowerCase() === 'expired' ? 'danger' : 'pending';
+                    const actions = [];
+                    if (canEdit) actions.push(`<button class="admin-secondary" style="padding:2px 8px;font-size:0.8rem;" onclick="MemberDBExplorer.editMember('${m.id}')"><i class="fas fa-edit"></i></button>`);
+                    if (canDelete) actions.push(`<button class="admin-secondary" style="padding:2px 8px;font-size:0.8rem;color:#f44336;" onclick="MemberDBExplorer.deleteMember('${m.id}')"><i class="fas fa-trash"></i></button>`);
+                    return `<tr>
+                        <td>${start + i + 1}</td>
+                        <td style="font-size:0.8rem;color:#666;">${m.id || ''}</td>
+                        <td><strong>${m.lastName || ''}, ${m.firstName || ''}</strong></td>
+                        <td>${m.email || ''}</td>
+                        <td>${m.phone || ''}</td>
+                        <td>${m.type || m.membershipType || ''}</td>
+                        <td><span class="status-badge ${statusClass}">${m.status || ''}</span></td>
+                        <td style="font-size:0.85rem;">${m.joinDate || ''}</td>
+                        <td>${actions.join(' ') || '<span style="color:#999;">—</span>'}</td>
+                    </tr>`;
+                }).join('');
+
+                if (page.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:2rem;">No members found matching your criteria</td></tr>';
+                }
+
+                document.getElementById('dbExpPageInfo').textContent = `Showing ${this.filtered.length ? start + 1 : 0}–${Math.min(start + this.perPage, this.filtered.length)} of ${this.filtered.length} members (Page ${this.currentPage} of ${totalPages})`;
+                document.getElementById('dbExpPrevBtn').disabled = this.currentPage <= 1;
+                document.getElementById('dbExpNextBtn').disabled = this.currentPage >= totalPages;
+            },
+
+            prevPage() { if (this.currentPage > 1) { this.currentPage--; this.renderTable(); } },
+            nextPage() { const totalPages = Math.ceil(this.filtered.length / this.perPage); if (this.currentPage < totalPages) { this.currentPage++; this.renderTable(); } },
+
+            showAddModal() {
+                const fields = ['firstName', 'lastName', 'email', 'phone'];
+                const typeOptions = ['Family', 'Individual', 'Couple', 'Student', 'Senior'];
+                const vals = {};
+                fields.forEach(f => vals[f] = prompt(`Enter ${f.replace(/([A-Z])/g, ' $1').trim()}:`) || '');
+                if (!vals.firstName && !vals.lastName) return;
+                const mType = prompt('Membership Type (' + typeOptions.join('/') + '):', 'Family') || 'Family';
+                const newMember = {
+                    id: 'BANF-' + new Date().getFullYear() + '-' + String(DemoData.memberDirectory.length + 1).padStart(3, '0'),
+                    firstName: vals.firstName, lastName: vals.lastName,
+                    email: vals.email, phone: vals.phone,
+                    type: mType, status: 'Active',
+                    joinDate: new Date().toISOString().split('T')[0]
+                };
+                DemoData.memberDirectory.push(newMember);
+                alert('✅ Member added: ' + newMember.firstName + ' ' + newMember.lastName);
+                this.render();
+            },
+
+            editMember(id) {
+                const idx = DemoData.memberDirectory.findIndex(m => m.id === id);
+                if (idx === -1) return;
+                const m = DemoData.memberDirectory[idx];
+                const newFirst = prompt('First Name:', m.firstName);
+                if (newFirst === null) return;
+                m.firstName = newFirst || m.firstName;
+                m.lastName = prompt('Last Name:', m.lastName) || m.lastName;
+                m.email = prompt('Email:', m.email) || m.email;
+                m.phone = prompt('Phone:', m.phone) || m.phone;
+                m.type = prompt('Membership Type (Family/Individual/Couple/Student/Senior):', m.type || m.membershipType) || m.type;
+                m.status = prompt('Status (Active/Expired/Pending):', m.status) || m.status;
+                alert('✅ Member updated: ' + m.firstName + ' ' + m.lastName);
+                this.render();
+            },
+
+            deleteMember(id) {
+                const idx = DemoData.memberDirectory.findIndex(m => m.id === id);
+                if (idx === -1) return;
+                const m = DemoData.memberDirectory[idx];
+                if (!confirm(`⚠️ Delete member "${m.firstName} ${m.lastName}" (${m.id})?\nThis cannot be undone.`)) return;
+                DemoData.memberDirectory.splice(idx, 1);
+                alert('🗑️ Member deleted.');
+                this.render();
+            },
+
+            exportCSV() {
+                const headers = ['ID','First Name','Last Name','Email','Phone','Type','Status','Join Date'];
+                const rows = this.filtered.map(m => [m.id, m.firstName, m.lastName, m.email, m.phone, m.type || m.membershipType, m.status, m.joinDate].map(v => '"' + (v||'').replace(/"/g,'""') + '"').join(','));
+                const csv = [headers.join(','), ...rows].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'banf_members_export_' + new Date().toISOString().slice(0,10) + '.csv';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            },
+
+            exportExcel() {
+                if (typeof XLSX === 'undefined') { alert('❌ SheetJS library not loaded. Cannot export Excel.'); return; }
+                const data = this.filtered.map(m => ({
+                    'ID': m.id, 'First Name': m.firstName, 'Last Name': m.lastName,
+                    'Email': m.email, 'Phone': m.phone, 'Type': m.type || m.membershipType,
+                    'Status': m.status, 'Join Date': m.joinDate
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Members');
+                XLSX.writeFile(wb, 'banf_members_export_' + new Date().toISOString().slice(0,10) + '.xlsx');
+            }
+        };
 
         /* ================================================================
          *  GMAIL / EMAIL MANAGEMENT FUNCTIONS
@@ -8328,7 +9404,7 @@
             const addCheck = (name, status, details) => results.push({ name, status, details });
 
             const memberSections = ['portalDashboard', 'portalProfile', 'portalFamily', 'portalPayments', 'portalBudget', 'portalMeetings', 'portalEvents', 'portalSurveys', 'portalDirectory', 'portalRadio', 'portalMagazine'];
-            const adminSections = ['adminDashboard', 'adminMembers', 'adminPayments', 'adminEvents', 'adminRsvps', 'adminEvite', 'adminDataImport', 'adminComplaints', 'adminSurveys', 'adminAnnouncements', 'adminRadio', 'adminMagazine', 'adminBudget', 'adminVendors', 'adminVolunteers', 'adminMeetings', 'adminGmail'];
+            const adminSections = ['adminDashboard', 'adminMembers', 'adminPayments', 'adminEvents', 'adminRsvps', 'adminEvite', 'adminDataImport', 'adminDbExplorer', 'adminComplaints', 'adminSurveys', 'adminAnnouncements', 'adminRadio', 'adminMagazine', 'adminBudget', 'adminVendors', 'adminVolunteers', 'adminMeetings', 'adminGmail', 'adminCareers', 'adminSiteConfig'];
 
             if (scope === 'all' || scope === 'member') {
                 addCheck('Member portal overlay', !!document.getElementById('memberPortalOverlay'), 'Member full-screen overlay available');
@@ -9233,6 +10309,522 @@
             console.log('[BANF Embed] Sent height:', height);
         }
 
+        /* ================================================================
+         *  CAREERS & PROFESSIONAL NETWORK (Feature 6)
+         *  LinkedIn-style member expertise directory
+         * ================================================================ */
+
+        const CAREER_PROFILES = [
+            {
+                memberId: 'BANF-2024-001', name: 'Dr. Ranadhir Ghosh', title: 'Software Architect',
+                company: 'Fortune 500 Tech Company', industry: 'Technology', yearsExperience: 20,
+                skills: ['Software Architecture', 'Cloud Computing', 'AI/ML', 'Python', 'Team Leadership'],
+                guidanceOffered: ['Career Mentorship', 'Resume Review', 'Interview Prep'],
+                education: 'Ph.D. Computer Science',
+                linkedinUrl: '', bio: 'Passionate about helping the next generation of Bengali-American technologists succeed in their careers.',
+                photoPath: 'assets/ec-photos/president/ranadhir-ghosh.jpg',
+                availableForMeeting: true, isVisible: true
+            },
+            {
+                memberId: 'BANF-2024-002', name: 'Suchismita Chandak', title: 'Senior Data Scientist',
+                company: 'Healthcare Analytics Corp', industry: 'Healthcare', yearsExperience: 12,
+                skills: ['Data Science', 'Machine Learning', 'Statistics', 'R', 'Clinical Research'],
+                guidanceOffered: ['Career Mentorship', 'Industry Insights'],
+                education: 'M.S. Biostatistics',
+                linkedinUrl: '', bio: 'Helping aspiring data professionals navigate the healthcare analytics landscape.',
+                photoPath: '', availableForMeeting: true, isVisible: true
+            },
+            {
+                memberId: 'BANF-2024-003', name: 'Amitava Roy', title: 'Financial Advisor',
+                company: 'RBC Wealth Management', industry: 'Finance', yearsExperience: 15,
+                skills: ['Financial Planning', 'Investment Strategy', 'Tax Planning', 'Retirement Planning'],
+                guidanceOffered: ['Career Mentorship', 'Networking', 'Industry Insights'],
+                education: 'MBA Finance, CFA',
+                linkedinUrl: '', bio: 'Available to mentor young professionals interested in finance and wealth management.',
+                photoPath: '', availableForMeeting: true, isVisible: true
+            },
+            {
+                memberId: 'BANF-2024-004', name: 'Priyanka Sen', title: 'Civil Engineer, PE',
+                company: 'State DOT', industry: 'Engineering', yearsExperience: 10,
+                skills: ['Structural Engineering', 'Project Management', 'AutoCAD', 'PE License Prep'],
+                guidanceOffered: ['Career Mentorship', 'Interview Prep', 'Industry Insights'],
+                education: 'M.S. Civil Engineering',
+                linkedinUrl: '', bio: 'Happy to guide engineers through the PE licensing process and government career paths.',
+                photoPath: '', availableForMeeting: false, isVisible: true
+            },
+            {
+                memberId: 'BANF-2024-005', name: 'Dr. Shreya Mukherjee', title: 'Pediatrician',
+                company: 'Children\'s Hospital', industry: 'Healthcare', yearsExperience: 8,
+                skills: ['Pediatric Medicine', 'USMLE Prep', 'Residency Applications', 'Clinical Skills'],
+                guidanceOffered: ['Career Mentorship', 'Resume Review', 'Interview Prep'],
+                education: 'MD, Board Certified Pediatrics',
+                linkedinUrl: '', bio: 'Mentoring pre-med students and IMGs navigating the US medical system.',
+                photoPath: '', availableForMeeting: true, isVisible: true
+            },
+            {
+                memberId: 'BANF-2024-006', name: 'Debanjan Gupta', title: 'Immigration Attorney',
+                company: 'Gupta Law Group', industry: 'Legal', yearsExperience: 14,
+                skills: ['Immigration Law', 'H1B/Green Card', 'Business Law', 'Contract Review'],
+                guidanceOffered: ['Industry Insights', 'Networking'],
+                education: 'J.D., Bar Admitted',
+                linkedinUrl: '', bio: 'Offering guidance on legal career paths and immigration-related professional questions.',
+                photoPath: '', availableForMeeting: true, isVisible: true
+            }
+        ];
+
+        /**
+         * Render career cards on landing page
+         */
+        function renderCareerCards() {
+            const grid = document.getElementById('careerCardGrid');
+            if (!grid) return;
+
+            const searchVal = (document.getElementById('careerSearch')?.value || '').toLowerCase();
+            const industryVal = document.getElementById('industryFilter')?.value || '';
+            const guidanceVal = document.getElementById('guidanceFilter')?.value || '';
+
+            const filtered = CAREER_PROFILES.filter(p => {
+                if (!p.isVisible) return false;
+                if (industryVal && p.industry !== industryVal) return false;
+                if (guidanceVal && !p.guidanceOffered.includes(guidanceVal)) return false;
+                if (searchVal) {
+                    const haystack = [p.name, p.title, p.company, p.industry, ...p.skills, ...p.guidanceOffered].join(' ').toLowerCase();
+                    if (!haystack.includes(searchVal)) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="fas fa-search fa-3x mb-3 d-block"></i>No career profiles match your search criteria.</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(p => {
+                const initials = p.name.split(' ').map(w => w[0]).join('').substring(0, 2);
+                const avatarBg = p.photoPath
+                    ? `<img src="${p.photoPath}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+                    : `<span style="font-size:1.4rem;font-weight:700;color:#fff;">${initials}</span>`;
+                const avatarStyle = p.photoPath ? '' : 'background:var(--gradient-hero);display:flex;align-items:center;justify-content:center;';
+
+                return `
+                <div class="col-lg-4 col-md-6">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius:14px;overflow:hidden;transition:transform 0.2s;">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div style="width:56px;height:56px;border-radius:50%;overflow:hidden;flex-shrink:0;${avatarStyle}">${avatarBg}</div>
+                                <div class="ms-3">
+                                    <h6 class="mb-0 fw-bold">${p.name}</h6>
+                                    <small class="text-muted">${p.title}</small><br>
+                                    <small class="text-muted"><i class="fas fa-building me-1"></i>${p.company}</small>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary me-1"><i class="fas fa-industry me-1"></i>${p.industry}</span>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">${p.yearsExperience}+ yrs</span>
+                                ${p.availableForMeeting ? '<span class=\"badge bg-success bg-opacity-10 text-success ms-1\"><i class=\"fas fa-check-circle me-1\"></i>Available</span>' : ''}
+                            </div>
+                            <p class="small text-muted mb-2" style="min-height:40px;">${p.bio.substring(0, 120)}${p.bio.length > 120 ? '...' : ''}</p>
+                            <div class="mb-2">${p.skills.slice(0, 4).map(s => '<span class=\"badge bg-light text-dark border me-1 mb-1\" style=\"font-size:0.7rem;\">' + s + '</span>').join('')}</div>
+                            <div class="mb-3">${p.guidanceOffered.map(g => '<span class=\"badge\" style=\"background:#fff3cd;color:#856404;font-size:0.7rem;margin-right:4px;\">' + g + '</span>').join('')}</div>
+                            <div class="d-flex gap-2">
+                                ${p.linkedinUrl ? '<a href=\"' + p.linkedinUrl + '\" target=\"_blank\" class=\"btn btn-sm btn-outline-primary\"><i class=\"fab fa-linkedin me-1\"></i>LinkedIn</a>' : ''}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="alert('Contact feature coming soon — please use Member Directory for now.')"><i class="fas fa-envelope me-1"></i>Connect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        /**
+         * Save career profile from member portal
+         */
+        function saveMyCareerProfile() {
+            const profile = {
+                memberId: 'BANF-SELF-' + Date.now(),
+                name: document.getElementById('portalUserName')?.textContent || 'Member',
+                title: document.getElementById('careerTitle')?.value || '',
+                company: document.getElementById('careerCompany')?.value || '',
+                industry: document.getElementById('careerIndustry')?.value || '',
+                yearsExperience: parseInt(document.getElementById('careerYears')?.value) || 0,
+                skills: (document.getElementById('careerSkills')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
+                guidanceOffered: [...document.querySelectorAll('#guidanceCheckboxes input:checked')].map(cb => cb.value),
+                education: document.getElementById('careerEducation')?.value || '',
+                linkedinUrl: document.getElementById('careerLinkedin')?.value || '',
+                bio: document.getElementById('careerBio')?.value || '',
+                photoPath: '',
+                availableForMeeting: document.getElementById('careerAvailable')?.checked ?? true,
+                isVisible: document.getElementById('careerProfileVisible')?.checked ?? true
+            };
+
+            // Check if profile already exists for this member
+            const existingIdx = CAREER_PROFILES.findIndex(p => p.name === profile.name);
+            if (existingIdx >= 0) {
+                CAREER_PROFILES[existingIdx] = { ...CAREER_PROFILES[existingIdx], ...profile };
+            } else {
+                CAREER_PROFILES.push(profile);
+            }
+
+            renderCareerCards();
+            renderAdminCareerTable();
+            alert('✅ Career profile saved successfully!');
+        }
+
+        /**
+         * Delete own career profile from member portal
+         */
+        function deleteMyCareerProfile() {
+            if (!confirm('Remove your career profile from the directory?')) return;
+            const name = document.getElementById('portalUserName')?.textContent || '';
+            const idx = CAREER_PROFILES.findIndex(p => p.name === name);
+            if (idx >= 0) {
+                CAREER_PROFILES.splice(idx, 1);
+                renderCareerCards();
+                renderAdminCareerTable();
+                alert('Profile removed.');
+            }
+        }
+
+        /**
+         * Render admin career directory table
+         */
+        function renderAdminCareerTable() {
+            const tbody = document.getElementById('adminCareerTableBody');
+            if (!tbody) return;
+
+            // Update stats
+            const el = id => document.getElementById(id);
+            if (el('careerTotalStat'))   el('careerTotalStat').textContent = CAREER_PROFILES.length;
+            if (el('careerVisibleStat')) el('careerVisibleStat').textContent = CAREER_PROFILES.filter(p => p.isVisible).length;
+            if (el('careerHiddenStat'))  el('careerHiddenStat').textContent = CAREER_PROFILES.filter(p => !p.isVisible).length;
+            if (el('careerIndustryStat')) el('careerIndustryStat').textContent = new Set(CAREER_PROFILES.map(p => p.industry)).size;
+
+            if (CAREER_PROFILES.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No career profiles yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = CAREER_PROFILES.map((p, i) => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td>${p.title}</td>
+                    <td><span class="badge bg-primary bg-opacity-10 text-primary">${p.industry}</span></td>
+                    <td>${p.guidanceOffered.map(g => '<span class=\"badge bg-warning bg-opacity-25 text-dark me-1\">' + g + '</span>').join('')}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" ${p.isVisible ? 'checked' : ''} onchange="toggleCareerVisibility(${i}, this.checked)">
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeCareerProfile(${i})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleCareerVisibility(index, visible) {
+            if (CAREER_PROFILES[index]) {
+                CAREER_PROFILES[index].isVisible = visible;
+                renderCareerCards();
+            }
+        }
+
+        function removeCareerProfile(index) {
+            if (!confirm('Remove this career profile?')) return;
+            CAREER_PROFILES.splice(index, 1);
+            renderAdminCareerTable();
+            renderCareerCards();
+        }
+
+        function openAddCareerModal() {
+            const name = prompt('Member name:');
+            if (!name) return;
+            const title = prompt('Professional title:');
+            const industry = prompt('Industry (Technology, Healthcare, Finance, Education, Engineering, Legal, Business):');
+            CAREER_PROFILES.push({
+                memberId: 'BANF-ADMIN-' + Date.now(), name, title: title || '',
+                company: '', industry: industry || 'Technology', yearsExperience: 0,
+                skills: [], guidanceOffered: ['Career Mentorship'],
+                education: '', linkedinUrl: '', bio: '',
+                photoPath: '', availableForMeeting: true, isVisible: true
+            });
+            renderAdminCareerTable();
+            renderCareerCards();
+        }
+
+        function exportCareerDirectory() {
+            const headers = ['Name', 'Title', 'Company', 'Industry', 'Years', 'Skills', 'Guidance', 'Education', 'LinkedIn', 'Visible'];
+            const rows = CAREER_PROFILES.map(p => [
+                p.name, p.title, p.company, p.industry, p.yearsExperience,
+                p.skills.join('; '), p.guidanceOffered.join('; '),
+                p.education, p.linkedinUrl, p.isVisible ? 'Yes' : 'No'
+            ]);
+            const csv = [headers, ...rows].map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'BANF_Career_Directory.csv';
+            a.click();
+        }
+
+        /**
+         * ========== SITE CONFIGURATION MANAGER (Feature 1) ==========
+         * Manages section visibility, membership fees, sponsorship tiers, and ad slots
+         */
+        const SiteConfigManager = {
+            config: null,
+
+            defaultConfig: {
+                sectionVisibility: {
+                    about:       true,  // President's Message
+                    'ec-team':   true,  // EC Team
+                    services:    true,  // Services Portal
+                    events:      true,  // Events Calendar
+                    radio:       true,  // Radio Player
+                    guide:       true,  // Jacksonville Guide
+                    surveys:     true,  // Surveys & Complaints
+                    magazine:    true,  // E-Magazine
+                    sponsors:    true,  // Sponsorship Tiers
+                    'admin-ads': true,  // Ad Slots
+                    membership:  true,  // Membership Plans
+                    photos:      true,  // Photo Gallery
+                    contact:     true   // Contact Section
+                },
+                membershipPlans: [
+                    { id: 'plan_1', name: 'Individual', amount: 50,  period: 'Annual',   active: true },
+                    { id: 'plan_2', name: 'Family',     amount: 100, period: 'Annual',   active: true },
+                    { id: 'plan_3', name: 'Lifetime',   amount: 500, period: 'One-time', active: true }
+                ],
+                sponsorshipTiers: [
+                    { id: 'tier_1', name: 'Community', amount: 250,  benefits: 'Name listed on website',               active: true },
+                    { id: 'tier_2', name: 'Silver',    amount: 500,  benefits: 'Logo on website, 2 event tickets',      active: true },
+                    { id: 'tier_3', name: 'Gold',      amount: 1000, benefits: 'Logo + 4 event tickets + newsletter',   active: true },
+                    { id: 'tier_4', name: 'Title',     amount: 2500, benefits: 'Title sponsor, banner, 6 tickets',      active: true }
+                ],
+                adSlots: [
+                    { id: 'slot_1', slot: 1, flierUrl: '', businessName: '', amount: 200, yearStart: '2026-01', yearEnd: '2026-12', active: true },
+                    { id: 'slot_2', slot: 2, flierUrl: '', businessName: '', amount: 200, yearStart: '2026-01', yearEnd: '2026-12', active: true },
+                    { id: 'slot_3', slot: 3, flierUrl: '', businessName: '', amount: 200, yearStart: '2026-01', yearEnd: '2026-12', active: true }
+                ]
+            },
+
+            load: function() {
+                try {
+                    const saved = localStorage.getItem('banf_site_config');
+                    this.config = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(this.defaultConfig));
+                } catch(e) {
+                    console.warn('[SiteConfig] Failed to load, using defaults:', e);
+                    this.config = JSON.parse(JSON.stringify(this.defaultConfig));
+                }
+                return this.config;
+            },
+
+            save: function() {
+                try {
+                    localStorage.setItem('banf_site_config', JSON.stringify(this.config));
+                    console.log('[SiteConfig] Configuration saved');
+                    this.applySectionVisibility();
+                    this.showToast('Configuration saved successfully!', 'success');
+                } catch(e) {
+                    console.error('[SiteConfig] Failed to save:', e);
+                    this.showToast('Failed to save configuration', 'error');
+                }
+            },
+
+            reset: function() {
+                this.config = JSON.parse(JSON.stringify(this.defaultConfig));
+                localStorage.removeItem('banf_site_config');
+                this.applySectionVisibility();
+                this.renderConfigPanel();
+                this.showToast('Configuration reset to defaults', 'info');
+            },
+
+            applySectionVisibility: function() {
+                if (!this.config) this.load();
+                const vis = this.config.sectionVisibility;
+                Object.entries(vis).forEach(([sectionId, visible]) => {
+                    const el = document.getElementById(sectionId);
+                    if (el) {
+                        el.style.display = visible ? '' : 'none';
+                    }
+                });
+                console.log('[SiteConfig] Section visibility applied');
+            },
+
+            renderConfigPanel: function() {
+                const container = document.getElementById('siteConfigContent');
+                if (!container) return;
+                if (!this.config) this.load();
+
+                const sectionLabels = {
+                    about:       "President's Message",
+                    'ec-team':   'EC Team',
+                    services:    'Services Portal',
+                    events:      'Events Calendar',
+                    radio:       'Radio Player',
+                    guide:       'Jacksonville Guide',
+                    surveys:     'Surveys & Complaints',
+                    magazine:    'E-Magazine',
+                    sponsors:    'Sponsorship Tiers',
+                    'admin-ads': 'Ad Slots',
+                    membership:  'Membership Plans',
+                    photos:      'Photo Gallery',
+                    contact:     'Contact Section'
+                };
+
+                container.innerHTML = `
+                    <!-- Section Visibility -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <div class="admin-card-icon" style="background:rgba(99,102,241,0.1);color:#6366F1"><i class="fas fa-eye"></i></div>
+                            <div><h4>Section Visibility</h4><small class="text-muted">Show or hide landing page sections</small></div>
+                        </div>
+                        <div class="row g-2 mt-2">
+                            ${Object.entries(sectionLabels).map(([id, label]) => `
+                                <div class="col-md-4 col-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="vis_${id}" ${this.config.sectionVisibility[id] ? 'checked' : ''} onchange="SiteConfigManager.toggleSection('${id}', this.checked)">
+                                        <label class="form-check-label" for="vis_${id}">${label}</label>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Membership Plans -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <div class="admin-card-icon" style="background:rgba(16,185,129,0.1);color:#10B981"><i class="fas fa-id-card"></i></div>
+                            <div><h4>Membership Plans</h4><small class="text-muted">Manage membership tiers and pricing</small></div>
+                        </div>
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead><tr><th>Plan</th><th>Amount</th><th>Period</th><th>Active</th><th></th></tr></thead>
+                                <tbody id="membershipPlanRows">
+                                    ${this.config.membershipPlans.map((p, i) => `
+                                        <tr>
+                                            <td><input class="form-control form-control-sm" value="${p.name}" onchange="SiteConfigManager.config.membershipPlans[${i}].name=this.value"></td>
+                                            <td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" class="form-control" value="${p.amount}" onchange="SiteConfigManager.config.membershipPlans[${i}].amount=parseInt(this.value)"></div></td>
+                                            <td><select class="form-select form-select-sm" onchange="SiteConfigManager.config.membershipPlans[${i}].period=this.value"><option ${p.period==='Annual'?'selected':''}>Annual</option><option ${p.period==='One-time'?'selected':''}>One-time</option><option ${p.period==='Monthly'?'selected':''}>Monthly</option></select></td>
+                                            <td><input type="checkbox" class="form-check-input" ${p.active?'checked':''} onchange="SiteConfigManager.config.membershipPlans[${i}].active=this.checked"></td>
+                                            <td><button class="btn btn-sm btn-outline-danger" onclick="SiteConfigManager.removePlan(${i})" title="Remove"><i class="fas fa-trash-alt"></i></button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success mt-2" onclick="SiteConfigManager.addPlan()"><i class="fas fa-plus me-1"></i>Add Plan</button>
+                    </div>
+
+                    <!-- Sponsorship Tiers -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <div class="admin-card-icon" style="background:rgba(245,158,11,0.1);color:#F59E0B"><i class="fas fa-handshake"></i></div>
+                            <div><h4>Sponsorship Tiers</h4><small class="text-muted">Manage sponsorship levels and benefits</small></div>
+                        </div>
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead><tr><th>Tier</th><th>Amount</th><th>Benefits</th><th>Active</th><th></th></tr></thead>
+                                <tbody id="sponsorshipTierRows">
+                                    ${this.config.sponsorshipTiers.map((t, i) => `
+                                        <tr>
+                                            <td><input class="form-control form-control-sm" value="${t.name}" onchange="SiteConfigManager.config.sponsorshipTiers[${i}].name=this.value"></td>
+                                            <td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" class="form-control" value="${t.amount}" onchange="SiteConfigManager.config.sponsorshipTiers[${i}].amount=parseInt(this.value)"></div></td>
+                                            <td><input class="form-control form-control-sm" value="${t.benefits}" onchange="SiteConfigManager.config.sponsorshipTiers[${i}].benefits=this.value"></td>
+                                            <td><input type="checkbox" class="form-check-input" ${t.active?'checked':''} onchange="SiteConfigManager.config.sponsorshipTiers[${i}].active=this.checked"></td>
+                                            <td><button class="btn btn-sm btn-outline-danger" onclick="SiteConfigManager.removeTier(${i})" title="Remove"><i class="fas fa-trash-alt"></i></button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success mt-2" onclick="SiteConfigManager.addTier()"><i class="fas fa-plus me-1"></i>Add Tier</button>
+                    </div>
+
+                    <!-- Ad Slots -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <div class="admin-card-icon" style="background:rgba(239,68,68,0.1);color:#EF4444"><i class="fas fa-ad"></i></div>
+                            <div><h4>Ad Slots</h4><small class="text-muted">Manage advertisement slots and fliers</small></div>
+                        </div>
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead><tr><th>Slot</th><th>Business</th><th>Amount</th><th>Start</th><th>End</th><th>Active</th><th></th></tr></thead>
+                                <tbody id="adSlotRows">
+                                    ${this.config.adSlots.map((a, i) => `
+                                        <tr>
+                                            <td class="text-center">${a.slot}</td>
+                                            <td><input class="form-control form-control-sm" value="${a.businessName}" placeholder="Business name" onchange="SiteConfigManager.config.adSlots[${i}].businessName=this.value"></td>
+                                            <td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" class="form-control" value="${a.amount}" onchange="SiteConfigManager.config.adSlots[${i}].amount=parseInt(this.value)"></div></td>
+                                            <td><input type="month" class="form-control form-control-sm" value="${a.yearStart}" onchange="SiteConfigManager.config.adSlots[${i}].yearStart=this.value"></td>
+                                            <td><input type="month" class="form-control form-control-sm" value="${a.yearEnd}" onchange="SiteConfigManager.config.adSlots[${i}].yearEnd=this.value"></td>
+                                            <td><input type="checkbox" class="form-check-input" ${a.active?'checked':''} onchange="SiteConfigManager.config.adSlots[${i}].active=this.checked"></td>
+                                            <td><button class="btn btn-sm btn-outline-danger" onclick="SiteConfigManager.removeAdSlot(${i})" title="Remove"><i class="fas fa-trash-alt"></i></button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success mt-2" onclick="SiteConfigManager.addAdSlot()"><i class="fas fa-plus me-1"></i>Add Slot</button>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="admin-primary" onclick="SiteConfigManager.save()"><i class="fas fa-save me-1"></i>Save Configuration</button>
+                        <button class="admin-secondary" onclick="SiteConfigManager.reset()"><i class="fas fa-undo me-1"></i>Reset to Defaults</button>
+                    </div>
+                `;
+            },
+
+            toggleSection: function(sectionId, visible) {
+                this.config.sectionVisibility[sectionId] = visible;
+            },
+
+            addPlan: function() {
+                const id = 'plan_' + Date.now();
+                this.config.membershipPlans.push({ id, name: 'New Plan', amount: 0, period: 'Annual', active: true });
+                this.renderConfigPanel();
+            },
+            removePlan: function(idx) {
+                this.config.membershipPlans.splice(idx, 1);
+                this.renderConfigPanel();
+            },
+
+            addTier: function() {
+                const id = 'tier_' + Date.now();
+                this.config.sponsorshipTiers.push({ id, name: 'New Tier', amount: 0, benefits: '', active: true });
+                this.renderConfigPanel();
+            },
+            removeTier: function(idx) {
+                this.config.sponsorshipTiers.splice(idx, 1);
+                this.renderConfigPanel();
+            },
+
+            addAdSlot: function() {
+                const nextSlot = this.config.adSlots.length + 1;
+                const id = 'slot_' + Date.now();
+                this.config.adSlots.push({ id, slot: nextSlot, flierUrl: '', businessName: '', amount: 200, yearStart: '2026-01', yearEnd: '2026-12', active: true });
+                this.renderConfigPanel();
+            },
+            removeAdSlot: function(idx) {
+                this.config.adSlots.splice(idx, 1);
+                // Re-number slots
+                this.config.adSlots.forEach((a, i) => a.slot = i + 1);
+                this.renderConfigPanel();
+            },
+
+            showToast: function(message, type) {
+                const colors = { success: '#10B981', error: '#EF4444', info: '#3B82F6' };
+                const icons  = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:100000;padding:12px 24px;border-radius:8px;color:#fff;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:slideInRight 0.3s ease;';
+                toast.style.background = colors[type] || colors.info;
+                toast.innerHTML = `<i class="fas fa-${icons[type] || icons.info}"></i> ${message}`;
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+            }
+        };
+
         /**
          * ========== ADMIN ADVERTISEMENT MANAGEMENT ==========
          */
@@ -9386,6 +10978,10 @@
             
             // Initialize ad manager
             AdManager.init();
+
+            // Initialize site configuration (Feature 1)
+            SiteConfigManager.load();
+            SiteConfigManager.applySectionVisibility();
             
             // Still send height for reference (Wix may use it)
             setTimeout(sendHeightToWix, 100);
@@ -9437,6 +11033,213 @@
             link2.href = link.href;
             document.head.appendChild(link2);
         })();
+
+        // ========== ZELLE PAYMENT AUTOMATION ==========
+        // Zelle runs via Wix Velo backend — cloud-native, no localhost required
+        const ZELLE_API = WIX_API_BASE;
+        let _zelleCurrentFilter = 'all';
+        let _zelleMatchPaymentId = null;
+
+        async function zelleApiFetch(endpoint, options = {}) {
+            try {
+                const url = `${ZELLE_API}/zelle_${endpoint}`;
+                const resp = await fetch(url, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return await resp.json();
+            } catch (err) {
+                console.error('[Zelle API]', err);
+                return null;
+            }
+        }
+
+        async function zelleLoadStats() {
+            const data = await zelleApiFetch('stats');
+            if (!data) return;
+            document.getElementById('zelleTotalDetected').textContent = data.total_payments || 0;
+            document.getElementById('zellePendingCount').textContent = (data.by_status?.pending?.count || 0);
+            const verified = (data.by_status?.verified?.count || 0) + (data.by_status?.auto_verified?.count || 0);
+            document.getElementById('zelleVerifiedCount').textContent = verified;
+            document.getElementById('zelleAutoMatched').textContent = data.auto_vs_manual?.auto || 0;
+            document.getElementById('zelleTotalAmount').textContent = '$' + (data.total_amount || 0).toLocaleString(undefined, {minimumFractionDigits:2});
+            if (data.last_poll?.poll_time) {
+                const d = new Date(data.last_poll.poll_time);
+                document.getElementById('zelleLastScan').textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            }
+            // Poller toggle
+            const btn = document.getElementById('btnZelleAutoToggle');
+            if (data.poller_active) {
+                btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto-Poll: ON';
+                btn.classList.remove('admin-secondary'); btn.classList.add('admin-primary');
+            } else {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-Poll: OFF';
+                btn.classList.remove('admin-primary'); btn.classList.add('admin-secondary');
+            }
+        }
+
+        async function zelleLoadPayments() {
+            const statusParam = _zelleCurrentFilter === 'all' ? '' : `?status=${_zelleCurrentFilter}`;
+            const data = await zelleApiFetch(`payments${statusParam}`);
+            if (!data || !data.payments) return;
+            const tbody = document.getElementById('zellePaymentsBody');
+            if (data.payments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:2rem; color:#999;">
+                    <i class="fas fa-inbox" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+                    No payments found${_zelleCurrentFilter !== 'all' ? ' with status "' + _zelleCurrentFilter + '"' : ''}. Click "Scan Gmail Now" or "Load Test Data" to start.
+                </td></tr>`;
+                return;
+            }
+            tbody.innerHTML = data.payments.map(p => {
+                const statusColors = { pending: '#FFC107', auto_verified: '#17a2b8', verified: '#28a745', rejected: '#dc3545' };
+                const statusLabels = { pending: '⏳ Pending', auto_verified: '🤖 Auto-Verified', verified: '✅ Verified', rejected: '❌ Rejected' };
+                const color = statusColors[p.status] || '#6c757d';
+                const label = statusLabels[p.status] || p.status;
+                const dateStr = p.email_date ? new Date(p.email_date).toLocaleDateString() : 'N/A';
+                let actions = '';
+                if (p.status === 'pending') {
+                    actions = `<button class="admin-primary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleVerifyPayment(${p.id})"><i class="fas fa-check"></i></button>
+                        <button class="admin-secondary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleOpenMatchModal(${p.id}, '${(p.sender_name||'').replace(/'/g,"\\'")} - $${p.amount}')"><i class="fas fa-link"></i></button>
+                        <button class="admin-secondary" style="font-size:0.8rem; padding:4px 8px; color:#dc3545;" onclick="zelleRejectPayment(${p.id})"><i class="fas fa-times"></i></button>`;
+                } else if (p.status === 'auto_verified') {
+                    actions = `<button class="admin-secondary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleVerifyPayment(${p.id})" title="Confirm"><i class="fas fa-check-double"></i></button>`;
+                }
+                return `<tr>
+                    <td style="font-size:0.85rem;">${p.id}</td>
+                    <td style="font-size:0.85rem;">${dateStr}</td>
+                    <td><strong>${p.sender_name || 'Unknown'}</strong><br><small style="color:#888;">${(p.sender_email||'').substring(0,30)}</small></td>
+                    <td><strong style="color:#28a745;">$${(p.amount||0).toFixed(2)}</strong></td>
+                    <td style="font-size:0.85rem;">${p.memo || '-'}</td>
+                    <td style="font-size:0.85rem;">${p.bank_source || '-'}</td>
+                    <td>${p.matched_member_name ? '<i class="fas fa-user-check" style="color:#28a745;"></i> ' + p.matched_member_name : '<span style="color:#999;">Unmatched</span>'}</td>
+                    <td><span style="background:${color}22; color:${color}; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">${label}</span></td>
+                    <td style="white-space:nowrap;">${actions}</td>
+                </tr>`;
+            }).join('');
+            zelleLoadStats();
+        }
+
+        async function zelleManualScan() {
+            const btn = document.getElementById('btnZelleScan');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+            const banner = document.getElementById('zelleScanBanner');
+            banner.style.display = 'none';
+            const result = await zelleApiFetch('scan', { method: 'POST', body: JSON.stringify({ days_back: 90 }) });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search"></i> Scan Gmail Now';
+            if (result) {
+                banner.style.display = 'block';
+                if (result.new_payments > 0) {
+                    banner.style.background = '#e8f5e9'; banner.style.borderColor = '#4caf50';
+                    document.getElementById('zelleScanMessage').innerHTML =
+                        `<strong>${result.new_payments}</strong> new Zelle payment(s) detected! (${result.auto_matched} auto-matched) • ${result.emails_checked} emails scanned`;
+                } else {
+                    banner.style.background = '#fff3e0'; banner.style.borderColor = '#ff9800';
+                    document.getElementById('zelleScanMessage').innerHTML =
+                        `No new payments found. ${result.emails_checked} emails scanned`;
+                }
+                zelleLoadPayments();
+            } else {
+                banner.style.display = 'block';
+                banner.style.background = '#ffebee'; banner.style.borderColor = '#f44336';
+                document.getElementById('zelleScanMessage').innerHTML =
+                    '❌ Scan failed. Please try again in a moment.';
+            }
+        }
+
+        async function zelleTogglePoller() {
+            const btn = document.getElementById('btnZelleAutoToggle');
+            const isOn = btn.textContent.includes('ON');
+            const result = await zelleApiFetch('poller', { method: 'POST', body: JSON.stringify({ action: isOn ? 'stop' : 'start' }) });
+            if (result?.success) zelleLoadStats();
+        }
+
+        function zelleFilterPayments(status) {
+            _zelleCurrentFilter = status;
+            ['All','Pending','Auto','Verified','Rejected'].forEach(s => {
+                const el = document.getElementById('zelleFilter' + s);
+                if (el) { el.classList.remove('admin-primary'); el.classList.add('admin-secondary'); }
+            });
+            const map = { all: 'All', pending: 'Pending', auto_verified: 'Auto', verified: 'Verified', rejected: 'Rejected' };
+            const activeBtn = document.getElementById('zelleFilter' + (map[status] || 'All'));
+            if (activeBtn) { activeBtn.classList.remove('admin-secondary'); activeBtn.classList.add('admin-primary'); }
+            zelleLoadPayments();
+        }
+
+        async function zelleVerifyPayment(id) {
+            if (!confirm('Verify this payment?')) return;
+            await zelleApiFetch('verify', { method: 'POST', body: JSON.stringify({ paymentId: id, verifiedBy: 'admin' }) });
+            zelleLoadPayments();
+        }
+
+        async function zelleRejectPayment(id) {
+            const reason = prompt('Reason for rejection (optional):') || '';
+            await zelleApiFetch('reject', { method: 'POST', body: JSON.stringify({ paymentId: id, reason }) });
+            zelleLoadPayments();
+        }
+
+        async function zelleOpenMatchModal(paymentId, info) {
+            _zelleMatchPaymentId = paymentId;
+            document.getElementById('zelleMatchPaymentInfo').textContent = info;
+            // Load members
+            const data = await zelleApiFetch('members');
+            const sel = document.getElementById('zelleMatchMemberSelect');
+            sel.innerHTML = '<option value="">-- Select a member --</option>';
+            if (data?.members) {
+                data.members.forEach(m => {
+                    sel.innerHTML += `<option value="${m.id}">${m.full_name} (${m.email})</option>`;
+                });
+            }
+            document.getElementById('zelleMatchModal').style.display = 'flex';
+        }
+
+        function zelleCloseMatchModal() {
+            document.getElementById('zelleMatchModal').style.display = 'none';
+            _zelleMatchPaymentId = null;
+        }
+
+        async function zelleConfirmMatch() {
+            const memberId = document.getElementById('zelleMatchMemberSelect').value;
+            if (!memberId) { alert('Please select a member'); return; }
+            await zelleApiFetch('match', {
+                method: 'POST', body: JSON.stringify({ paymentId: _zelleMatchPaymentId, memberId })
+            });
+            zelleCloseMatchModal();
+            zelleLoadPayments();
+        }
+
+        async function zelleSeedTestData() {
+            const result = await zelleApiFetch('seed', { method: 'POST' });
+            if (result?.success) {
+                const banner = document.getElementById('zelleScanBanner');
+                banner.style.display = 'block';
+                banner.style.background = '#e3f2fd'; banner.style.borderColor = '#2196f3';
+                document.getElementById('zelleScanMessage').innerHTML =
+                    `<i class="fas fa-flask"></i> ${result.inserted} test Zelle payment(s) loaded for demo.`;
+                zelleLoadPayments();
+            }
+        }
+
+        function portalRefreshPayments() {
+            // Refresh member portal payment view from Zelle service
+            zelleApiFetch('history').then(data => {
+                if (!data?.history?.length) return;
+                const tbody = document.getElementById('portalPaymentHistoryBody');
+                tbody.innerHTML = data.history.map(h => {
+                    const d = h.created_at ? new Date(h.created_at).toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric'}) : '';
+                    return `<tr>
+                        <td>${d}</td>
+                        <td>${h.description || h.payment_type || ''}</td>
+                        <td>$${(h.amount||0).toFixed(2)}</td>
+                        <td><i class="fas fa-bolt" style="color:#6528F7;"></i> ${h.payment_method || 'Zelle'}</td>
+                        <td><span class="status-badge active">${h.status === 'completed' ? 'Paid' : h.status}</span></td>
+                        <td><a href="#" class="text-primary" onclick="alert('Receipt: ${h.receipt_number || 'N/A'}'); return false;"><i class="fas fa-download"></i> PDF</a></td>
+                    </tr>`;
+                }).join('');
+            });
+        }
+        // ========== END ZELLE PAYMENT AUTOMATION ==========
     </script>
 </body>
 </html>
