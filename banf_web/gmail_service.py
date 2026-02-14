@@ -808,6 +808,7 @@ def health_check():
         "status": "running",
         "email": GMAIL_ADDRESS,
         "timestamp": datetime.now().isoformat(),
+        "zelle_service": "http://localhost:5002/api/zelle/health",
         "endpoints": [
             "GET /api/gmail/status",
             "GET /api/gmail/inbox",
@@ -825,7 +826,16 @@ def health_check():
             "DELETE /api/gmail/contacts/group/<name>",
             "POST /api/gmail/contacts/group/<name>/add",
             "POST /api/gmail/contacts/group/<name>/remove",
-            "POST /api/gmail/contacts/group/<name>/send"
+            "POST /api/gmail/contacts/group/<name>/send",
+            "--- Zelle Integration (port 5002) ---",
+            "POST /api/zelle/scan",
+            "GET /api/zelle/payments",
+            "GET /api/zelle/stats",
+            "POST /api/zelle/payments/<id>/verify",
+            "POST /api/zelle/payments/<id>/reject",
+            "POST /api/zelle/payments/<id>/match",
+            "POST /api/zelle/poller/start",
+            "POST /api/zelle/poller/stop",
         ]
     })
 

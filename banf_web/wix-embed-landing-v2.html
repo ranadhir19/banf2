@@ -4261,22 +4261,29 @@
                         <div class="portal-stat-card">
                             <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
                             <div class="stat-info">
-                                <h3>$0.00</h3>
+                                <h3 id="portalBalanceDue">$0.00</h3>
                                 <p>Balance Due</p>
                             </div>
                         </div>
                         <div class="portal-stat-card">
                             <div class="stat-icon orange"><i class="fas fa-history"></i></div>
                             <div class="stat-info">
-                                <h3>$250.00</h3>
+                                <h3 id="portalTotalPaid">$250.00</h3>
                                 <p>Total Paid (2026)</p>
+                            </div>
+                        </div>
+                        <div class="portal-stat-card">
+                            <div class="stat-icon" style="background:#e8e0ff; color:#6528F7;"><i class="fas fa-bolt"></i></div>
+                            <div class="stat-info">
+                                <h3 id="portalZelleStatus" style="font-size:0.95rem; color:#28a745;">✅ Auto-Tracking</h3>
+                                <p>Zelle Detection</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="portal-form-card">
                         <h4 style="margin-bottom: 1rem;"><i class="fas fa-university me-2"></i>Zelle Payment Info</h4>
-                        <p class="text-muted">Use Zelle to send payments. Include your membership ID in the memo.</p>
+                        <p class="text-muted">Send payments via Zelle. Your payment will be <strong>automatically detected</strong> from Gmail and matched to your account.</p>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Zelle Recipient</label>
@@ -4287,8 +4294,12 @@
                                 <input class="form-control" value="Membership - [Your Name]" readonly>
                             </div>
                         </div>
-                        <button class="portal-feature-btn" onclick="alert('Payment marked sent (Demo)')">
-                            <i class="fas fa-check-circle"></i> Mark Payment Sent
+                        <div style="padding:0.75rem; background:#e8f5e9; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                            <i class="fas fa-magic" style="color:#6528F7; margin-right:0.5rem;"></i>
+                            <strong>Auto-Detection Active:</strong> When you send a Zelle payment, our system automatically detects the email notification and updates your account. No manual verification needed!
+                        </div>
+                        <button class="portal-feature-btn" onclick="portalRefreshPayments()">
+                            <i class="fas fa-sync-alt"></i> Refresh Payment Status
                         </button>
                     </div>
                     
@@ -4300,15 +4311,17 @@
                                     <th>Date</th>
                                     <th>Description</th>
                                     <th>Amount</th>
+                                    <th>Method</th>
                                     <th>Status</th>
                                     <th>Receipt</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="portalPaymentHistoryBody">
                                 <tr>
                                     <td>Feb 01, 2026</td>
                                     <td>Annual Membership - Family</td>
                                     <td>$150.00</td>
+                                    <td><i class="fas fa-bolt" style="color:#6528F7;"></i> Zelle</td>
                                     <td><span class="status-badge active">Paid</span></td>
                                     <td><a href="#" class="text-primary" onclick="alert('Download Receipt - Demo'); return false;"><i class="fas fa-download"></i> PDF</a></td>
                                 </tr>
@@ -4316,6 +4329,7 @@
                                     <td>Feb 02, 2026</td>
                                     <td>Saraswati Puja Registration</td>
                                     <td>$100.00</td>
+                                    <td><i class="fas fa-bolt" style="color:#6528F7;"></i> Zelle</td>
                                     <td><span class="status-badge active">Paid</span></td>
                                     <td><a href="#" class="text-primary" onclick="alert('Download Receipt - Demo'); return false;"><i class="fas fa-download"></i> PDF</a></td>
                                 </tr>
@@ -5149,37 +5163,110 @@
                 <section id="adminPayments" class="admin-section">
                     <div class="admin-page-header">
                         <div>
-                            <h2>Payment Verification</h2>
-                            <p>Review and verify pending payments</p>
+                            <h2><i class="fas fa-bolt me-2" style="color: #6528F7;"></i>Zelle Payment Automation</h2>
+                            <p>Auto-detect Zelle payments from Gmail &amp; manage member payments</p>
                         </div>
-                        <button class="admin-primary"><i class="fas fa-check-circle"></i> Approve All</button>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <button class="admin-primary" onclick="zelleManualScan()" id="btnZelleScan">
+                                <i class="fas fa-search"></i> Scan Gmail Now
+                            </button>
+                            <button class="admin-secondary" id="btnZelleAutoToggle" onclick="zelleTogglePoller()">
+                                <i class="fas fa-sync-alt"></i> Auto-Poll: OFF
+                            </button>
+                        </div>
                     </div>
-                    <div class="admin-table">
-                        <table>
+
+                    <!-- Zelle Stats Cards -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem;" id="zelleStatsGrid">
+                        <div class="admin-stat-card" style="border-left:4px solid #6528F7;">
+                            <div class="stat-label">Total Detected</div>
+                            <div class="stat-value" id="zelleTotalDetected">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #FFC107;">
+                            <div class="stat-label">Pending Review</div>
+                            <div class="stat-value" id="zellePendingCount" style="color:#FFC107;">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #28a745;">
+                            <div class="stat-label">Verified</div>
+                            <div class="stat-value" id="zelleVerifiedCount" style="color:#28a745;">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #17a2b8;">
+                            <div class="stat-label">Auto-Matched</div>
+                            <div class="stat-value" id="zelleAutoMatched">0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #28a745;">
+                            <div class="stat-label">Total Collected</div>
+                            <div class="stat-value" id="zelleTotalAmount" style="color:#28a745;">$0</div>
+                        </div>
+                        <div class="admin-stat-card" style="border-left:4px solid #6c757d;">
+                            <div class="stat-label">Last Scan</div>
+                            <div class="stat-value" id="zelleLastScan" style="font-size:0.9rem;">Never</div>
+                        </div>
+                    </div>
+
+                    <!-- Scan Status Banner -->
+                    <div id="zelleScanBanner" style="display:none; padding:1rem; border-radius:8px; margin-bottom:1rem; background:#e8f5e9; border:1px solid #4caf50;">
+                        <i class="fas fa-check-circle" style="color:#4caf50; margin-right:0.5rem;"></i>
+                        <span id="zelleScanMessage">Scan complete</span>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+                        <button class="admin-primary" onclick="zelleFilterPayments('all')" id="zelleFilterAll" style="font-size:0.85rem;">All</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('pending')" id="zelleFilterPending" style="font-size:0.85rem;">⏳ Pending</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('auto_verified')" id="zelleFilterAuto" style="font-size:0.85rem;">🤖 Auto-Verified</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('verified')" id="zelleFilterVerified" style="font-size:0.85rem;">✅ Verified</button>
+                        <button class="admin-secondary" onclick="zelleFilterPayments('rejected')" id="zelleFilterRejected" style="font-size:0.85rem;">❌ Rejected</button>
+                        <button class="admin-secondary" onclick="zelleSeedTestData()" style="font-size:0.85rem; margin-left:auto;">
+                            <i class="fas fa-flask"></i> Load Test Data
+                        </button>
+                    </div>
+
+                    <!-- Payments Table -->
+                    <div class="admin-table" style="overflow-x:auto;">
+                        <table id="zellePaymentsTable">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Date</th>
-                                    <th>Member</th>
-                                    <th>Type</th>
+                                    <th>From (Zelle)</th>
                                     <th>Amount</th>
+                                    <th>Memo</th>
+                                    <th>Bank</th>
+                                    <th>Matched Member</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="zellePaymentsBody">
                                 <tr>
-                                    <td>Feb 12, 2026</td>
-                                    <td>Sunil Banerjee</td>
-                                    <td>Membership - Family</td>
-                                    <td>$150.00</td>
-                                    <td><span class="status-badge pending">Pending</span></td>
-                                    <td>
-                                        <button class="admin-primary">Approve</button>
-                                        <button class="admin-secondary">Reject</button>
+                                    <td colspan="9" class="text-center" style="padding:2rem; color:#999;">
+                                        <i class="fas fa-inbox" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+                                        No Zelle payments detected yet. Click "Scan Gmail Now" or "Load Test Data" to start.
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Member Match Modal (inline) -->
+                    <div id="zelleMatchModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+                        <div style="background:white; border-radius:12px; padding:2rem; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
+                            <h4><i class="fas fa-link me-2"></i>Match Payment to Member</h4>
+                            <p style="color:#666;">Payment: <strong id="zelleMatchPaymentInfo"></strong></p>
+                            <div style="margin:1rem 0;">
+                                <label class="form-label">Select Member</label>
+                                <select class="form-select" id="zelleMatchMemberSelect">
+                                    <option value="">-- Select a member --</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                                <button class="admin-secondary" onclick="zelleCloseMatchModal()">Cancel</button>
+                                <button class="admin-primary" onclick="zelleConfirmMatch()">
+                                    <i class="fas fa-check"></i> Match & Verify
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -8368,6 +8455,11 @@
                 if (sectionId === 'careers') {
                     renderAdminCareerTable();
                 }
+                // Zelle: Load payment data when payments section is activated
+                if (sectionId === 'payments') {
+                    zelleLoadPayments();
+                    zelleLoadStats();
+                }
             } else {
                 document.getElementById('adminDashboard')?.classList.add('active');
             }
@@ -10941,6 +11033,211 @@
             link2.href = link.href;
             document.head.appendChild(link2);
         })();
+
+        // ========== ZELLE PAYMENT AUTOMATION ==========
+        const ZELLE_API = 'http://localhost:5002/api/zelle';
+        let _zelleCurrentFilter = 'all';
+        let _zelleMatchPaymentId = null;
+
+        async function zelleApiFetch(path, options = {}) {
+            try {
+                const resp = await fetch(`${ZELLE_API}${path}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return await resp.json();
+            } catch (err) {
+                console.error('[Zelle API]', err);
+                return null;
+            }
+        }
+
+        async function zelleLoadStats() {
+            const data = await zelleApiFetch('/stats');
+            if (!data) return;
+            document.getElementById('zelleTotalDetected').textContent = data.total_payments || 0;
+            document.getElementById('zellePendingCount').textContent = (data.by_status?.pending?.count || 0);
+            const verified = (data.by_status?.verified?.count || 0) + (data.by_status?.auto_verified?.count || 0);
+            document.getElementById('zelleVerifiedCount').textContent = verified;
+            document.getElementById('zelleAutoMatched').textContent = data.auto_vs_manual?.auto || 0;
+            document.getElementById('zelleTotalAmount').textContent = '$' + (data.total_amount || 0).toLocaleString(undefined, {minimumFractionDigits:2});
+            if (data.last_poll?.poll_time) {
+                const d = new Date(data.last_poll.poll_time);
+                document.getElementById('zelleLastScan').textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            }
+            // Poller toggle
+            const btn = document.getElementById('btnZelleAutoToggle');
+            if (data.poller_active) {
+                btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto-Poll: ON';
+                btn.classList.remove('admin-secondary'); btn.classList.add('admin-primary');
+            } else {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-Poll: OFF';
+                btn.classList.remove('admin-primary'); btn.classList.add('admin-secondary');
+            }
+        }
+
+        async function zelleLoadPayments() {
+            const statusParam = _zelleCurrentFilter === 'all' ? '' : `?status=${_zelleCurrentFilter}`;
+            const data = await zelleApiFetch(`/payments${statusParam}`);
+            if (!data || !data.payments) return;
+            const tbody = document.getElementById('zellePaymentsBody');
+            if (data.payments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:2rem; color:#999;">
+                    <i class="fas fa-inbox" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+                    No payments found${_zelleCurrentFilter !== 'all' ? ' with status "' + _zelleCurrentFilter + '"' : ''}. Click "Scan Gmail Now" or "Load Test Data" to start.
+                </td></tr>`;
+                return;
+            }
+            tbody.innerHTML = data.payments.map(p => {
+                const statusColors = { pending: '#FFC107', auto_verified: '#17a2b8', verified: '#28a745', rejected: '#dc3545' };
+                const statusLabels = { pending: '⏳ Pending', auto_verified: '🤖 Auto-Verified', verified: '✅ Verified', rejected: '❌ Rejected' };
+                const color = statusColors[p.status] || '#6c757d';
+                const label = statusLabels[p.status] || p.status;
+                const dateStr = p.email_date ? new Date(p.email_date).toLocaleDateString() : 'N/A';
+                let actions = '';
+                if (p.status === 'pending') {
+                    actions = `<button class="admin-primary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleVerifyPayment(${p.id})"><i class="fas fa-check"></i></button>
+                        <button class="admin-secondary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleOpenMatchModal(${p.id}, '${(p.sender_name||'').replace(/'/g,"\\'")} - $${p.amount}')"><i class="fas fa-link"></i></button>
+                        <button class="admin-secondary" style="font-size:0.8rem; padding:4px 8px; color:#dc3545;" onclick="zelleRejectPayment(${p.id})"><i class="fas fa-times"></i></button>`;
+                } else if (p.status === 'auto_verified') {
+                    actions = `<button class="admin-secondary" style="font-size:0.8rem; padding:4px 10px;" onclick="zelleVerifyPayment(${p.id})" title="Confirm"><i class="fas fa-check-double"></i></button>`;
+                }
+                return `<tr>
+                    <td style="font-size:0.85rem;">${p.id}</td>
+                    <td style="font-size:0.85rem;">${dateStr}</td>
+                    <td><strong>${p.sender_name || 'Unknown'}</strong><br><small style="color:#888;">${(p.sender_email||'').substring(0,30)}</small></td>
+                    <td><strong style="color:#28a745;">$${(p.amount||0).toFixed(2)}</strong></td>
+                    <td style="font-size:0.85rem;">${p.memo || '-'}</td>
+                    <td style="font-size:0.85rem;">${p.bank_source || '-'}</td>
+                    <td>${p.matched_member_name ? '<i class="fas fa-user-check" style="color:#28a745;"></i> ' + p.matched_member_name : '<span style="color:#999;">Unmatched</span>'}</td>
+                    <td><span style="background:${color}22; color:${color}; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">${label}</span></td>
+                    <td style="white-space:nowrap;">${actions}</td>
+                </tr>`;
+            }).join('');
+            zelleLoadStats();
+        }
+
+        async function zelleManualScan() {
+            const btn = document.getElementById('btnZelleScan');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+            const banner = document.getElementById('zelleScanBanner');
+            banner.style.display = 'none';
+            const result = await zelleApiFetch('/scan', { method: 'POST', body: JSON.stringify({ days_back: 90 }) });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search"></i> Scan Gmail Now';
+            if (result) {
+                banner.style.display = 'block';
+                if (result.new_payments > 0) {
+                    banner.style.background = '#e8f5e9'; banner.style.borderColor = '#4caf50';
+                    document.getElementById('zelleScanMessage').innerHTML =
+                        `<strong>${result.new_payments}</strong> new Zelle payment(s) detected! (${result.auto_matched} auto-matched) • ${result.emails_checked} emails scanned in ${result.duration_ms}ms`;
+                } else {
+                    banner.style.background = '#fff3e0'; banner.style.borderColor = '#ff9800';
+                    document.getElementById('zelleScanMessage').innerHTML =
+                        `No new payments found. ${result.emails_checked} emails scanned in ${result.duration_ms}ms`;
+                }
+                zelleLoadPayments();
+            } else {
+                banner.style.display = 'block';
+                banner.style.background = '#ffebee'; banner.style.borderColor = '#f44336';
+                document.getElementById('zelleScanMessage').innerHTML =
+                    '❌ Scan failed. Make sure the Zelle service is running on port 5002.';
+            }
+        }
+
+        async function zelleTogglePoller() {
+            const btn = document.getElementById('btnZelleAutoToggle');
+            const isOn = btn.textContent.includes('ON');
+            const result = await zelleApiFetch(isOn ? '/poller/stop' : '/poller/start', { method: 'POST' });
+            if (result?.success) zelleLoadStats();
+        }
+
+        function zelleFilterPayments(status) {
+            _zelleCurrentFilter = status;
+            ['All','Pending','Auto','Verified','Rejected'].forEach(s => {
+                const el = document.getElementById('zelleFilter' + s);
+                if (el) { el.classList.remove('admin-primary'); el.classList.add('admin-secondary'); }
+            });
+            const map = { all: 'All', pending: 'Pending', auto_verified: 'Auto', verified: 'Verified', rejected: 'Rejected' };
+            const activeBtn = document.getElementById('zelleFilter' + (map[status] || 'All'));
+            if (activeBtn) { activeBtn.classList.remove('admin-secondary'); activeBtn.classList.add('admin-primary'); }
+            zelleLoadPayments();
+        }
+
+        async function zelleVerifyPayment(id) {
+            if (!confirm('Verify this payment?')) return;
+            await zelleApiFetch(`/payments/${id}/verify`, { method: 'POST', body: JSON.stringify({ verified_by: 'admin' }) });
+            zelleLoadPayments();
+        }
+
+        async function zelleRejectPayment(id) {
+            const reason = prompt('Reason for rejection (optional):') || '';
+            await zelleApiFetch(`/payments/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+            zelleLoadPayments();
+        }
+
+        async function zelleOpenMatchModal(paymentId, info) {
+            _zelleMatchPaymentId = paymentId;
+            document.getElementById('zelleMatchPaymentInfo').textContent = info;
+            // Load members
+            const data = await zelleApiFetch('/members');
+            const sel = document.getElementById('zelleMatchMemberSelect');
+            sel.innerHTML = '<option value="">-- Select a member --</option>';
+            if (data?.members) {
+                data.members.forEach(m => {
+                    sel.innerHTML += `<option value="${m.id}">${m.full_name} (${m.email})</option>`;
+                });
+            }
+            document.getElementById('zelleMatchModal').style.display = 'flex';
+        }
+
+        function zelleCloseMatchModal() {
+            document.getElementById('zelleMatchModal').style.display = 'none';
+            _zelleMatchPaymentId = null;
+        }
+
+        async function zelleConfirmMatch() {
+            const memberId = document.getElementById('zelleMatchMemberSelect').value;
+            if (!memberId) { alert('Please select a member'); return; }
+            await zelleApiFetch(`/payments/${_zelleMatchPaymentId}/match`, {
+                method: 'POST', body: JSON.stringify({ member_id: memberId })
+            });
+            zelleCloseMatchModal();
+            zelleLoadPayments();
+        }
+
+        async function zelleSeedTestData() {
+            const result = await zelleApiFetch('/test/seed', { method: 'POST' });
+            if (result?.success) {
+                const banner = document.getElementById('zelleScanBanner');
+                banner.style.display = 'block';
+                banner.style.background = '#e3f2fd'; banner.style.borderColor = '#2196f3';
+                document.getElementById('zelleScanMessage').innerHTML =
+                    `<i class="fas fa-flask"></i> ${result.inserted} test Zelle payment(s) loaded for demo.`;
+                zelleLoadPayments();
+            }
+        }
+
+        function portalRefreshPayments() {
+            // Refresh member portal payment view from Zelle service
+            zelleApiFetch('/history').then(data => {
+                if (!data?.history?.length) return;
+                const tbody = document.getElementById('portalPaymentHistoryBody');
+                tbody.innerHTML = data.history.map(h => {
+                    const d = h.created_at ? new Date(h.created_at).toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric'}) : '';
+                    return `<tr>
+                        <td>${d}</td>
+                        <td>${h.description || h.payment_type || ''}</td>
+                        <td>$${(h.amount||0).toFixed(2)}</td>
+                        <td><i class="fas fa-bolt" style="color:#6528F7;"></i> ${h.payment_method || 'Zelle'}</td>
+                        <td><span class="status-badge active">${h.status === 'completed' ? 'Paid' : h.status}</span></td>
+                        <td><a href="#" class="text-primary" onclick="alert('Receipt: ${h.receipt_number || 'N/A'}'); return false;"><i class="fas fa-download"></i> PDF</a></td>
+                    </tr>`;
+                }).join('');
+            });
+        }
+        // ========== END ZELLE PAYMENT AUTOMATION ==========
     </script>
 </body>
 </html>
