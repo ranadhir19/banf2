@@ -1165,6 +1165,83 @@
             .ec-card h6 { font-size: 0.8rem; }
             .ec-card .ec-short-bio { display: none; }
         }
+
+        /* ===== iPhone SE / very small phones (375px and below) ===== */
+        @media (max-width: 375px) {
+            /* Hero — tighter fit */
+            .hero { min-height: 55vh; padding: 2rem 0.5rem; }
+            .hero h1 { font-size: 1.35rem; line-height: 1.3; }
+            .hero-subtitle { font-size: 0.8rem; line-height: 1.4; padding: 0 0.25rem; }
+            .hero-bengali { font-size: 0.95rem; }
+            .hero-badge { font-size: 0.7rem; padding: 0.3rem 0.6rem; }
+            .hero-buttons { flex-direction: column; gap: 0.5rem; }
+            .hero-buttons a { width: 100%; text-align: center; font-size: 0.85rem; padding: 0.6rem 1rem; }
+
+            /* Navigation — compact */
+            .navbar-brand { font-size: 1rem; }
+            .navbar-brand .logo-icon { font-size: 1.1rem; width: 28px; height: 28px; }
+            .nav-link { font-size: 0.8rem; padding: 0.4rem 0.5rem !important; }
+
+            /* Section headers */
+            .section-header h2 { font-size: 1.2rem; }
+            .section-header p { font-size: 0.8rem; }
+
+            /* Stats — single column */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .stat-number { font-size: 1.6rem; }
+            .stat-label { font-size: 0.65rem; }
+
+            /* EC team grid — single column on tiny screens */
+            .ec-team-grid { grid-template-columns: 1fr !important; gap: 0.75rem; }
+            .ec-card { padding: 0.75rem; }
+            .ec-card .ec-photo { width: 60px; height: 60px; }
+            .ec-card h6 { font-size: 0.75rem; }
+            .ec-card .ec-role { font-size: 0.65rem; }
+
+            /* Buttons — full width, proper touch targets */
+            .btn, .btn-primary-custom, .btn-outline-custom {
+                min-height: 44px;
+                font-size: 0.8rem;
+                padding: 0.5rem 0.75rem;
+                width: 100%;
+            }
+
+            /* Cards & containers — reduce padding */
+            .card, .feature-card, .service-card { padding: 0.75rem; }
+            .container { padding-left: 0.75rem; padding-right: 0.75rem; }
+
+            /* Tables — compact text */
+            table th, table td { font-size: 0.7rem; padding: 0.35rem 0.4rem; }
+
+            /* Member portal — tighter spacing */
+            .portal-content-area { padding: 0.5rem !important; }
+            .portal-page-header h2 { font-size: 1.1rem; }
+
+            /* Admin portal — tighter spacing */
+            .admin-main-content { padding: 0.5rem !important; }
+            .admin-section-header h3 { font-size: 1rem; }
+
+            /* Quick access bar — smaller icons */
+            .quick-item { min-width: 60px; font-size: 0.65rem; padding: 0.4rem; }
+            .quick-item i { font-size: 1rem; }
+
+            /* Modals — ensure full screen */
+            .modal-dialog { margin: 0 !important; }
+            .modal-header h5 { font-size: 1rem; }
+            .modal-body { padding: 0.75rem; font-size: 0.85rem; }
+
+            /* Careers section */
+            .career-card { padding: 0.75rem; }
+            .career-card h6 { font-size: 0.85rem; }
+
+            /* DB Explorer — compact */
+            .db-explorer-controls { flex-direction: column; gap: 0.5rem; }
+            .db-explorer-controls input,
+            .db-explorer-controls select { width: 100%; font-size: 0.8rem; }
+
+            /* Form inputs — prevent zoom on iOS */
+            input, select, textarea { font-size: 16px !important; }
+        }
     </style>
 </head>
 <body>
@@ -7306,6 +7383,61 @@
             /* Modals — fullscreen on small screens */
             .modal-dialog { margin: 0; max-width: 100%; height: 100%; }
             .modal-content { border-radius: 0; height: 100%; }
+        }
+
+        /* ===== iPhone SE / very small phones — portal & admin (375px) ===== */
+        @media (max-width: 375px) {
+            /* Portal sidebar drawer — narrower for tiny screens */
+            .portal-sidebar {
+                left: -240px;
+                width: 230px;
+            }
+            .portal-sidebar.open { left: 0; }
+            .portal-nav-item { font-size: 0.8rem; padding: 0.5rem 0.75rem; }
+            .portal-content-area { padding: 0.5rem !important; }
+            .portal-page-header h2 { font-size: 1.1rem; }
+            .portal-page-header p { font-size: 0.8rem; }
+            .portal-features-grid { gap: 0.5rem; }
+            .portal-feature-card { padding: 0.75rem; }
+            .portal-feature-card h5 { font-size: 0.9rem; }
+            .portal-feature-card p { font-size: 0.75rem; }
+            .portal-header-bar { padding: 0.4rem 0.75rem; }
+            .portal-logo-text h1 { font-size: 0.9rem; }
+
+            /* Admin sidebar drawer — narrower for tiny screens */
+            .admin-sidebar {
+                left: -240px;
+                width: 230px;
+            }
+            .admin-sidebar.open { left: 0; }
+            .admin-nav-item { font-size: 0.8rem; padding: 0.5rem 0.75rem; }
+            .admin-main-content { padding: 0.5rem !important; }
+            .admin-section-header h3 { font-size: 1rem; }
+            .admin-section-header p { font-size: 0.75rem; }
+            .admin-btn { padding: 0.3rem 0.4rem; font-size: 0.7rem; }
+            .admin-role-badge { font-size: 0.55rem; }
+            .admin-stat-card h4 { font-size: 1.1rem; }
+            .admin-stat-card p { font-size: 0.7rem; }
+            .admin-stat-card { padding: 0.75rem; }
+
+            /* Login/Registration forms — compact */
+            .portal-login-card { padding: 1rem; }
+            .portal-login-card h3 { font-size: 1.1rem; }
+            .portal-login-card .form-control { font-size: 16px; padding: 0.5rem; }
+            .portal-login-card .btn { width: 100%; font-size: 0.85rem; }
+
+            /* Tables inside portals */
+            .admin-main-content table th,
+            .admin-main-content table td,
+            .portal-content-area table th,
+            .portal-content-area table td { font-size: 0.7rem; padding: 0.3rem; }
+
+            /* Modals — tighter on tiny screens */
+            .modal-header { padding: 0.5rem 0.75rem; }
+            .modal-header h5 { font-size: 0.95rem; }
+            .modal-body { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+            .modal-footer { padding: 0.5rem 0.75rem; }
+            .modal-footer .btn { font-size: 0.8rem; }
         }
     </style>
     
