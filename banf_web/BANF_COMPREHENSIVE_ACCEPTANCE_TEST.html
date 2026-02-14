@@ -59,6 +59,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .badge-evite { background: #f3e5f5; color: #7B1FA2; }
 .badge-radio { background: #fff3e0; color: #E65100; }
 .badge-import { background: #e0f2f1; color: #00695C; }
+.badge-feature { background: #ede7f6; color: #4a148c; }
 .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
 .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 .btn-primary { background: #4a148c; color: #fff; }
@@ -112,12 +113,19 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
     <div class="tab" onclick="switchTab('evite')">📨 Evite</div>
     <div class="tab" onclick="switchTab('import')">📤 Data Import</div>
     <div class="tab" onclick="switchTab('radio')">📻 Radio</div>
+    <div class="tab" onclick="switchTab('f1-siteconfig')">🔧 F1: Site Config</div>
+    <div class="tab" onclick="switchTab('f2-mobile')">📱 F2: Mobile</div>
+    <div class="tab" onclick="switchTab('f3-roles')">🔐 F3: Roles</div>
+    <div class="tab" onclick="switchTab('f4-photos')">📷 F4: Photos</div>
+    <div class="tab" onclick="switchTab('f5-modals')">👤 F5: Modals</div>
+    <div class="tab" onclick="switchTab('f6-careers')">💼 F6: Careers</div>
+    <div class="tab" onclick="switchTab('f7-excel')">📊 F7: Excel/DB</div>
 </div>
 
 <!-- ==================== OVERVIEW TAB ==================== -->
 <div class="tab-content active" id="tab-overview">
     <h2 style="margin-bottom:1rem;">Test Plan Overview</h2>
-    <p>This acceptance test covers <strong>all workflows and features</strong> for every user role. Each role has specific credentials and permissions that restrict which admin sections are accessible.</p>
+    <p>This acceptance test covers <strong>all workflows and features</strong> for every user role (including 41 new feature tests across 7 feature areas). Each role has specific credentials and permissions that restrict which admin sections are accessible.</p>
 
     <div class="cred-box">
         <h4>🔐 Test Account Credentials</h4>
@@ -201,6 +209,73 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
                 <li>Stream Controls</li>
                 <li>Schedule Display</li>
                 <li>Admin Radio Section</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>⚙️ F1: Site Config</strong> <span class="section-badge badge-feature">6 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>Config panel access</li>
+                <li>Section visibility toggles</li>
+                <li>Membership fee editing</li>
+                <li>Sponsorship tiers & ad slots</li>
+                <li>Permission enforcement</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>📱 F2: Mobile Layout</strong> <span class="section-badge badge-feature">6 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>375px responsive stacking</li>
+                <li>EC grid 2-column mobile</li>
+                <li>Hamburger sidebar menu</li>
+                <li>Table horizontal scroll</li>
+                <li>44px touch targets</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>🔐 F3: Role Permissions</strong> <span class="section-badge badge-feature">8 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>President full access</li>
+                <li>Treasurer/Secretary/Event limited</li>
+                <li>Non-admin blocked</li>
+                <li>Section denial toast</li>
+                <li>Dashboard per-role stats</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>📷 F4: EC Photos</strong> <span class="section-badge badge-feature">3 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>Photos from data array</li>
+                <li>Initials fallback on error</li>
+                <li>Image path structure</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>👤 F5: EC Modals</strong> <span class="section-badge badge-feature">4 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>Click card opens modal</li>
+                <li>Photo, name, role, bio content</li>
+                <li>Close via X and backdrop</li>
+                <li>View Profile link</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>💼 F6: Careers</strong> <span class="section-badge badge-feature">6 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>Career directory visible</li>
+                <li>Search by name</li>
+                <li>Filter by industry/guidance</li>
+                <li>Admin profile management</li>
+                <li>Member self-service</li>
+            </ul>
+        </div>
+        <div style="background:#ede7f6; padding:1rem; border-radius:8px; border-left:3px solid #4a148c;">
+            <strong>📊 F7: Excel/DB</strong> <span class="section-badge badge-feature">8 tests</span>
+            <ul style="font-size:0.85rem; margin-top:0.5rem; padding-left:1.2rem;">
+                <li>CSV & XLSX upload</li>
+                <li>Import confirmation</li>
+                <li>Template download</li>
+                <li>DB Explorer search/paginate</li>
+                <li>Export CSV & role CRUD</li>
             </ul>
         </div>
     </div>
@@ -552,6 +627,180 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
         <div class="test-card" data-id="RAD-17"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">RAD-17</span><span class="test-name">Radio Flask API endpoints respond (if server running)</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Start Flask server: <code>python audio_radio_server.py</code></li><li>Test: <code>http://127.0.0.1:5000/api/radio/current-status</code> — returns JSON with current track</li><li>Test: <code>http://127.0.0.1:5000/api/radio/autonomous/schedule</code> — returns schedule JSON</li><li>Test: <code>http://127.0.0.1:5000/api/radio/autonomous/next-track</code> — skips to next</li><li>Test: <code>http://127.0.0.1:5000/api/radio/autonomous/previous-track</code> — goes to previous</li><li>Verify: Each endpoint returns valid JSON with expected fields</li></ol></div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
 
         <div class="test-card" data-id="RAD-18"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">RAD-18</span><span class="test-name">Fallback mode when API is unavailable</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><ol><li>Ensure Flask server is NOT running</li><li>Load the app and navigate to radio section</li><li>Verify: Fallback stations display (BANF Bangla Radio, etc.)</li><li>Verify: Player still has play/pause/skip controls</li><li>Verify: No console errors that break the page</li></ol><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F1: SITE CONFIG TAB ==================== -->
+<div class="tab-content" id="tab-f1-siteconfig">
+    <div class="cred-box">
+        <h4>🔧 Feature 1: Admin Site Configuration</h4>
+        <p>Login as President: <code>admin_test</code> / <code>admin123</code> — Tests SiteConfigManager panel, toggles, fees, tiers, ad slots</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">⚙️ Site Config Panel <span class="section-badge badge-feature">F1</span></div>
+
+        <div class="test-card" data-id="F1.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.1</span><span class="test-name">Open Site Config section</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>admin_test</code> / <code>admin123</code> (President)</li><li>Click "Site Configuration" in admin sidebar</li><li>Verify: Config panel loads with section visibility toggles</li><li>Verify: Membership Fees, Sponsorship Tiers, Ad Slots sections visible</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Config panel loads with all toggles and editable sections</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F1.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.2</span><span class="test-name">Toggle section visibility</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Site Config, uncheck "Radio Player" toggle</li><li>Click Save</li><li>Close admin portal, return to landing page</li><li>Verify: Radio section is hidden on landing page</li><li>Re-enable toggle and save</li><li>Verify: Radio section reappears</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Radio section hidden/shown based on toggle state</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F1.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.3</span><span class="test-name">Edit membership fee</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Site Config → Membership Fees section</li><li>Change "Family" fee from $100 to $125</li><li>Click Save</li><li>Verify: Toast confirmation appears</li><li>Verify: Membership section on landing page shows $125</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Fee updated and reflected on landing page</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F1.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.4</span><span class="test-name">Add sponsorship tier</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Site Config → Sponsorship Tiers section</li><li>Click "Add Tier"</li><li>Fill in tier name, amount, and benefits</li><li>Click Save</li><li>Verify: New tier appears in the tier list</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> New sponsorship tier added and visible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F1.5"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.5</span><span class="test-name">Edit ad slot</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Site Config → Ad Slots section</li><li>Upload a flier image for a slot</li><li>Set amount and dates</li><li>Click Save</li><li>Verify: Ad slot updated with new image and details</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Ad slot configuration saved successfully</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F1.6"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F1.6</span><span class="test-name">Permission check — non-president blocked</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>ec_events</code> / <code>events123</code> (Event Coordinator)</li><li>Attempt to navigate to Site Configuration</li><li>Verify: Access denied toast message appears</li><li>Verify: Config panel does NOT load</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Non-president role cannot access Site Config</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F2: MOBILE LAYOUT TAB ==================== -->
+<div class="tab-content" id="tab-f2-mobile">
+    <div class="cred-box">
+        <h4>📱 Feature 2: Mobile-Specific Layouts</h4>
+        <p>Test at 375px viewport width (iPhone SE). Use Chrome DevTools device toolbar or resize browser window.</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">📐 Responsive Layout Tests <span class="section-badge badge-feature">F2</span></div>
+
+        <div class="test-card" data-id="F2.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.1</span><span class="test-name">Landing page at 375px width</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Open Chrome DevTools → Toggle device toolbar</li><li>Select iPhone SE (375×667) or resize to 375px</li><li>Verify: All landing page sections stack vertically</li><li>Verify: No horizontal scroll bar appears</li><li>Verify: Text is readable without pinch-zoom</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> All sections stack, no horizontal scroll</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F2.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.2</span><span class="test-name">EC team grid mobile</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>At 375px, scroll to EC Team section</li><li>Verify: EC member cards display in 2-column grid</li><li>Verify: Cards don't overflow or overlap</li><li>Verify: Photos/initials display correctly at smaller size</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> 2-across grid (col-6 equivalent) with no overflow</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F2.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.3</span><span class="test-name">Portal sidebar mobile — hamburger menu</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>At 375px, login as member (member_test / test123)</li><li>Verify: Sidebar is hidden by default</li><li>Verify: Hamburger (☰) button visible at top</li><li>Click hamburger → Verify: Sidebar slides in as overlay</li><li>Click a nav item → Verify: Sidebar closes, section loads</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Hamburger menu, sidebar hidden by default, slide-in overlay</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F2.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.4</span><span class="test-name">Admin tables mobile — horizontal scroll</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>At 375px, login as admin → navigate to Members section</li><li>Verify: Member table is horizontally scrollable</li><li>Verify: Table doesn't break page layout</li><li>Swipe left/right on table → data scrolls within container</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Tables horizontally scrollable within container</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F2.5"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.5</span><span class="test-name">Quick access bar mobile</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>At 375px, check hero/quick access bar on landing page</li><li>Verify: Quick access buttons scroll horizontally</li><li>Verify: Buttons don't wrap or stack awkwardly</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Horizontally scrollable, no wrapping</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F2.6"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F2.6</span><span class="test-name">Touch targets ≥44px</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>At 375px, use DevTools → Inspect various buttons</li><li>Check: Login buttons, sidebar nav items, RSVP buttons</li><li>Verify: All interactive elements have at least 44×44px touch area</li><li>Tap each button — should be easy to hit without mis-taps</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> All buttons ≥44px touch area, easy to tap</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F3: ROLE-BASED ADMIN TAB ==================== -->
+<div class="tab-content" id="tab-f3-roles">
+    <div class="cred-box">
+        <h4>🔐 Feature 3: Role-Based Admin Login & Permissions</h4>
+        <p>Tests SECTION_PERMISSIONS enforcement, sidebar filtering, and access denial for unauthorized sections.</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🛡️ Permission Enforcement <span class="section-badge badge-feature">F3</span></div>
+
+        <div class="test-card" data-id="F3.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.1</span><span class="test-name">President sees all sidebar items</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>admin_test</code> / <code>admin123</code> (President)</li><li>Verify: All 18+ sidebar nav items are visible</li><li>Click each section → all load without error</li><li>Verify: Dashboard, Members, Payments, Events, RSVPs, Evite, Data Import, Complaints, Surveys, Announcements, Radio, Magazine, Budget, Vendors, Volunteers, Meetings, Site Config all accessible</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> All 18 sidebar items visible and accessible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.2</span><span class="test-name">Treasurer — limited sections</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>ec_accounts</code> / <code>accounts123</code> (Treasurer)</li><li>Verify: Only Dashboard, Payments, Budget, Vendors visible in sidebar</li><li>Verify: Other nav items (Members, Events, Radio, etc.) are hidden</li><li>Click each visible section → loads correctly</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Only Dashboard, Payments, Budget, Vendors visible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.3</span><span class="test-name">Secretary — limited sections</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>ec_members</code> / <code>members123</code> (Secretary)</li><li>Verify: Only Dashboard, Members, Meetings, Data Import visible</li><li>Verify: Financial sections (Payments, Budget) hidden</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Only Dashboard, Members, Meetings, Data Import visible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.4</span><span class="test-name">Event Coordinator — limited sections</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as <code>ec_events</code> / <code>events123</code> (Event Coordinator)</li><li>Verify: Only Dashboard, Events, RSVPs, Evite, Volunteers visible</li><li>Verify: Members, Payments, Budget sections hidden</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Only Dashboard, Events, RSVPs, Evite, Volunteers visible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.5"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.5</span><span class="test-name">Non-admin blocked from admin portal</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Try to login to admin portal with <code>member_test</code> / <code>test123</code></li><li>Verify: "Not an admin account" error message shown</li><li>Verify: Admin portal does NOT open</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Non-admin credentials rejected with clear error</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.6"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.6</span><span class="test-name">VP — limited sections</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as VP account (if available, e.g., <code>ec_vp</code> / <code>vp123</code>)</li><li>Verify: Only Dashboard, Events, Members, Meetings, Budget visible</li><li>Verify: Other sections hidden</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> VP sees Dashboard, Events, Members, Meetings, Budget only</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.7"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.7</span><span class="test-name">Section access denied — toast message</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as Treasurer (<code>ec_accounts</code>)</li><li>Attempt to programmatically call showAdminSection('members') via console</li><li>Verify: "Permission denied" toast/alert appears</li><li>Verify: Members section does NOT load</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Toast: "Permission denied" — section blocked</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F3.8"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F3.8</span><span class="test-name">Dashboard customized per role</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as Treasurer (<code>ec_accounts</code>)</li><li>Verify: Dashboard shows payment/budget-relevant stats</li><li>Login as Event Coord (<code>ec_events</code>)</li><li>Verify: Dashboard shows event/RSVP-relevant stats</li><li>Login as President (<code>admin_test</code>)</li><li>Verify: Dashboard shows all stat categories</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Dashboard stats filtered by role permissions</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F4: EC PHOTOS TAB ==================== -->
+<div class="tab-content" id="tab-f4-photos">
+    <div class="cred-box">
+        <h4>📷 Feature 4: EC Profile Images from Data Array</h4>
+        <p>Tests EC_MEMBERS data array rendering, photo loading, and initials fallback.</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🖼️ EC Photo Rendering <span class="section-badge badge-feature">F4</span></div>
+
+        <div class="test-card" data-id="F4.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F4.1</span><span class="test-name">EC photos load from data array</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Scroll to EC Team section on landing page</li><li>Verify: 8 EC member cards rendered from EC_MEMBERS array</li><li>Verify: Members with photo paths show actual images</li><li>Verify: Members without photos show initials avatars</li><li>Verify: Each card has name, role, and clickable area</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> 4 photos load, 4 show initials fallback</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F4.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F4.2</span><span class="test-name">Fallback on image error</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Open DevTools → Network tab</li><li>Find an EC member image request → Block it or edit URL to break it</li><li>Reload the page</li><li>Verify: Broken image is replaced with initials avatar (colored circle with letters)</li><li>Verify: No broken image icon visible</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Initials avatar replaces broken image gracefully</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F4.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F4.3</span><span class="test-name">Image path structure</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Open DevTools → Inspect an EC member image element</li><li>Check the src attribute</li><li>Verify: Path follows pattern <code>assets/ec-photos/{role}/filename.jpg</code></li><li>Verify: No hardcoded absolute URLs</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Image paths match assets/ec-photos/{role}/ structure</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F5: EC MODALS TAB ==================== -->
+<div class="tab-content" id="tab-f5-modals">
+    <div class="cred-box">
+        <h4>👤 Feature 5: EC Profile Detail Modals</h4>
+        <p>Tests openProfileModal() functionality — clicking EC cards opens detailed profile overlay.</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🪟 Profile Modal Interaction <span class="section-badge badge-feature">F5</span></div>
+
+        <div class="test-card" data-id="F5.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F5.1</span><span class="test-name">Click any EC card opens modal</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Scroll to EC Team section on landing page</li><li>Click each of the 8 EC member cards, one at a time</li><li>Verify: Profile modal opens for each card</li><li>Verify: Modal appears as an overlay with backdrop</li><li>Close modal between clicks</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Each of 8 EC cards opens a profile modal</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F5.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F5.2</span><span class="test-name">Modal content — photo, name, role, bio, vision</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Click President card (first EC member)</li><li>Verify: Modal shows large photo (or initials avatar)</li><li>Verify: Full name displayed prominently</li><li>Verify: Role badge shown (e.g., "President")</li><li>Verify: Bio/description text visible</li><li>Verify: Vision statement or additional info shown</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Photo, name, role badge, bio, and vision all displayed</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F5.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F5.3</span><span class="test-name">Close modal — X button and backdrop click</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Open any EC profile modal</li><li>Click the X (close) button</li><li>Verify: Modal closes cleanly, page scrollable again</li><li>Re-open modal</li><li>Click outside the modal content (on the dark backdrop)</li><li>Verify: Modal closes cleanly</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Modal closes via X button and backdrop click</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F5.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F5.4</span><span class="test-name">View Profile link on card</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>On an EC card, find the "View Profile" link/button</li><li>Click "View Profile"</li><li>Verify: Same profile modal opens as clicking the card</li><li>Verify: Content matches the card's member data</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> "View Profile" link opens same modal as card click</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F6: CAREERS TAB ==================== -->
+<div class="tab-content" id="tab-f6-careers">
+    <div class="cred-box">
+        <h4>💼 Feature 6: Careers & Professional Network</h4>
+        <p>Tests member career profile directory, search/filter, admin management, and member self-service.</p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🔍 Career Directory & Search <span class="section-badge badge-feature">F6</span></div>
+
+        <div class="test-card" data-id="F6.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.1</span><span class="test-name">Careers section visible on landing page</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Scroll to Careers / Professional Network section on landing page</li><li>Verify: Section header and description visible</li><li>Verify: Search bar present</li><li>Verify: Industry and guidance type filter dropdowns visible</li><li>Verify: Career profile cards rendered</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Section with search, filters, and profile cards visible</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F6.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.2</span><span class="test-name">Search by name</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Careers section, type "Ghosh" in the search box</li><li>Verify: Only profiles matching "Ghosh" are displayed</li><li>Clear search → Verify: All profiles reappear</li><li>Search a non-existent name → Verify: "No profiles found" message</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Live filtering by name shows matching results</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F6.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.3</span><span class="test-name">Filter by industry</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Select "Technology" from the Industry filter dropdown</li><li>Verify: Only technology-related profiles shown</li><li>Select "Healthcare" → Verify: Only healthcare profiles</li><li>Select "All Industries" → Verify: All profiles return</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Industry filter narrows displayed profiles</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F6.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.4</span><span class="test-name">Filter by guidance type</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Select "Resume Review" from the guidance type dropdown</li><li>Verify: Only profiles offering resume review guidance shown</li><li>Select "Mentoring" → Verify: Matching profiles</li><li>Select "All Types" → Verify: All profiles return</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Guidance type filter shows matching profiles</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🛠️ Admin & Member Career Management <span class="section-badge badge-feature">F6</span></div>
+
+        <div class="test-card" data-id="F6.5"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.5</span><span class="test-name">Admin manage career profiles</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as admin (<code>admin_test</code> / <code>admin123</code>)</li><li>Navigate to Careers section in admin portal</li><li>Verify: Admin career management table loads with all profiles</li><li>Toggle visibility of a profile → Verify: Status updates</li><li>Click Add Career Profile → fill form → Save</li><li>Verify: New profile appears in table and on landing page</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Admin can toggle visibility, add/approve profiles</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F6.6"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F6.6</span><span class="test-name">Member self-service career profile</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as member (<code>member_test</code> / <code>test123</code>)</li><li>Navigate to Career Profile section in member portal</li><li>Create or edit own career profile</li><li>Fill in: Name, Title, Company, Industry, Guidance Types, Bio</li><li>Click Save</li><li>Verify: Profile saved and visible in career directory (if approved)</li><li>Delete profile → Verify: Profile removed</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Member can create/edit/delete own career profile</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+</div>
+
+<!-- ==================== F7: EXCEL/DB TAB ==================== -->
+<div class="tab-content" id="tab-f7-excel">
+    <div class="cred-box">
+        <h4>📊 Feature 7: Members Universe Excel Upload & DB Explorer</h4>
+        <p>Tests CSV/XLSX upload, data preview, import confirmation, DB Explorer search/pagination/export. Use <code>admin_test</code> / <code>admin123</code></p>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">📤 File Upload & Import <span class="section-badge badge-feature">F7</span></div>
+
+        <div class="test-card" data-id="F7.1"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.1</span><span class="test-name">Upload CSV file</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as admin → navigate to Members Universe section</li><li>Download the CSV template first</li><li>Add test data rows to the template</li><li>Click Upload and select the CSV file</li><li>Verify: Preview table shows parsed data with correct columns</li><li>Verify: Row count displayed accurately</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> CSV parsed and preview table shows data correctly</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.2"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.2</span><span class="test-name">Upload XLSX file</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Create a test .xlsx file with member data (or rename CSV)</li><li>Click Upload and select the XLSX file</li><li>Verify: SheetJS parses the Excel file</li><li>Verify: Preview table shows data with correct columns</li><li>Verify: No errors in console from CDN dependency</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> XLSX parsed via SheetJS, preview table renders data</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.3"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.3</span><span class="test-name">Confirm import — data added to DemoData</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>After upload preview, click "Confirm Import"</li><li>Verify: Success message with record count (e.g., "Imported 5 records")</li><li>Verify: Data added to DemoData in-memory store</li><li>Navigate to DB Explorer → search for imported records</li><li>Verify: Imported data appears in search results</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Import succeeds, data accessible in DB Explorer</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.4"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.4</span><span class="test-name">Download template</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Click "Download Template" button</li><li>Verify: CSV file downloads</li><li>Open downloaded file</li><li>Verify: Headers match expected columns (First Name, Last Name, Email, Phone, Membership Type, etc.)</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> CSV template downloads with correct column headers</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+    </div>
+
+    <div class="workflow-group">
+        <div class="workflow-title">🔍 DB Explorer <span class="section-badge badge-feature">F7</span></div>
+
+        <div class="test-card" data-id="F7.5"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.5</span><span class="test-name">DB Explorer search</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In Members Universe → DB Explorer section</li><li>Type "Ghosh" in the search box</li><li>Verify: Table filters to show only matching records</li><li>Search "Dasgupta" → Verify: Different results</li><li>Clear search → Verify: All records shown</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Search filters member records by name/email/etc.</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.6"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.6</span><span class="test-name">DB Explorer pagination</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>With enough records loaded, check pagination controls</li><li>Click "Next" → Verify: Next page of records shown</li><li>Click "Previous" → Verify: Previous page returns</li><li>Verify: Page indicator shows correct page number</li><li>Verify: Items per page count is correct</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Pagination navigates through records correctly</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.7"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.7</span><span class="test-name">DB Explorer export CSV</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>In DB Explorer, click "Export CSV" button</li><li>Verify: CSV file downloads</li><li>Open file → Verify: Contains all current data with correct headers</li><li>Apply a search filter first, then export</li><li>Verify: Exported data matches filtered view</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> CSV export downloads with correct data</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
+
+        <div class="test-card" data-id="F7.8"><div class="test-header" onclick="toggleDetails(this)"><span class="test-id">F7.8</span><span class="test-name">Role-based CRUD restrictions</span><div class="test-status"><select class="status-select" onchange="updateStatus(this)" onclick="event.stopPropagation()"><option value="">—</option><option value="pass">✅ Pass</option><option value="fail">❌ Fail</option><option value="skip">⏭️ Skip</option></select></div></div><div class="test-details"><div class="detail-steps"><ol><li>Login as Event Coordinator (<code>ec_events</code> / <code>events123</code>)</li><li>Try to access Members Universe / DB Explorer</li><li>Verify: Section access denied or limited (no delete/edit buttons)</li><li>Login as President (<code>admin_test</code>)</li><li>Verify: Full CRUD controls available (edit, delete rows)</li></ol></div><div class="detail-row"><span class="detail-label">Expected:</span> Non-authorized roles cannot perform CRUD operations</div><textarea class="notes-input" placeholder="Notes..."></textarea></div></div>
     </div>
 </div>
 
