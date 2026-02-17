@@ -4755,11 +4755,46 @@
 
         // Radio play button icon toggling is handled by initRadioPlayer() → updatePlayButton()
 
-        // Form submission (prevent default for demo)
-        document.querySelector('.contact-form')?.addEventListener('submit', function(e) {
+        // Contact form → sends via Wix Velo email API
+        document.querySelector('.contact-form')?.addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Thank you for your message! We will get back to you soon.');
-            this.reset();
+            const form = this;
+            const btn = form.querySelector('button[type="submit"]');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            try {
+                const inputs = form.querySelectorAll('input, select, textarea');
+                const name = inputs[0]?.value || '';
+                const email = inputs[1]?.value || '';
+                const subject = inputs[2]?.value || 'General Inquiry';
+                const message = inputs[3]?.value || '';
+                const result = await safeApiFetch('/email/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        to: 'info@jaxbengali.org',
+                        subject: `[BANF Contact] ${subject} - from ${name}`,
+                        body: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}\n\n---\nSent via BANF website contact form`,
+                        replyTo: email
+                    })
+                });
+                if (result.ok) {
+                    alert('✅ Thank you for your message! We will get back to you soon.');
+                    form.reset();
+                } else {
+                    // Fallback to mailto if Wix backend not deployed
+                    const mailtoBody = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
+                    const mailtoSubject = encodeURIComponent(`[BANF Contact] ${subject}`);
+                    window.location.href = `mailto:info@jaxbengali.org?subject=${mailtoSubject}&body=${mailtoBody}`;
+                }
+            } catch(err) {
+                console.error('[Contact Form]', err);
+                alert('Thank you for your message! We will get back to you soon.');
+                form.reset();
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
         });
 
         // ========== WIX API INTEGRATION LAYER ==========
@@ -6139,6 +6174,14 @@
 
                 <div class="admin-sidebar-section">
                     <h6>Member Management</h6>
+                    <a href="#" class="admin-nav-item" data-section="membershipDashboard" data-permission="members" onclick="showAdminSection('membershipDashboard', this); return false;">
+                        <i class="fas fa-id-card-alt"></i>
+                        <span>Membership Dashboard</span>
+                    </a>
+                    <a href="#" class="admin-nav-item" data-section="familyUniverse" data-permission="members" onclick="showAdminSection('familyUniverse', this); return false;">
+                        <i class="fas fa-sitemap"></i>
+                        <span>Family Universe</span>
+                    </a>
                     <a href="#" class="admin-nav-item" data-section="members" data-permission="members" onclick="showAdminSection('members', this); return false;">
                         <i class="fas fa-users"></i>
                         <span>All Members</span>
@@ -6364,13 +6407,275 @@
                     </div>
                 </section>
 
+                <!-- ═══════════════════════════════════════════════════════════════
+                     MEMBERSHIP DASHBOARD — Year-wise membership under EC terms
+                     ═══════════════════════════════════════════════════════════════ -->
+                <section id="adminMembershipDashboard" class="admin-section">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-id-card-alt me-2" style="color:#6528F7;"></i>Membership Dashboard</h2>
+                            <p>Year-wise membership tracking under Executive Committee terms</p>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                            <select id="mbrECTermSelect" class="form-select form-select-sm" style="width:auto;" onchange="renderMembershipDashboard()">
+                                <option value="26-28" selected>EC 26-28 (Current)</option>
+                                <option value="28-30">EC 28-30 (Future)</option>
+                            </select>
+                            <select id="mbrYearSelect" class="form-select form-select-sm" style="width:auto;" onchange="renderMembershipDashboard()">
+                                <option value="2025-2026">2025-2026</option>
+                                <option value="2026-2027" selected>2026-2027 (Current)</option>
+                                <option value="2027-2028">2027-2028</option>
+                            </select>
+                            <button class="admin-primary" onclick="showAddMembershipModal()">
+                                <i class="fas fa-plus-circle"></i> New Membership
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Stats Cards -->
+                    <div id="mbrStatsCards" class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card text-center p-3">
+                                <div style="font-size:2rem;color:#6528F7;"><i class="fas fa-users"></i></div>
+                                <h3 id="mbrStatTotalFamilies" style="color:#6528F7;">0</h3>
+                                <small class="text-muted">Total Families</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card text-center p-3">
+                                <div style="font-size:2rem;color:#28a745;"><i class="fas fa-check-circle"></i></div>
+                                <h3 id="mbrStatActive" style="color:#28a745;">0</h3>
+                                <small class="text-muted">Active This Year</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card text-center p-3">
+                                <div style="font-size:2rem;color:#dc3545;"><i class="fas fa-times-circle"></i></div>
+                                <h3 id="mbrStatInactive" style="color:#dc3545;">0</h3>
+                                <small class="text-muted">Inactive / Unpaid</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card text-center p-3">
+                                <div style="font-size:2rem;color:#fd7e14;"><i class="fas fa-dollar-sign"></i></div>
+                                <h3 id="mbrStatRevenue" style="color:#fd7e14;">$0</h3>
+                                <small class="text-muted">Revenue This Year</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tier Breakdown -->
+                    <div class="row g-3 mb-4" id="mbrTierBreakdown">
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card p-3" style="border-left:4px solid #6f42c1;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-home me-1" style="color:#6f42c1;"></i> Family</div>
+                                    <span id="mbrTierFamily" class="badge bg-purple">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card p-3" style="border-left:4px solid #0d6efd;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-heart me-1" style="color:#0d6efd;"></i> Couple</div>
+                                    <span id="mbrTierCouple" class="badge bg-primary">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card p-3" style="border-left:4px solid #198754;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-user me-1" style="color:#198754;"></i> Individual</div>
+                                    <span id="mbrTierIndividual" class="badge bg-success">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="admin-card p-3" style="border-left:4px solid #ffc107;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-graduation-cap me-1" style="color:#ffc107;"></i> Student</div>
+                                    <span id="mbrTierStudent" class="badge bg-warning text-dark">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Memberships Table -->
+                    <div class="admin-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Memberships</h5>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input type="text" id="mbrSearchInput" class="form-control form-control-sm" placeholder="Search by name, ID..." onkeyup="filterMembershipTable()" style="width:220px;">
+                                <select id="mbrFilterTier" class="form-select form-select-sm" style="width:auto;" onchange="filterMembershipTable()">
+                                    <option value="">All Tiers</option>
+                                    <option value="family">Family</option>
+                                    <option value="couple">Couple</option>
+                                    <option value="individual">Individual</option>
+                                    <option value="student">Student</option>
+                                </select>
+                                <select id="mbrFilterStatus" class="form-select form-select-sm" style="width:auto;" onchange="filterMembershipTable()">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="expired">Expired</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="admin-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Membership ID</th>
+                                        <th>Family ID</th>
+                                        <th>Family Head</th>
+                                        <th>Tier</th>
+                                        <th>Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mbrTableBody">
+                                    <tr><td colspan="9" class="text-center text-muted py-4">Loading memberships...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     FAMILY UNIVERSE — Complete family management
+                     ═══════════════════════════════════════════════════════════════ -->
+                <section id="adminFamilyUniverse" class="admin-section">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-sitemap me-2" style="color:#6528F7;"></i>Family Universe</h2>
+                            <p>Manage family units, members, and membership linkages</p>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <input type="text" id="famSearchInput" class="form-control form-control-sm" placeholder="Search families..." onkeyup="renderFamilyUniverse()" style="width:220px;">
+                            <select id="famFilterStatus" class="form-select form-select-sm" style="width:auto;" onchange="renderFamilyUniverse()">
+                                <option value="">All Families</option>
+                                <option value="active">Active (Paid Current Year)</option>
+                                <option value="inactive">Inactive (Not Paid)</option>
+                            </select>
+                            <button class="admin-primary" onclick="showAddFamilyModal()">
+                                <i class="fas fa-plus-circle"></i> New Family
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Family Cards Grid -->
+                    <div id="famCardsContainer" class="row g-3">
+                        <div class="col-12 text-center text-muted py-5">Loading family universe...</div>
+                    </div>
+                </section>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     FAMILY DETAIL PANEL — Shown when a family card is clicked
+                     ═══════════════════════════════════════════════════════════════ -->
+                <section id="adminFamilyDetail" class="admin-section">
+                    <div class="admin-page-header">
+                        <div>
+                            <h2><i class="fas fa-users me-2" style="color:#6528F7;"></i><span id="famDetailTitle">Family Details</span></h2>
+                            <p><span id="famDetailId" class="badge bg-dark"></span> <span id="famDetailStatus" class="status-badge"></span></p>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button class="admin-secondary" onclick="showAdminSection('familyUniverse')">
+                                <i class="fas fa-arrow-left"></i> Back to Families
+                            </button>
+                            <button class="admin-primary" onclick="showEditFamilyModal()">
+                                <i class="fas fa-edit"></i> Edit Family
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Family Members List -->
+                    <div class="admin-card p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i>Family Members</h5>
+                            <div style="display:flex;gap:0.5rem;">
+                                <button class="admin-secondary btn-sm" onclick="showAddFamilyMemberModal()">
+                                    <i class="fas fa-user-plus"></i> Add Member
+                                </button>
+                                <button class="admin-secondary btn-sm" onclick="showTransferMemberModal()">
+                                    <i class="fas fa-exchange-alt"></i> Transfer Member
+                                </button>
+                            </div>
+                        </div>
+                        <div class="admin-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Relationship</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="famMembersTableBody">
+                                    <tr><td colspan="5" class="text-center text-muted">No members</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Membership History -->
+                    <div class="admin-card p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Membership History</h5>
+                            <button class="admin-primary btn-sm" onclick="showAddMembershipModal(currentFamilyDetailId)">
+                                <i class="fas fa-plus"></i> Add Membership
+                            </button>
+                        </div>
+                        <div class="admin-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Membership ID</th>
+                                        <th>Year</th>
+                                        <th>EC Term</th>
+                                        <th>Tier</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="famMembershipHistoryBody">
+                                    <tr><td colspan="7" class="text-center text-muted">No membership records</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Admin Notes -->
+                    <div class="admin-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Admin Notes &amp; Comments</h5>
+                            <button class="admin-primary btn-sm" onclick="showAddNoteModal()">
+                                <i class="fas fa-plus"></i> Add Note
+                            </button>
+                        </div>
+                        <div id="famNotesContainer">
+                            <div class="text-center text-muted py-3">No notes yet</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     LEGACY MEMBER TABLE — All Members list (original)
+                     ═══════════════════════════════════════════════════════════════ -->
                 <section id="adminMembers" class="admin-section">
                     <div class="admin-page-header">
                         <div>
-                            <h2>Member Management</h2>
-                            <p>View and manage all BANF members</p>
+                            <h2><i class="fas fa-users me-2"></i>All Members (Legacy View)</h2>
+                            <p>Quick member lookup — use Membership Dashboard for full management</p>
                         </div>
-                        <button class="admin-primary"><i class="fas fa-user-plus"></i> Add Member</button>
+                        <button class="admin-secondary" onclick="showAdminSection('membershipDashboard')">
+                            <i class="fas fa-arrow-right"></i> Go to Dashboard
+                        </button>
                     </div>
                     <div class="admin-table">
                         <table>
@@ -6384,15 +6689,8 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>BANF-2024-001</td>
-                                    <td>Rajib Das</td>
-                                    <td>rajib.das@email.com</td>
-                                    <td>Family</td>
-                                    <td><span class="status-badge active">Active</span></td>
-                                    <td><button class="admin-secondary"><i class="fas fa-eye"></i></button></td>
-                                </tr>
+                            <tbody id="legacyMembersTableBody">
+                                <!-- Populated by renderLegacyMembers() -->
                             </tbody>
                         </table>
                     </div>
@@ -8024,7 +8322,257 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MEMBERSHIP & FAMILY MANAGEMENT MODALS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- ADD/EDIT MEMBERSHIP MODAL -->
+    <div class="modal fade" id="addMembershipModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                    <h5 class="modal-title" id="addMembershipModalLabel"><i class="fas fa-id-card me-2"></i>New Membership</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMembershipForm" onsubmit="return submitMembership(event)">
+                        <input type="hidden" id="mbrFormEditId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Family <span class="text-danger">*</span></label>
+                                <select class="form-select" id="mbrFormFamily" required>
+                                    <option value="">Select family...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Membership Year <span class="text-danger">*</span></label>
+                                <select class="form-select" id="mbrFormYear" required>
+                                    <option value="2025-2026">2025-2026</option>
+                                    <option value="2026-2027" selected>2026-2027</option>
+                                    <option value="2027-2028">2027-2028</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tier <span class="text-danger">*</span></label>
+                                <select class="form-select" id="mbrFormTier" required onchange="updateMbrFormAmount()">
+                                    <option value="">Select tier...</option>
+                                    <option value="student">Student — $165</option>
+                                    <option value="individual">Individual — $210</option>
+                                    <option value="couple">Couple — $330</option>
+                                    <option value="family">Family Premium — $410</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Amount Paid ($) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="mbrFormAmount" min="0" step="0.01" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="mbrFormPaymentDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Method</label>
+                                <select class="form-select" id="mbrFormPaymentMethod">
+                                    <option value="zelle">Zelle</option>
+                                    <option value="check">Check</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">EC Term</label>
+                                <select class="form-select" id="mbrFormECTerm">
+                                    <option value="26-28" selected>EC 26-28</option>
+                                    <option value="28-30">EC 28-30</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="mbrFormStatus">
+                                    <option value="active" selected>Active</option>
+                                    <option value="pending">Pending (Future Date)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="mbrFormFutureDate">
+                                    <label class="form-check-label" for="mbrFormFutureDate">
+                                        <i class="fas fa-calendar-alt me-1"></i> President/VP discretion — agreed future payment date
+                                    </label>
+                                </div>
+                                <input type="date" class="form-control mt-2 d-none" id="mbrFormAgreedDate" placeholder="Agreed future date">
+                            </div>
+                        </div>
+                        <div id="mbrFormStatus_msg" class="mt-3"></div>
+                        <button type="submit" class="btn w-100 mt-3" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                            <i class="fas fa-save me-1"></i> Save Membership
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT FAMILY MODAL -->
+    <div class="modal fade" id="addFamilyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                    <h5 class="modal-title" id="addFamilyModalLabel"><i class="fas fa-users me-2"></i>New Family</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFamilyForm" onsubmit="return submitFamily(event)">
+                        <input type="hidden" id="famFormEditId">
+                        <div class="mb-3">
+                            <label class="form-label">Head of Family <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="famFormHeadName" required placeholder="Full name of family head">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="famFormHeadEmail" placeholder="Email address">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="famFormHeadPhone" placeholder="Phone number">
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-user-friends me-1"></i>Family Members</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFamilyMemberRow()">
+                                <i class="fas fa-plus"></i> Add Member
+                            </button>
+                        </div>
+                        <div id="famFormMembersList">
+                            <!-- Dynamic member rows added here -->
+                        </div>
+                        <div id="famFormStatus_msg" class="mt-3"></div>
+                        <button type="submit" class="btn w-100 mt-3" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                            <i class="fas fa-save me-1"></i> Save Family
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSFER MEMBER MODAL -->
+    <div class="modal fade" id="transferMemberModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14,#e74c3c);color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>Transfer Family Member</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-1"></i> Transferring a member will create a <strong>new Family ID</strong> and remove them from the current family.</div>
+                    <form id="transferMemberForm" onsubmit="return submitTransferMember(event)">
+                        <input type="hidden" id="xferSourceFamilyId">
+                        <div class="mb-3">
+                            <label class="form-label">Member to Transfer <span class="text-danger">*</span></label>
+                            <select class="form-select" id="xferMemberSelect" required>
+                                <option value="">Select member...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Transfer To</label>
+                            <select class="form-select" id="xferDestination">
+                                <option value="new" selected>Create New Family</option>
+                                <option value="existing">Existing Family</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="xferExistingFamilyDiv">
+                            <label class="form-label">Destination Family</label>
+                            <select class="form-select" id="xferExistingFamily"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reason</label>
+                            <textarea class="form-control" id="xferReason" rows="2" placeholder="Reason for transfer..."></textarea>
+                        </div>
+                        <button type="submit" class="btn w-100" style="background:linear-gradient(135deg,#fd7e14,#e74c3c);color:#fff;">
+                            <i class="fas fa-exchange-alt me-1"></i> Confirm Transfer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD ADMIN NOTE MODAL -->
+    <div class="modal fade" id="addNoteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#20c997,#198754);color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-sticky-note me-2"></i>Add Admin Note</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addNoteForm" onsubmit="return submitAdminNote(event)">
+                        <input type="hidden" id="noteFormTargetType" value="family">
+                        <input type="hidden" id="noteFormTargetId">
+                        <div class="mb-3">
+                            <label class="form-label">Target</label>
+                            <input type="text" class="form-control" id="noteFormTargetLabel" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Note <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="noteFormText" rows="4" required placeholder="Add your note or comment..."></textarea>
+                        </div>
+                        <button type="submit" class="btn w-100" style="background:linear-gradient(135deg,#20c997,#198754);color:#fff;">
+                            <i class="fas fa-save me-1"></i> Save Note
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD FAMILY MEMBER MODAL (single member to existing family) -->
+    <div class="modal fade" id="addFamilyMemberModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add Family Member</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFamilyMemberForm" onsubmit="return submitAddFamilyMember(event)">
+                        <input type="hidden" id="addMemFamilyId">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addMemName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Relationship</label>
+                            <select class="form-select" id="addMemRelation">
+                                <option value="spouse">Spouse</option>
+                                <option value="child">Child</option>
+                                <option value="parent">Parent</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="addMemEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="addMemPhone">
+                        </div>
+                        <button type="submit" class="btn w-100" style="background:linear-gradient(135deg,#6528F7,#9b59b6);color:#fff;">
+                            <i class="fas fa-user-plus me-1"></i> Add Member
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Additional CSS for Member Portal Modal -->
     <style>
         /* Member Portal Modal Styles */
@@ -9115,7 +9663,10 @@
             siteConfig:     'site_config',
             careers:        'careers',
             archiveData:    'archive_data',  // Archive Data Management
-            reportBuilder:  'reports'        // Report Builder
+            reportBuilder:  'reports',       // Report Builder
+            membershipDashboard: 'members',  // Membership Dashboard
+            familyUniverse: 'members',       // Family Universe
+            familyDetail:   'members'        // Family Detail (sub-view)
         };
 
         // Roles that bypass all permission checks (full access)
@@ -9604,6 +10155,302 @@
         const DemoData = window.DemoData;
         console.log('✅ DemoData initialized:', Object.keys(DemoData.testAccounts));
 
+        // ========== MEMBERSHIP & FAMILY MANAGEMENT SYSTEM ==========
+        /**
+         * Comprehensive year-wise membership under EC terms
+         * - EC Terms: 26-28, 28-30, etc. (2-year terms)
+         * - Membership Years: 2026-2027, 2027-2028, etc.
+         * - Family Universe: Immutable family IDs with mutable member lists
+         * - Membership IDs: Unique per year per membership unit upon payment
+         */
+        const MembershipManager = {
+            STORAGE_KEY: 'banf_membership_data',
+            
+            // EC Terms configuration
+            ecTerms: {
+                '26-28': { start: 2026, end: 2028, label: 'EC 2026-2028', current: true },
+                '28-30': { start: 2028, end: 2030, label: 'EC 2028-2030', current: false }
+            },
+            
+            // Membership tiers with pricing
+            tiers: {
+                student:    { name: 'Student',        amount: 165, earlyBird: null,  icon: 'fas fa-graduation-cap', color: '#17a2b8' },
+                individual: { name: 'Individual',     amount: 210, earlyBird: null,  icon: 'fas fa-user',           color: '#6c757d' },
+                couple:     { name: 'Couple',         amount: 330, earlyBird: null,  icon: 'fas fa-heart',          color: '#6f42c1' },
+                family:     { name: 'Family Premium', amount: 410, earlyBird: 375,   icon: 'fas fa-users',          color: '#e67e22' }
+            },
+            
+            // Current context
+            currentECTerm: '26-28',
+            currentMembershipYear: '2026-2027',
+            
+            // Data stores (persisted to localStorage)
+            data: {
+                families: {},          // familyId → { id, name, members[], createdAt, createdBy }
+                memberships: {},       // membershipId → { id, familyId, tier, year, ecTerm, paidAmount, paymentDate, paymentMethod, paymentRef, addedBy, futureDate, status }
+                adminNotes: [],        // { id, targetType, targetId, note, addedBy, addedAt }
+                familyIdCounter: 1000,
+                membershipIdCounter: 1
+            },
+            
+            init() {
+                this.load();
+                if (Object.keys(this.data.families).length === 0) this._seedDemoData();
+                console.log('✅ MembershipManager initialized:', Object.keys(this.data.families).length, 'families');
+            },
+            
+            load() {
+                try {
+                    const saved = localStorage.getItem(this.STORAGE_KEY);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        this.data = { ...this.data, ...parsed };
+                    }
+                } catch(e) { console.warn('[Membership] Load failed:', e); }
+            },
+            
+            save() {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+                } catch(e) { console.error('[Membership] Save failed:', e); }
+            },
+            
+            // ---- Family Universe Management ----
+            generateFamilyId() {
+                this.data.familyIdCounter++;
+                return `FAM-${String(this.data.familyIdCounter).padStart(5, '0')}`;
+            },
+            
+            createFamily(headName, members, createdBy) {
+                const familyId = this.generateFamilyId();
+                this.data.families[familyId] = {
+                    id: familyId,
+                    headName: headName,
+                    members: members.map((m, i) => ({
+                        id: `${familyId}-M${i + 1}`,
+                        firstName: m.firstName,
+                        lastName: m.lastName,
+                        email: m.email || '',
+                        phone: m.phone || '',
+                        relationship: m.relationship || (i === 0 ? 'Head' : 'Member'),
+                        dob: m.dob || '',
+                        addedAt: new Date().toISOString()
+                    })),
+                    createdAt: new Date().toISOString(),
+                    createdBy: createdBy || 'admin',
+                    updatedAt: new Date().toISOString()
+                };
+                this.save();
+                return familyId;
+            },
+            
+            getFamily(familyId) {
+                return this.data.families[familyId] || null;
+            },
+            
+            updateFamilyMember(familyId, memberId, updates) {
+                const family = this.data.families[familyId];
+                if (!family) return false;
+                const member = family.members.find(m => m.id === memberId);
+                if (!member) return false;
+                Object.assign(member, updates, { updatedAt: new Date().toISOString() });
+                family.updatedAt = new Date().toISOString();
+                this.save();
+                return true;
+            },
+            
+            addFamilyMember(familyId, memberData) {
+                const family = this.data.families[familyId];
+                if (!family) return null;
+                const memberId = `${familyId}-M${family.members.length + 1}`;
+                const newMember = {
+                    id: memberId,
+                    firstName: memberData.firstName,
+                    lastName: memberData.lastName,
+                    email: memberData.email || '',
+                    phone: memberData.phone || '',
+                    relationship: memberData.relationship || 'Member',
+                    dob: memberData.dob || '',
+                    addedAt: new Date().toISOString()
+                };
+                family.members.push(newMember);
+                family.updatedAt = new Date().toISOString();
+                this.save();
+                return memberId;
+            },
+            
+            removeFamilyMember(familyId, memberId) {
+                const family = this.data.families[familyId];
+                if (!family) return false;
+                const idx = family.members.findIndex(m => m.id === memberId);
+                if (idx < 0) return false;
+                family.members.splice(idx, 1);
+                family.updatedAt = new Date().toISOString();
+                this.save();
+                return true;
+            },
+            
+            transferMemberToNewFamily(sourceFamilyId, memberId, newFamilyHeadName) {
+                const sourceFamily = this.data.families[sourceFamilyId];
+                if (!sourceFamily) return null;
+                const member = sourceFamily.members.find(m => m.id === memberId);
+                if (!member) return null;
+                // Create new family with this member as head
+                const newFamilyId = this.createFamily(newFamilyHeadName || `${member.firstName} ${member.lastName}`, [{
+                    firstName: member.firstName, lastName: member.lastName,
+                    email: member.email, phone: member.phone, relationship: 'Head'
+                }], 'admin-transfer');
+                // Remove from old family
+                this.removeFamilyMember(sourceFamilyId, memberId);
+                this.addAdminNote('family', sourceFamilyId, `Member ${member.firstName} ${member.lastName} transferred to new family ${newFamilyId}`, 'system');
+                this.addAdminNote('family', newFamilyId, `Family created via transfer from ${sourceFamilyId}`, 'system');
+                return newFamilyId;
+            },
+            
+            getAllFamilies() {
+                return Object.values(this.data.families);
+            },
+            
+            // ---- Membership Management ----
+            generateMembershipId(year) {
+                this.data.membershipIdCounter++;
+                const yr = year.split('-')[0];
+                return `BANF-${yr}-${String(this.data.membershipIdCounter).padStart(4, '0')}`;
+            },
+            
+            createMembership(familyId, tier, paymentDetails, addedBy) {
+                const year = this.currentMembershipYear;
+                const ecTerm = this.currentECTerm;
+                const membershipId = this.generateMembershipId(year);
+                
+                this.data.memberships[membershipId] = {
+                    id: membershipId,
+                    familyId: familyId,
+                    tier: tier,
+                    year: year,
+                    ecTerm: ecTerm,
+                    paidAmount: paymentDetails.amount || this.tiers[tier]?.amount || 0,
+                    paymentDate: paymentDetails.date || new Date().toISOString().split('T')[0],
+                    paymentMethod: paymentDetails.method || 'Zelle',
+                    paymentRef: paymentDetails.ref || '',
+                    addedBy: addedBy || 'admin',
+                    futureDate: paymentDetails.futureDate || null,  // President/VP discretionary
+                    status: paymentDetails.futureDate ? 'pending_future' : 'active',
+                    createdAt: new Date().toISOString()
+                };
+                this.save();
+                return membershipId;
+            },
+            
+            getMembership(membershipId) {
+                return this.data.memberships[membershipId] || null;
+            },
+            
+            getMembershipsByFamily(familyId, year) {
+                return Object.values(this.data.memberships).filter(m => 
+                    m.familyId === familyId && (!year || m.year === year)
+                );
+            },
+            
+            getMembershipsByYear(year) {
+                return Object.values(this.data.memberships).filter(m => m.year === (year || this.currentMembershipYear));
+            },
+            
+            getMembershipsByECTerm(ecTerm) {
+                return Object.values(this.data.memberships).filter(m => m.ecTerm === (ecTerm || this.currentECTerm));
+            },
+            
+            isFamilyMemberCurrentYear(familyId) {
+                const memberships = this.getMembershipsByFamily(familyId, this.currentMembershipYear);
+                return memberships.some(m => m.status === 'active' || m.status === 'pending_future');
+            },
+            
+            // ---- Admin Notes ----
+            addAdminNote(targetType, targetId, note, addedBy) {
+                const noteId = `NOTE-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+                this.data.adminNotes.push({
+                    id: noteId,
+                    targetType: targetType,  // 'family' | 'member' | 'membership'
+                    targetId: targetId,
+                    note: note,
+                    addedBy: addedBy || 'admin',
+                    addedAt: new Date().toISOString()
+                });
+                this.save();
+                return noteId;
+            },
+            
+            getNotesFor(targetType, targetId) {
+                return this.data.adminNotes.filter(n => n.targetType === targetType && n.targetId === targetId)
+                    .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+            },
+            
+            // ---- Dashboard Stats ----
+            getDashboardStats() {
+                const yearMemberships = this.getMembershipsByYear();
+                const allFamilies = this.getAllFamilies();
+                const activeFamilies = allFamilies.filter(f => this.isFamilyMemberCurrentYear(f.id));
+                const byTier = {};
+                let totalRevenue = 0;
+                yearMemberships.forEach(m => {
+                    byTier[m.tier] = (byTier[m.tier] || 0) + 1;
+                    totalRevenue += m.paidAmount;
+                });
+                return {
+                    totalFamilies: allFamilies.length,
+                    activeFamilies: activeFamilies.length,
+                    inactiveFamilies: allFamilies.length - activeFamilies.length,
+                    totalMembershipsCurrentYear: yearMemberships.length,
+                    byTier: byTier,
+                    totalRevenue: totalRevenue,
+                    totalMembers: allFamilies.reduce((sum, f) => sum + f.members.length, 0),
+                    totalNotes: this.data.adminNotes.length
+                };
+            },
+            
+            // ---- Demo Data ----
+            _seedDemoData() {
+                // Create demo families linked to existing memberDirectory
+                const demoFamilies = [
+                    { head: 'Rajib Das',     members: [{ firstName:'Rajib', lastName:'Das', email:'rajib.das@email.com', phone:'(904) 555-1001', relationship:'Head' }, { firstName:'Priya', lastName:'Das', email:'priya.das@email.com', phone:'(904) 555-1001', relationship:'Spouse' }, { firstName:'Ria', lastName:'Das', email:'', phone:'', relationship:'Child' }] },
+                    { head: 'Anita Sharma',  members: [{ firstName:'Anita', lastName:'Sharma', email:'anita.sharma@email.com', phone:'(904) 555-1002', relationship:'Head' }] },
+                    { head: 'Suman Pal',     members: [{ firstName:'Suman', lastName:'Pal', email:'suman.pal@email.com', phone:'(904) 555-1003', relationship:'Head' }, { firstName:'Sunita', lastName:'Pal', email:'sunita.pal@email.com', phone:'(904) 555-1003', relationship:'Spouse' }, { firstName:'Aryan', lastName:'Pal', email:'', phone:'', relationship:'Child' }, { firstName:'Sneha', lastName:'Pal', email:'', phone:'', relationship:'Child' }] },
+                    { head: 'Ritu Dey',      members: [{ firstName:'Ritu', lastName:'Dey', email:'ritu.dey@email.com', phone:'(904) 555-1004', relationship:'Head' }, { firstName:'Subir', lastName:'Dey', email:'subir.dey@email.com', phone:'(904) 555-1004', relationship:'Spouse' }] },
+                    { head: 'Kamal Bose',    members: [{ firstName:'Kamal', lastName:'Bose', email:'kamal.bose@email.com', phone:'(904) 555-1005', relationship:'Head' }, { firstName:'Ananya', lastName:'Bose', email:'ananya.bose@email.com', phone:'(904) 555-1005', relationship:'Spouse' }] },
+                    { head: 'Priti Guha',    members: [{ firstName:'Priti', lastName:'Guha', email:'priti.guha@email.com', phone:'(904) 555-1006', relationship:'Head' }, { firstName:'Amit', lastName:'Guha', email:'amit.guha@email.com', phone:'(904) 555-1006', relationship:'Spouse' }, { firstName:'Tina', lastName:'Guha', email:'', phone:'', relationship:'Child' }] },
+                    { head: 'Arjun Mitra',   members: [{ firstName:'Arjun', lastName:'Mitra', email:'arjun.mitra@email.com', phone:'(904) 555-1007', relationship:'Head' }] },
+                    { head: 'Laboni Dutta',  members: [{ firstName:'Laboni', lastName:'Dutta', email:'laboni.dutta@email.com', phone:'(904) 555-1008', relationship:'Head' }, { firstName:'Dipak', lastName:'Dutta', email:'dipak.dutta@email.com', phone:'(904) 555-1008', relationship:'Spouse' }] }
+                ];
+                
+                const tiers = ['family', 'individual', 'family', 'couple', 'couple', 'family', 'student', 'family'];
+                const familyIds = [];
+                
+                demoFamilies.forEach((fam, i) => {
+                    const fid = this.createFamily(fam.head, fam.members, 'demo-seed');
+                    familyIds.push(fid);
+                    // Create membership for most families (leave one expired)
+                    if (i < 7) {
+                        this.createMembership(fid, tiers[i], {
+                            amount: this.tiers[tiers[i]].amount,
+                            date: `2026-0${i + 1}-15`,
+                            method: i % 2 === 0 ? 'Zelle' : 'Cash',
+                            ref: i % 2 === 0 ? `ZELLE-${Date.now()}-${i}` : `CASH-RCPT-${i}`
+                        }, 'demo-seed');
+                    }
+                });
+                
+                // Add some demo admin notes
+                this.addAdminNote('family', familyIds[0], 'Rajib is founding member — always keep membership active.', 'president');
+                this.addAdminNote('family', familyIds[7], 'Laboni family membership expired. Follow up required.', 'treasurer');
+                this.addAdminNote('family', familyIds[2], 'Suman upgraded from couple to family tier this year.', 'admin');
+                
+                this.save();
+            }
+        };
+
+        // Initialize MembershipManager
+        MembershipManager.init();
+
         /**
          * ========== FULL-SCREEN MEMBER PORTAL FUNCTIONS ==========
          */
@@ -10004,9 +10851,25 @@
                 if (sectionId === 'reportBuilder') {
                     ReportBuilder.render();
                 }
+                // Membership Dashboard
+                if (sectionId === 'membershipDashboard') {
+                    renderMembershipDashboard();
+                }
+                // Family Universe
+                if (sectionId === 'familyUniverse') {
+                    renderFamilyUniverse();
+                }
+                // Family Detail (internal navigation)
+                if (sectionId === 'familyDetail') {
+                    // Already rendered by showFamilyDetail()
+                }
                 // Feature 6: Render Career Directory when section is activated
                 if (sectionId === 'careers') {
                     renderAdminCareerTable();
+                }
+                // Legacy Members table
+                if (sectionId === 'members') {
+                    renderLegacyMembers();
                 }
                 // Zelle: Check service availability and load payment data when payments section is activated
                 if (sectionId === 'payments') {
@@ -12993,9 +13856,10 @@
                     contact:     true   // Contact Section
                 },
                 membershipPlans: [
-                    { id: 'plan_1', name: 'Individual', amount: 50,  period: 'Annual',   active: true },
-                    { id: 'plan_2', name: 'Family',     amount: 100, period: 'Annual',   active: true },
-                    { id: 'plan_3', name: 'Lifetime',   amount: 500, period: 'One-time', active: true }
+                    { id: 'student',    name: 'Student',         amount: 165, period: 'Annual', active: true },
+                    { id: 'individual', name: 'Individual',      amount: 210, period: 'Annual', active: true },
+                    { id: 'couple',     name: 'Couple',          amount: 330, period: 'Annual', active: true },
+                    { id: 'family',     name: 'Family Premium',  amount: 410, earlyBird: 375, earlyBirdDeadline: '2026-03-31', period: 'Annual', active: true }
                 ],
                 sponsorshipTiers: [
                     { id: 'tier_1', name: 'Community', amount: 250,  benefits: 'Name listed on website',               active: true },
@@ -13444,10 +14308,531 @@
             document.head.appendChild(link2);
         })();
 
+        })();
+
+        // ═══════════════════════════════════════════════════════════════
+        // MEMBERSHIP DASHBOARD & FAMILY UNIVERSE — JS Logic
+        // ═══════════════════════════════════════════════════════════════
+        let currentFamilyDetailId = null;
+
+        // ── Membership Dashboard ──────────────────────────────────────
+        function renderMembershipDashboard() {
+            const year = document.getElementById('mbrYearSelect')?.value || '2026-2027';
+            const ecTerm = document.getElementById('mbrECTermSelect')?.value || '26-28';
+            const stats = MembershipManager.getDashboardStats();
+            const memberships = MembershipManager.getMembershipsByYear(year);
+
+            // Update stats cards
+            const allFamilies = MembershipManager.getAllFamilies();
+            const activeFamiliesThisYear = allFamilies.filter(f => MembershipManager.isFamilyMemberCurrentYear(f.familyId, year));
+            document.getElementById('mbrStatTotalFamilies').textContent = allFamilies.length;
+            document.getElementById('mbrStatActive').textContent = activeFamiliesThisYear.length;
+            document.getElementById('mbrStatInactive').textContent = allFamilies.length - activeFamiliesThisYear.length;
+
+            const revenue = memberships.reduce((sum, m) => sum + (m.amountPaid || 0), 0);
+            document.getElementById('mbrStatRevenue').textContent = '$' + revenue.toLocaleString();
+
+            // Tier breakdown
+            const byTier = { family: 0, couple: 0, individual: 0, student: 0 };
+            memberships.forEach(m => { if (byTier[m.tier] !== undefined) byTier[m.tier]++; });
+            document.getElementById('mbrTierFamily').textContent = byTier.family;
+            document.getElementById('mbrTierCouple').textContent = byTier.couple;
+            document.getElementById('mbrTierIndividual').textContent = byTier.individual;
+            document.getElementById('mbrTierStudent').textContent = byTier.student;
+
+            // Render table
+            renderMembershipTable(memberships);
+        }
+
+        function renderMembershipTable(memberships) {
+            const tbody = document.getElementById('mbrTableBody');
+            if (!tbody) return;
+            if (!memberships || memberships.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No memberships found for this period</td></tr>';
+                return;
+            }
+            const tierIcons = { family: 'fa-home', couple: 'fa-heart', individual: 'fa-user', student: 'fa-graduation-cap' };
+            const tierColors = { family: '#6f42c1', couple: '#0d6efd', individual: '#198754', student: '#ffc107' };
+            const statusBadge = s => {
+                const colors = { active: 'success', pending: 'warning', expired: 'secondary' };
+                return `<span class="badge bg-${colors[s] || 'secondary'}">${(s || 'unknown').charAt(0).toUpperCase() + (s || '').slice(1)}</span>`;
+            };
+
+            tbody.innerHTML = memberships.map(m => {
+                const family = MembershipManager.getFamily(m.familyId);
+                const headName = family ? family.members.find(mb => mb.relationship === 'head')?.name || family.members[0]?.name || '—' : '—';
+                return `<tr data-mbr-id="${m.membershipId}" data-tier="${m.tier}" data-status="${m.status}">
+                    <td><code>${m.membershipId}</code></td>
+                    <td><a href="#" onclick="showFamilyDetail('${m.familyId}');return false;" style="color:#6528F7;">${m.familyId}</a></td>
+                    <td>${headName}</td>
+                    <td><i class="fas ${tierIcons[m.tier] || 'fa-circle'} me-1" style="color:${tierColors[m.tier] || '#666'};"></i>${(m.tier || '').charAt(0).toUpperCase() + (m.tier || '').slice(1)}</td>
+                    <td>$${(m.amountPaid || 0).toLocaleString()}</td>
+                    <td>${m.paymentDate || '—'}</td>
+                    <td>${(m.paymentMethod || '—').charAt(0).toUpperCase() + (m.paymentMethod || '').slice(1)}</td>
+                    <td>${statusBadge(m.status)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showFamilyDetail('${m.familyId}')" title="View Family"><i class="fas fa-eye"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterMembershipTable() {
+            const search = (document.getElementById('mbrSearchInput')?.value || '').toLowerCase();
+            const tier = document.getElementById('mbrFilterTier')?.value || '';
+            const status = document.getElementById('mbrFilterStatus')?.value || '';
+            document.querySelectorAll('#mbrTableBody tr[data-mbr-id]').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const matchSearch = !search || text.includes(search);
+                const matchTier = !tier || row.dataset.tier === tier;
+                const matchStatus = !status || row.dataset.status === status;
+                row.style.display = (matchSearch && matchTier && matchStatus) ? '' : 'none';
+            });
+        }
+
+        // ── Family Universe ───────────────────────────────────────────
+        function renderFamilyUniverse() {
+            const container = document.getElementById('famCardsContainer');
+            if (!container) return;
+            const search = (document.getElementById('famSearchInput')?.value || '').toLowerCase();
+            const statusFilter = document.getElementById('famFilterStatus')?.value || '';
+            const year = document.getElementById('mbrYearSelect')?.value || '2026-2027';
+
+            let families = MembershipManager.getAllFamilies();
+
+            // Filter
+            families = families.filter(f => {
+                const headName = f.members.find(m => m.relationship === 'head')?.name || f.members[0]?.name || '';
+                const textMatch = !search || headName.toLowerCase().includes(search) || f.familyId.toLowerCase().includes(search);
+                const isActive = MembershipManager.isFamilyMemberCurrentYear(f.familyId, year);
+                const statusMatch = !statusFilter || (statusFilter === 'active' && isActive) || (statusFilter === 'inactive' && !isActive);
+                return textMatch && statusMatch;
+            });
+
+            if (families.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="fas fa-users fa-3x mb-3 d-block" style="opacity:0.3;"></i>No families found</div>';
+                return;
+            }
+
+            container.innerHTML = families.map(f => {
+                const head = f.members.find(m => m.relationship === 'head') || f.members[0] || {};
+                const isActive = MembershipManager.isFamilyMemberCurrentYear(f.familyId, year);
+                const memberships = MembershipManager.getMembershipsByFamily(f.familyId);
+                const currentMbr = memberships.find(m => m.year === year);
+                const tierLabel = currentMbr ? (currentMbr.tier.charAt(0).toUpperCase() + currentMbr.tier.slice(1)) : '—';
+                const tierIcons = { family: 'fa-home', couple: 'fa-heart', individual: 'fa-user', student: 'fa-graduation-cap' };
+                const tierIcon = currentMbr ? (tierIcons[currentMbr.tier] || 'fa-circle') : 'fa-minus';
+                const notes = MembershipManager.getNotesFor('family', f.familyId);
+
+                return `<div class="col-md-6 col-lg-4">
+                    <div class="admin-card p-3" style="cursor:pointer;border-left:4px solid ${isActive ? '#28a745' : '#dc3545'};" onclick="showFamilyDetail('${f.familyId}')">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-0">${head.name || 'Unknown'}</h6>
+                                <small class="text-muted"><code>${f.familyId}</code></small>
+                            </div>
+                            <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}">${isActive ? 'Active' : 'Inactive'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small><i class="fas fa-user-friends me-1"></i>${f.members.length} member${f.members.length !== 1 ? 's' : ''}</small>
+                                ${currentMbr ? `<br><small><i class="fas ${tierIcon} me-1"></i>${tierLabel} — $${currentMbr.amountPaid}</small>` : '<br><small class="text-muted">No membership this year</small>'}
+                            </div>
+                            <div>
+                                ${notes.length > 0 ? `<span class="badge bg-info" title="${notes.length} notes"><i class="fas fa-sticky-note"></i> ${notes.length}</span>` : ''}
+                                <span class="badge bg-secondary">${memberships.length} yr${memberships.length !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Family Detail View ────────────────────────────────────────
+        function showFamilyDetail(familyId) {
+            currentFamilyDetailId = familyId;
+            const family = MembershipManager.getFamily(familyId);
+            if (!family) { alert('Family not found: ' + familyId); return; }
+
+            const year = document.getElementById('mbrYearSelect')?.value || '2026-2027';
+            const isActive = MembershipManager.isFamilyMemberCurrentYear(familyId, year);
+            const head = family.members.find(m => m.relationship === 'head') || family.members[0] || {};
+
+            // Update header
+            document.getElementById('famDetailTitle').textContent = head.name + "'s Family";
+            document.getElementById('famDetailId').textContent = familyId;
+            const statusEl = document.getElementById('famDetailStatus');
+            statusEl.textContent = isActive ? 'Active ' + year : 'Inactive ' + year;
+            statusEl.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
+
+            // Render members table
+            const membersBody = document.getElementById('famMembersTableBody');
+            membersBody.innerHTML = family.members.map((m, i) => `<tr>
+                <td>${m.name} ${m.relationship === 'head' ? '<span class="badge bg-dark ms-1">Head</span>' : ''}</td>
+                <td>${(m.relationship || '').charAt(0).toUpperCase() + (m.relationship || '').slice(1)}</td>
+                <td>${m.email || '<span class="text-muted">—</span>'}</td>
+                <td>${m.phone || '<span class="text-muted">—</span>'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="editFamilyMember('${familyId}',${i})" title="Edit"><i class="fas fa-edit"></i></button>
+                    ${m.relationship !== 'head' ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="removeFamilyMember('${familyId}',${i})" title="Remove"><i class="fas fa-user-minus"></i></button>` : ''}
+                </td>
+            </tr>`).join('');
+
+            // Render membership history
+            const historyBody = document.getElementById('famMembershipHistoryBody');
+            const memberships = MembershipManager.getMembershipsByFamily(familyId);
+            if (memberships.length === 0) {
+                historyBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No membership records</td></tr>';
+            } else {
+                historyBody.innerHTML = memberships.map(m => `<tr>
+                    <td><code>${m.membershipId}</code></td>
+                    <td>${m.year}</td>
+                    <td>EC ${m.ecTerm}</td>
+                    <td>${(m.tier || '').charAt(0).toUpperCase() + (m.tier || '').slice(1)}</td>
+                    <td>$${(m.amountPaid || 0).toLocaleString()}</td>
+                    <td>${m.paymentDate || '—'} (${(m.paymentMethod || '—').charAt(0).toUpperCase() + (m.paymentMethod || '').slice(1)})</td>
+                    <td><span class="badge bg-${m.status === 'active' ? 'success' : m.status === 'pending' ? 'warning' : 'secondary'}">${(m.status || '').charAt(0).toUpperCase() + (m.status || '').slice(1)}</span></td>
+                </tr>`).join('');
+            }
+
+            // Render admin notes
+            const notesContainer = document.getElementById('famNotesContainer');
+            const notes = MembershipManager.getNotesFor('family', familyId);
+            if (notes.length === 0) {
+                notesContainer.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-sticky-note me-1"></i>No notes yet</div>';
+            } else {
+                notesContainer.innerHTML = notes.sort((a, b) => new Date(b.date) - new Date(a.date)).map(n => `
+                    <div class="border rounded p-2 mb-2" style="background:#f8f9fa;">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted"><i class="fas fa-user me-1"></i>${n.addedBy}</small>
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i>${new Date(n.date).toLocaleString()}</small>
+                        </div>
+                        <div class="mt-1">${n.note}</div>
+                    </div>`).join('');
+            }
+
+            // Show the section
+            showAdminSection('familyDetail');
+        }
+
+        // ── Modal Launchers ───────────────────────────────────────────
+        function showAddMembershipModal(prefillFamilyId) {
+            document.getElementById('mbrFormEditId').value = '';
+            document.getElementById('addMembershipModalLabel').innerHTML = '<i class="fas fa-id-card me-2"></i>New Membership';
+            const form = document.getElementById('addMembershipForm');
+            form.reset();
+            // Populate family dropdown
+            const famSelect = document.getElementById('mbrFormFamily');
+            const families = MembershipManager.getAllFamilies();
+            famSelect.innerHTML = '<option value="">Select family...</option>' +
+                families.map(f => {
+                    const head = f.members.find(m => m.relationship === 'head') || f.members[0] || {};
+                    return `<option value="${f.familyId}" ${f.familyId === prefillFamilyId ? 'selected' : ''}>${f.familyId} — ${head.name || 'Unknown'}</option>`;
+                }).join('');
+            // Set today's date
+            document.getElementById('mbrFormPaymentDate').value = new Date().toISOString().split('T')[0];
+            // Toggle future date checkbox
+            document.getElementById('mbrFormFutureDate').addEventListener('change', function() {
+                document.getElementById('mbrFormAgreedDate').classList.toggle('d-none', !this.checked);
+                if (this.checked) document.getElementById('mbrFormStatus').value = 'pending';
+            });
+            new bootstrap.Modal(document.getElementById('addMembershipModal')).show();
+        }
+
+        function updateMbrFormAmount() {
+            const tier = document.getElementById('mbrFormTier').value;
+            const amounts = { student: 165, individual: 210, couple: 330, family: 410 };
+            if (amounts[tier]) document.getElementById('mbrFormAmount').value = amounts[tier];
+        }
+
+        function submitMembership(e) {
+            e.preventDefault();
+            const familyId = document.getElementById('mbrFormFamily').value;
+            const year = document.getElementById('mbrFormYear').value;
+            const tier = document.getElementById('mbrFormTier').value;
+            const amount = parseFloat(document.getElementById('mbrFormAmount').value);
+            const paymentDate = document.getElementById('mbrFormPaymentDate').value;
+            const paymentMethod = document.getElementById('mbrFormPaymentMethod').value;
+            const ecTerm = document.getElementById('mbrFormECTerm').value;
+            const status = document.getElementById('mbrFormStatus').value;
+            const agreedFutureDate = document.getElementById('mbrFormFutureDate').checked ? document.getElementById('mbrFormAgreedDate').value : null;
+
+            if (!familyId || !tier || !amount) {
+                document.getElementById('mbrFormStatus_msg').innerHTML = '<div class="alert alert-danger">Please fill all required fields</div>';
+                return false;
+            }
+
+            const mbr = MembershipManager.createMembership(familyId, year, tier, amount, paymentDate, paymentMethod, ecTerm);
+            if (mbr) {
+                mbr.status = status;
+                if (agreedFutureDate) mbr.agreedFutureDate = agreedFutureDate;
+                MembershipManager._save();
+                bootstrap.Modal.getInstance(document.getElementById('addMembershipModal'))?.hide();
+                renderMembershipDashboard();
+                if (currentFamilyDetailId === familyId) showFamilyDetail(familyId);
+            }
+            return false;
+        }
+
+        function showAddFamilyModal() {
+            document.getElementById('famFormEditId').value = '';
+            document.getElementById('addFamilyModalLabel').innerHTML = '<i class="fas fa-users me-2"></i>New Family';
+            document.getElementById('addFamilyForm').reset();
+            document.getElementById('famFormMembersList').innerHTML = '';
+            addFamilyMemberRow(); // Add first empty member row
+            new bootstrap.Modal(document.getElementById('addFamilyModal')).show();
+        }
+
+        function showEditFamilyModal() {
+            if (!currentFamilyDetailId) return;
+            const family = MembershipManager.getFamily(currentFamilyDetailId);
+            if (!family) return;
+            const head = family.members.find(m => m.relationship === 'head') || family.members[0];
+            document.getElementById('famFormEditId').value = currentFamilyDetailId;
+            document.getElementById('addFamilyModalLabel').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Family';
+            document.getElementById('famFormHeadName').value = head?.name || '';
+            document.getElementById('famFormHeadEmail').value = head?.email || '';
+            document.getElementById('famFormHeadPhone').value = head?.phone || '';
+            // Populate additional members
+            const membersList = document.getElementById('famFormMembersList');
+            membersList.innerHTML = '';
+            family.members.filter(m => m.relationship !== 'head').forEach(m => addFamilyMemberRow(m));
+            new bootstrap.Modal(document.getElementById('addFamilyModal')).show();
+        }
+
+        function addFamilyMemberRow(prefill) {
+            const container = document.getElementById('famFormMembersList');
+            const row = document.createElement('div');
+            row.className = 'row g-2 mb-2 align-items-end fam-member-row';
+            row.innerHTML = `
+                <div class="col-md-3"><input type="text" class="form-control form-control-sm" placeholder="Name" value="${prefill?.name || ''}"></div>
+                <div class="col-md-2"><select class="form-select form-select-sm">
+                    <option value="spouse" ${prefill?.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
+                    <option value="child" ${prefill?.relationship === 'child' ? 'selected' : ''}>Child</option>
+                    <option value="parent" ${prefill?.relationship === 'parent' ? 'selected' : ''}>Parent</option>
+                    <option value="sibling" ${prefill?.relationship === 'sibling' ? 'selected' : ''}>Sibling</option>
+                    <option value="other" ${prefill?.relationship === 'other' ? 'selected' : ''}>Other</option>
+                </select></div>
+                <div class="col-md-3"><input type="email" class="form-control form-control-sm" placeholder="Email" value="${prefill?.email || ''}"></div>
+                <div class="col-md-3"><input type="tel" class="form-control form-control-sm" placeholder="Phone" value="${prefill?.phone || ''}"></div>
+                <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.fam-member-row').remove()"><i class="fas fa-times"></i></button></div>`;
+            container.appendChild(row);
+        }
+
+        function submitFamily(e) {
+            e.preventDefault();
+            const editId = document.getElementById('famFormEditId').value;
+            const headName = document.getElementById('famFormHeadName').value.trim();
+            const headEmail = document.getElementById('famFormHeadEmail').value.trim();
+            const headPhone = document.getElementById('famFormHeadPhone').value.trim();
+
+            if (!headName) {
+                document.getElementById('famFormStatus_msg').innerHTML = '<div class="alert alert-danger">Head of family name is required</div>';
+                return false;
+            }
+
+            // Collect additional members
+            const additionalMembers = [];
+            document.querySelectorAll('#famFormMembersList .fam-member-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const select = row.querySelector('select');
+                const name = inputs[0]?.value?.trim();
+                if (name) {
+                    additionalMembers.push({
+                        name,
+                        relationship: select?.value || 'other',
+                        email: inputs[1]?.value?.trim() || '',
+                        phone: inputs[2]?.value?.trim() || ''
+                    });
+                }
+            });
+
+            if (editId) {
+                // Update existing family
+                const family = MembershipManager.getFamily(editId);
+                if (family) {
+                    const head = family.members.find(m => m.relationship === 'head') || family.members[0];
+                    if (head) { head.name = headName; head.email = headEmail; head.phone = headPhone; }
+                    // Replace non-head members
+                    family.members = [head, ...additionalMembers];
+                    MembershipManager._save();
+                }
+            } else {
+                // Create new family
+                MembershipManager.createFamily(headName, headEmail, headPhone, additionalMembers);
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('addFamilyModal'))?.hide();
+            renderFamilyUniverse();
+            if (editId) showFamilyDetail(editId);
+            return false;
+        }
+
+        function showTransferMemberModal() {
+            if (!currentFamilyDetailId) return;
+            const family = MembershipManager.getFamily(currentFamilyDetailId);
+            if (!family) return;
+
+            document.getElementById('xferSourceFamilyId').value = currentFamilyDetailId;
+            const memberSelect = document.getElementById('xferMemberSelect');
+            memberSelect.innerHTML = '<option value="">Select member...</option>' +
+                family.members.filter(m => m.relationship !== 'head').map((m, i) =>
+                    `<option value="${i}">${m.name} (${m.relationship})</option>`
+                ).join('');
+
+            // Populate existing families dropdown
+            const existingSelect = document.getElementById('xferExistingFamily');
+            existingSelect.innerHTML = MembershipManager.getAllFamilies()
+                .filter(f => f.familyId !== currentFamilyDetailId)
+                .map(f => {
+                    const head = f.members.find(m => m.relationship === 'head') || f.members[0];
+                    return `<option value="${f.familyId}">${f.familyId} — ${head?.name || 'Unknown'}</option>`;
+                }).join('');
+
+            // Toggle existing family dropdown
+            document.getElementById('xferDestination').onchange = function() {
+                document.getElementById('xferExistingFamilyDiv').classList.toggle('d-none', this.value !== 'existing');
+            };
+
+            document.getElementById('transferMemberForm').reset();
+            document.getElementById('xferSourceFamilyId').value = currentFamilyDetailId;
+            new bootstrap.Modal(document.getElementById('transferMemberModal')).show();
+        }
+
+        function submitTransferMember(e) {
+            e.preventDefault();
+            const sourceFamilyId = document.getElementById('xferSourceFamilyId').value;
+            const memberIdx = parseInt(document.getElementById('xferMemberSelect').value);
+            const destination = document.getElementById('xferDestination').value;
+            const reason = document.getElementById('xferReason').value;
+
+            const family = MembershipManager.getFamily(sourceFamilyId);
+            if (!family || isNaN(memberIdx)) { alert('Please select a member to transfer'); return false; }
+
+            const member = family.members[memberIdx];
+            if (!member) { alert('Invalid member selection'); return false; }
+
+            if (destination === 'existing') {
+                const destFamilyId = document.getElementById('xferExistingFamily').value;
+                if (!destFamilyId) { alert('Please select a destination family'); return false; }
+                // Move member to existing family
+                MembershipManager.addFamilyMember(destFamilyId, member.name, member.relationship === 'head' ? 'other' : member.relationship, member.email, member.phone);
+                MembershipManager.removeFamilyMember(sourceFamilyId, memberIdx);
+                // Add note
+                MembershipManager.addAdminNote('family', sourceFamilyId, `Member "${member.name}" transferred to ${destFamilyId}. Reason: ${reason || 'Not specified'}`, AdminPortal.admin?.name || 'Admin');
+                MembershipManager.addAdminNote('family', destFamilyId, `Member "${member.name}" transferred from ${sourceFamilyId}. Reason: ${reason || 'Not specified'}`, AdminPortal.admin?.name || 'Admin');
+            } else {
+                // Create new family with transferred member
+                const result = MembershipManager.transferMemberToNewFamily(sourceFamilyId, memberIdx);
+                if (result) {
+                    MembershipManager.addAdminNote('family', sourceFamilyId, `Member "${member.name}" transferred to new family ${result.familyId}. Reason: ${reason || 'Not specified'}`, AdminPortal.admin?.name || 'Admin');
+                    MembershipManager.addAdminNote('family', result.familyId, `Family created via transfer from ${sourceFamilyId}. Reason: ${reason || 'Not specified'}`, AdminPortal.admin?.name || 'Admin');
+                }
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('transferMemberModal'))?.hide();
+            showFamilyDetail(sourceFamilyId);
+            return false;
+        }
+
+        function showAddNoteModal(targetType, targetId) {
+            const type = targetType || 'family';
+            const id = targetId || currentFamilyDetailId;
+            document.getElementById('noteFormTargetType').value = type;
+            document.getElementById('noteFormTargetId').value = id;
+            document.getElementById('noteFormTargetLabel').value = `${type.charAt(0).toUpperCase() + type.slice(1)}: ${id}`;
+            document.getElementById('noteFormText').value = '';
+            new bootstrap.Modal(document.getElementById('addNoteModal')).show();
+        }
+
+        function submitAdminNote(e) {
+            e.preventDefault();
+            const type = document.getElementById('noteFormTargetType').value;
+            const id = document.getElementById('noteFormTargetId').value;
+            const note = document.getElementById('noteFormText').value.trim();
+            if (!note) { alert('Please enter a note'); return false; }
+            MembershipManager.addAdminNote(type, id, note, AdminPortal.admin?.name || 'Admin');
+            bootstrap.Modal.getInstance(document.getElementById('addNoteModal'))?.hide();
+            if (currentFamilyDetailId) showFamilyDetail(currentFamilyDetailId);
+            return false;
+        }
+
+        function showAddFamilyMemberModal() {
+            if (!currentFamilyDetailId) return;
+            document.getElementById('addMemFamilyId').value = currentFamilyDetailId;
+            document.getElementById('addFamilyMemberForm').reset();
+            document.getElementById('addMemFamilyId').value = currentFamilyDetailId;
+            new bootstrap.Modal(document.getElementById('addFamilyMemberModal')).show();
+        }
+
+        function submitAddFamilyMember(e) {
+            e.preventDefault();
+            const familyId = document.getElementById('addMemFamilyId').value;
+            const name = document.getElementById('addMemName').value.trim();
+            const relation = document.getElementById('addMemRelation').value;
+            const email = document.getElementById('addMemEmail').value.trim();
+            const phone = document.getElementById('addMemPhone').value.trim();
+            if (!name) { alert('Name is required'); return false; }
+            MembershipManager.addFamilyMember(familyId, name, relation, email, phone);
+            bootstrap.Modal.getInstance(document.getElementById('addFamilyMemberModal'))?.hide();
+            showFamilyDetail(familyId);
+            return false;
+        }
+
+        function editFamilyMember(familyId, memberIdx) {
+            const family = MembershipManager.getFamily(familyId);
+            if (!family) return;
+            const member = family.members[memberIdx];
+            if (!member) return;
+            const newName = prompt('Name:', member.name);
+            if (newName === null) return;
+            const newEmail = prompt('Email:', member.email || '');
+            const newPhone = prompt('Phone:', member.phone || '');
+            const updates = {};
+            if (newName.trim()) updates.name = newName.trim();
+            if (newEmail !== null) updates.email = newEmail.trim();
+            if (newPhone !== null) updates.phone = newPhone.trim();
+            MembershipManager.updateFamilyMember(familyId, memberIdx, updates);
+            showFamilyDetail(familyId);
+        }
+
+        function removeFamilyMember(familyId, memberIdx) {
+            const family = MembershipManager.getFamily(familyId);
+            if (!family) return;
+            const member = family.members[memberIdx];
+            if (!member) return;
+            if (!confirm(`Remove ${member.name} from this family?`)) return;
+            MembershipManager.removeFamilyMember(familyId, memberIdx);
+            MembershipManager.addAdminNote('family', familyId, `Removed member: ${member.name}`, AdminPortal.admin?.name || 'Admin');
+            showFamilyDetail(familyId);
+        }
+
+        function renderLegacyMembers() {
+            const tbody = document.getElementById('legacyMembersTableBody');
+            if (!tbody) return;
+            const families = MembershipManager.getAllFamilies();
+            const year = '2026-2027';
+            const rows = [];
+            families.forEach(f => {
+                f.members.forEach(m => {
+                    const isActive = MembershipManager.isFamilyMemberCurrentYear(f.familyId, year);
+                    const mbr = MembershipManager.getMembershipsByFamily(f.familyId).find(mb => mb.year === year);
+                    rows.push(`<tr>
+                        <td><code>${mbr?.membershipId || '—'}</code></td>
+                        <td>${m.name}</td>
+                        <td>${m.email || '—'}</td>
+                        <td>${mbr ? mbr.tier.charAt(0).toUpperCase() + mbr.tier.slice(1) : '—'}</td>
+                        <td><span class="status-badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+                        <td><button class="btn btn-sm btn-outline-primary" onclick="showFamilyDetail('${f.familyId}')"><i class="fas fa-eye"></i></button></td>
+                    </tr>`);
+                });
+            });
+            tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6" class="text-center text-muted">No members</td></tr>';
+        }
+
         // ========== ZELLE PAYMENT AUTOMATION ==========
-        // Zelle runs via Flask microservice - detect if available or show setup instructions
-        const ZELLE_API_DEFAULT = 'http://localhost:5002/api/zelle';
-        let ZELLE_API = ZELLE_API_DEFAULT;
+        // Zelle runs via Wix Velo HTTP Functions — same pattern as Gmail
+        const ZELLE_API = WIX_API_BASE;
         let _zelleServiceAvailable = false;
         let _zelleCurrentFilter = 'all';
         let _zelleMatchPaymentId = null;
@@ -13455,9 +14840,9 @@
         // Check Zelle service availability on load
         async function zelleCheckService() {
             try {
-                const resp = await fetch(`${ZELLE_API}/health`, { method: 'GET', signal: AbortSignal.timeout(3000) });
-                if (resp.ok) { _zelleServiceAvailable = true; return true; }
-            } catch (e) { /* service not running */ }
+                const result = await safeApiFetch('/zelle_health');
+                if (result.ok) { _zelleServiceAvailable = true; return true; }
+            } catch (e) { /* service not available */ }
             _zelleServiceAvailable = false;
             // Show offline banner in the Zelle section
             const banner = document.getElementById('zelleScanBanner');
@@ -13465,29 +14850,64 @@
                 banner.style.display = 'block';
                 banner.style.background = '#fff3e0'; banner.style.borderColor = '#ff9800';
                 document.getElementById('zelleScanMessage').innerHTML =
-                    '<i class="fas fa-info-circle"></i> <strong>Zelle service offline.</strong> The Zelle Payment Automation requires the local admin service (port 5002). ' +
-                    'Contact your admin to start the service for payment processing. All other features work normally.';
+                    '<i class="fas fa-info-circle"></i> <strong>Zelle service connecting...</strong> The Zelle Payment API is initializing via Wix Velo. ' +
+                    'If this persists, contact your admin to verify the backend is published.';
             }
             return false;
         }
 
         async function zelleApiFetch(path, options = {}) {
-            if (!_zelleServiceAvailable) {
-                // Re-check once before failing
-                const alive = await zelleCheckService();
-                if (!alive) return null;
+            // Convert REST-style paths to Wix Velo flat function names
+            // e.g. /stats → /zelle_stats, /payments → /zelle_payments, /payments/5/verify → /zelle_verify
+            let endpoint;
+            const cleanPath = path.replace(/^\//, '');
+            
+            // Handle parameterized paths like /payments/:id/verify, /payments/:id/reject, /payments/:id/match
+            const actionMatch = cleanPath.match(/^payments\/(\d+)\/(verify|reject|match)$/);
+            if (actionMatch) {
+                endpoint = `/zelle_${actionMatch[2]}`;
+                // Inject the payment ID into the body
+                let body = {};
+                try { body = JSON.parse(options.body || '{}'); } catch(e) {}
+                body.payment_id = parseInt(actionMatch[1]);
+                options.body = JSON.stringify(body);
+            } else if (cleanPath.startsWith('poller/')) {
+                endpoint = `/zelle_poller_${cleanPath.split('/')[1]}`; // poller/start → zelle_poller_start
+            } else if (cleanPath.startsWith('test/')) {
+                endpoint = `/zelle_test_${cleanPath.split('/')[1]}`; // test/seed → zelle_test_seed
+            } else {
+                endpoint = `/zelle_${cleanPath.replace(/\?.*/, '')}`; // /stats → /zelle_stats
             }
-            try {
-                const resp = await fetch(`${ZELLE_API}${path}`, {
-                    headers: { 'Content-Type': 'application/json' },
-                    ...options
-                });
-                return await resp.json();
-            } catch (err) {
-                console.error('[Zelle API]', err);
-                _zelleServiceAvailable = false;
+            
+            // Preserve query params
+            const qIdx = path.indexOf('?');
+            if (qIdx >= 0) {
+                const params = path.substring(qIdx + 1);
+                // Inject query params into body for POST, or append for GET
+                if (options.method === 'POST' || options.body) {
+                    let body = {};
+                    try { body = JSON.parse(options.body || '{}'); } catch(e) {}
+                    new URLSearchParams(params).forEach((v, k) => { body[k] = v; });
+                    options.body = JSON.stringify(body);
+                } else {
+                    endpoint += '?' + params;
+                }
+            }
+            
+            // Use safeApiFetch (same wrapper as Gmail)
+            const result = await safeApiFetch(endpoint, {
+                method: options.method || 'GET',
+                ...(options.body ? { body: options.body } : {})
+            });
+            
+            if (!result.ok) {
+                if (result.status === 404) {
+                    _zelleServiceAvailable = false;
+                    console.warn('[Zelle] Endpoint not found:', endpoint, '— Wix Velo backend may not be published.');
+                }
                 return null;
             }
+            return result.data;
         }
 
         async function zelleLoadStats() {
@@ -13580,7 +15000,7 @@
                 banner.style.display = 'block';
                 banner.style.background = '#ffebee'; banner.style.borderColor = '#f44336';
                 document.getElementById('zelleScanMessage').innerHTML =
-                    '❌ Scan failed. Make sure the Zelle service is running on port 5002.';
+                    '❌ Scan failed. Verify that the Zelle backend is published on Wix Velo.';
             }
         }
 
