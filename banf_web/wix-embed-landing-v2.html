@@ -4015,6 +4015,12 @@
         function apiFetch(endpoint, options = {}) {
             let url = apiUrl(endpoint);
             let opts = { ...options };
+
+            // Add timeout to prevent indefinite hangs (default 10s)
+            if (!opts.signal) {
+                opts.signal = AbortSignal.timeout(options.timeout || 10000);
+            }
+            delete opts.timeout;
             
             // Wix only supports GET and POST - convert DELETE to POST
             if (opts.method === 'DELETE') {
@@ -6093,8 +6099,8 @@
                     </div>
                 </div>
                 <div class="admin-user-menu">
-                    <button class="admin-mobile-toggle btn btn-sm btn-outline-light me-2" style="display:none;" onclick="toggleAdminSidebar()" aria-label="Toggle sidebar">
-                        <i class="fas fa-bars"></i>
+                    <button class="admin-mobile-toggle btn btn-sm btn-outline-light me-2" onclick="toggleAdminSidebar()" aria-label="Toggle sidebar">
+                        <i class="fas fa-bars"></i> <span class="d-none d-sm-inline">Menu</span>
                     </button>
                     <span class="admin-role-badge" id="adminRoleBadge">EC Member</span>
                     <div class="admin-user-avatar">
@@ -8295,6 +8301,10 @@
             padding: 0.45rem 0.7rem;
         }
 
+        .admin-mobile-toggle {
+            display: none;
+        }
+
         .admin-portal-container {
             display: flex;
             flex: 1;
@@ -8532,24 +8542,37 @@
             font-size: 0.85rem;
         }
 
-        /* Admin responsive */
+        /* Admin responsive — tablet: slide-in drawer with full nav labels */
         @media (max-width: 992px) {
-            .admin-portal-container { flex-direction: column; }
+            .admin-portal-container { flex-direction: column; position: relative; }
             .admin-sidebar {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid #e0e0e0;
-                display: flex;
-                overflow-x: auto;
-                padding: 0.75rem;
-                gap: 0.5rem;
+                position: fixed;
+                left: -290px;
+                top: 70px;
+                width: 280px;
+                height: calc(100vh - 70px);
+                z-index: 1050;
+                transition: left 0.3s ease;
+                flex-direction: column;
+                overflow-y: auto;
+                overflow-x: hidden;
+                border-right: 1px solid #e0e0e0;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
             }
-            .admin-sidebar-section { display: flex; gap: 0.25rem; margin-bottom: 0; padding: 0; }
-            .admin-sidebar-section h6 { display: none; }
-            .admin-nav-item { white-space: nowrap; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
-            .admin-nav-item span { display: none; }
+            .admin-sidebar.open { left: 0; }
+            .admin-sidebar-section { flex-direction: column; margin-bottom: 1rem; padding: 0 0.75rem; }
+            .admin-sidebar-section h6 { display: block; }
+            .admin-nav-item { white-space: nowrap; padding: 0.65rem 1rem; font-size: 0.85rem; }
+            .admin-nav-item span { display: inline; }
+            .admin-mobile-toggle { display: flex !important; }
+            .admin-sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1049; }
+            .admin-sidebar-backdrop.show { display: block; }
             .admin-main-content { padding: 1rem; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+            /* Compact admin header on tablet */
+            .admin-header-content { gap: 0.5rem; }
+            .admin-logo-text span { font-size: 0.7rem; }
+            .admin-user-name { display: none; }
+            .admin-btn { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
         }
         
         /* Mobile Responsive */
@@ -8655,36 +8678,12 @@
             }
             .portal-sidebar-backdrop.show { display: block; }
 
-            /* Admin sidebar — slide-in drawer on small screens */
-            .admin-portal-container { flex-direction: column; position: relative; }
+            /* Admin sidebar — smaller drawer on phones (already slide-in from 992px) */
             .admin-sidebar {
-                position: fixed;
                 left: -280px;
-                top: 70px;
                 width: 270px;
-                height: calc(100vh - 70px);
-                z-index: 1050;
-                transition: left 0.3s ease;
-                flex-direction: column;
-                overflow-y: auto;
-                overflow-x: hidden;
-                border-right: 1px solid #e0e0e0;
-                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
             }
             .admin-sidebar.open { left: 0; }
-            .admin-sidebar-section { flex-direction: column; }
-            .admin-sidebar-section h6 { display: block; }
-            .admin-nav-item span { display: inline; }
-            .admin-main-content { margin-left: 0; padding: 1rem; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-            .admin-mobile-toggle { display: flex !important; }
-            .admin-sidebar-backdrop {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.4);
-                z-index: 1049;
-            }
-            .admin-sidebar-backdrop.show { display: block; }
 
             /* Admin user menu — compact on mobile */
             .admin-user-name { display: none; }
@@ -9742,8 +9741,8 @@
             if (clickedNav) clickedNav.classList.add('active');
             AdminPortal.currentSection = sectionId;
 
-            // Close sidebar drawer on mobile after nav click
-            if (window.innerWidth <= 576) {
+            // Close sidebar drawer on mobile/tablet after nav click
+            if (window.innerWidth <= 992) {
                 const sidebar = document.querySelector('.admin-sidebar');
                 const backdrop = document.querySelector('.admin-sidebar-backdrop');
                 if (sidebar) sidebar.classList.remove('open');
@@ -11400,7 +11399,7 @@
                         statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Welcome, ' + member.firstName + '! Opening Admin Portal...</div>';
                         setTimeout(() => {
                             showAdminPortal(member);
-                        }, 800);
+                        }, 100);
                         return;
                     } else {
                         statusDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>This account does not have admin privileges. EC members only.</div>';
@@ -11417,13 +11416,13 @@
                     statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Welcome! Opening Admin Portal...</div>';
                     setTimeout(() => {
                         showAdminPortal(dynamicAdmin.memberData);
-                    }, 800);
+                    }, 100);
                     return;
                 }
                 
                 // Login failed
                 statusDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i><strong>Login failed.</strong><br>Invalid credentials. Please contact an EC member for admin access.</div>`;
-            }, 800);
+            }, 150);
         }
         
         /**
