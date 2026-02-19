@@ -11571,7 +11571,7 @@
         }
 
         function handleSendEvite(e) {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             const eventName = document.getElementById('eviteEventName').value;
             const date = document.getElementById('eviteDate').value;
             const venue = document.getElementById('eviteVenue').value || 'TBD';
@@ -13080,7 +13080,9 @@
                 contacts: '#gmailTabs .nav-item:nth-child(3) .nav-link',
                 search: '#gmailTabs .nav-item:nth-child(4) .nav-link'
             };
-            const target = clickedEl || (typeof event !== 'undefined' ? event.target : null) || document.querySelector(fallbackActive[tab] || fallbackActive.inbox);
+            let target = clickedEl || null;
+            if (!target) { try { target = (typeof event !== 'undefined' && event && event.target) ? event.target : null; } catch(ex) { /* no event context */ } }
+            if (!target) target = document.querySelector(fallbackActive[tab] || fallbackActive.inbox);
             if (target) target.classList.add('active');
             if (tab === 'inbox') gmailLoadInbox();
             if (tab === 'contacts') gmailLoadContactGroups();
@@ -13187,7 +13189,7 @@
         }
 
         async function gmailSendEmail(e) {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             const to = document.getElementById('gmailComposeTo').value;
             const cc = document.getElementById('gmailComposeCc').value;
             const bcc = document.getElementById('gmailComposeBcc').value;
