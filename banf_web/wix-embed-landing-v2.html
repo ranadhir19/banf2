@@ -3962,7 +3962,16 @@
         
         // ========== API CONFIGURATION ==========
         // All API calls route through Wix Velo HTTP Functions at /_functions/
-        const WIX_SITE_URL = 'https://www.jaxbengali.org';
+        const WIX_SITE_URL = (() => {
+            // Auto-detect API base URL based on hosting context
+            const hostname = window.location.hostname || '';
+            if (hostname.includes('jaxbengali.org')) {
+                // Custom domain - route API through Wix staging (/_functions not configured on custom domain yet)
+                return 'https://banfwix.wixsite.com/banf1';
+            }
+            // Default: Wix staging site where backend v2.1.0 is deployed and confirmed working
+            return 'https://banfwix.wixsite.com/banf1';
+        })();
         const WIX_API_BASE = WIX_SITE_URL + '/_functions';
         const GMAIL_API_BASE = WIX_API_BASE;
         const RADIO_API_BASE = WIX_API_BASE;
@@ -10485,152 +10494,152 @@
             },
             // ===== MEMBER DIRECTORY DATA =====
             memberDirectory: [
-                { id: 'BANF-0001', firstName: 'Sajal', lastName: 'Bagchi', email: 'sajal.bagchi@email.com', phone: '(904) 555-1001', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0002', firstName: 'Amitabh', lastName: 'Banerjee', email: 'amitabh.banerjee@email.com', phone: '(904) 555-1002', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0003', firstName: 'Payel', lastName: 'Banerjee', email: 'payel.banerjee@email.com', phone: '(904) 555-1003', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0004', firstName: 'Rahul', lastName: 'Banerjee', email: 'rahul.banerjee@email.com', phone: '(904) 555-1004', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0005', firstName: 'Tanmoy', lastName: 'Banerjee', email: 'tanmoy.banerjee@email.com', phone: '(904) 555-1005', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0006', firstName: 'Chandrachur', lastName: 'Bannerjee', email: 'chandrachur.bannerjee@email.com', phone: '(904) 555-1006', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0007', firstName: 'Samrat', lastName: 'Bannerjee', email: 'samrat.bannerjee@email.com', phone: '(904) 555-1007', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0008', firstName: 'Varsha', lastName: 'Bannerjee', email: 'varsha.bannerjee@email.com', phone: '(904) 555-1008', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0009', firstName: 'Shilpi', lastName: 'Bannerji', email: 'shilpi.bannerji@email.com', phone: '(904) 555-1009', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
-                { id: 'BANF-0010', firstName: 'Barnali', lastName: 'Basu', email: 'barnali.basu@email.com', phone: '(904) 555-1010', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0011', firstName: 'Purab', lastName: 'Basu', email: 'purab.basu@email.com', phone: '(904) 555-1011', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0012', firstName: 'Subir', lastName: 'Basu', email: 'subir.basu@email.com', phone: '(904) 555-1012', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0013', firstName: 'Sunetra', lastName: 'Basu', email: 'sunetra.basu@email.com', phone: '(904) 555-1013', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0014', firstName: 'Tanay', lastName: 'Bhaduri', email: 'tanay.bhaduri@email.com', phone: '(904) 555-1014', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0015', firstName: 'Tani', lastName: 'Bhaduri', email: 'tani.bhaduri@email.com', phone: '(904) 555-1015', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0016', firstName: 'Kaushiki', lastName: 'Bhattacharya', email: 'kaushiki.bhattacharya@email.com', phone: '(904) 555-1016', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0017', firstName: 'Santanu', lastName: 'Bhattacharya', email: 'santanu.bhattacharya@email.com', phone: '(904) 555-1017', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0018', firstName: 'Biltu', lastName: 'Bhowmick', email: 'biltu.bhowmick@email.com', phone: '(904) 555-1018', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0019', firstName: 'Dhiman', lastName: 'Biswas', email: 'dhiman.biswas@email.com', phone: '(904) 555-1019', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0020', firstName: 'Suchitra', lastName: 'Biswas', email: 'suchitra.biswas@email.com', phone: '(904) 555-1020', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0021', firstName: 'Anita', lastName: 'Chakrabarti', email: 'anita.chakrabarti@email.com', phone: '(904) 555-1021', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0022', firstName: 'Jay', lastName: 'Chakraborty', email: 'jay.chakraborty@email.com', phone: '(904) 555-1022', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0023', firstName: 'Pallavi', lastName: 'Chakraborty', email: 'pallavi.chakraborty@email.com', phone: '(904) 555-1023', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0024', firstName: 'Souvik', lastName: 'Chakraborty', email: 'souvik.chakraborty@email.com', phone: '(904) 555-1024', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0025', firstName: 'Aparna', lastName: 'Chakravarthy', email: 'aparna.chakravarthy@email.com', phone: '(904) 555-1025', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0026', firstName: 'Surajit', lastName: 'Chakravarty', email: 'surajit.chakravarty@email.com', phone: '(904) 555-1026', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0027', firstName: 'Amit', lastName: 'Chandak', email: 'amit.chandak@email.com', phone: '(904) 555-1027', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0028', firstName: 'Jiniya', lastName: 'Chandra', email: 'jiniya.chandra@email.com', phone: '(904) 555-1028', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0029', firstName: 'Nilay', lastName: 'Chandra', email: 'nilay.chandra@email.com', phone: '(904) 555-1029', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0030', firstName: 'Sanjukta', lastName: 'Chandra', email: 'sanjukta.chandra@email.com', phone: '(904) 555-1030', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0031', firstName: 'Supriya', lastName: 'Chaterjee', email: 'supriya.chaterjee@email.com', phone: '(904) 555-1031', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
-                { id: 'BANF-0032', firstName: 'Chiradip', lastName: 'Chatterjee', email: 'chiradip.chatterjee@email.com', phone: '(904) 555-1032', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0033', firstName: 'Subhra', lastName: 'Chatterjee', email: 'subhra.chatterjee@email.com', phone: '(904) 555-1033', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0034', firstName: 'Supriya', lastName: 'Chatterjee', email: 'supriya.chatterjee@email.com', phone: '(904) 555-1034', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0035', firstName: 'Asok', lastName: 'Chaudhuri', email: 'asok.chaudhuri@email.com', phone: '(904) 555-1035', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0036', firstName: 'Jyoti', lastName: 'Choudhury', email: 'jyoti.choudhury@email.com', phone: '(904) 555-1036', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0037', firstName: 'Partha', lastName: 'Choudhury', email: 'partha.choudhury@email.com', phone: '(904) 555-1037', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0038', firstName: 'Rwiti', lastName: 'Choudhury', email: 'rwiti.choudhury@email.com', phone: '(904) 555-1038', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0039', firstName: 'Soma', lastName: 'Choudhury', email: 'soma.choudhury@email.com', phone: '(904) 555-1039', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0040', firstName: 'Bidhan', lastName: 'Das', email: 'bidhan.das@email.com', phone: '(904) 555-1040', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0041', firstName: 'Diyasini', lastName: 'Das', email: 'diyasini.das@email.com', phone: '(904) 555-1041', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0042', firstName: 'Reshma', lastName: 'Das', email: 'reshma.das@email.com', phone: '(904) 555-1042', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0043', firstName: 'Saugata', lastName: 'Das', email: 'saugata.das@email.com', phone: '(904) 555-1043', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0044', firstName: 'Suman', lastName: 'Das', email: 'suman.das@email.com', phone: '(904) 555-1044', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0045', firstName: 'Tanmay', lastName: 'Das', email: 'tanmay.das@email.com', phone: '(904) 555-1045', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0046', firstName: 'Tanmoy', lastName: 'Das', email: 'tanmoy.das@email.com', phone: '(904) 555-1046', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0047', firstName: 'Banani', lastName: 'Dhar', email: 'banani.dhar@email.com', phone: '(904) 555-1047', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0048', firstName: 'Bhupal', lastName: 'Dhar', email: 'bhupal.dhar@email.com', phone: '(904) 555-1048', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0049', firstName: 'Ayan', lastName: 'Dutta', email: 'ayan.dutta@email.com', phone: '(904) 555-1049', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0050', firstName: 'Debu', lastName: 'Dutta', email: 'debu.dutta@email.com', phone: '(904) 555-1050', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0051', firstName: 'Indrani', lastName: 'Dutta', email: 'indrani.dutta@email.com', phone: '(904) 555-1051', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0052', firstName: 'Nandini', lastName: 'Dutta', email: 'nandini.dutta@email.com', phone: '(904) 555-1052', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0053', firstName: 'Nandita', lastName: 'Dutta', email: 'nandita.dutta@email.com', phone: '(904) 555-1053', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0054', firstName: 'Shridham', lastName: 'Dutta', email: 'shridham.dutta@email.com', phone: '(904) 555-1054', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0055', firstName: 'Soumali', lastName: 'Dutta', email: 'soumali.dutta@email.com', phone: '(904) 555-1055', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0056', firstName: 'Soumyajit', lastName: 'Dutta', email: 'soumyajit.dutta@email.com', phone: '(904) 555-1056', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0057', firstName: 'Urmi', lastName: 'Dutta', email: 'urmi.dutta@email.com', phone: '(904) 555-1057', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0058', firstName: 'Anirban', lastName: 'Ghosh', email: 'anirban.ghosh@email.com', phone: '(904) 555-1058', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0059', firstName: 'Chandrani', lastName: 'Ghosh', email: 'chandrani.ghosh@email.com', phone: '(904) 555-1059', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0060', firstName: 'Dipra', lastName: 'Ghosh', email: 'dipra.ghosh@email.com', phone: '(904) 555-1060', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0061', firstName: 'Liton', lastName: 'Ghosh', email: 'liton.ghosh@email.com', phone: '(904) 555-1061', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0062', firstName: 'Moumita', lastName: 'Ghosh', email: 'moumita.ghosh@email.com', phone: '(904) 555-1062', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0063', firstName: 'Priyanka', lastName: 'Ghosh', email: 'priyanka.ghosh@email.com', phone: '(904) 555-1063', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0064', firstName: 'Rajanya', lastName: 'Ghosh', email: 'rajanya.ghosh@email.com', phone: '(904) 555-1064', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0065', firstName: 'Ranadhir', lastName: 'Ghosh', email: 'ranadhir.ghosh@email.com', phone: '(904) 555-1065', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0066', firstName: 'Roopkatha', lastName: 'Ghosh', email: 'roopkatha.ghosh@email.com', phone: '(904) 555-1066', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0067', firstName: 'Sreya', lastName: 'Ghosh', email: 'sreya.ghosh@email.com', phone: '(904) 555-1067', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0068', firstName: 'Subrata', lastName: 'Ghosh', email: 'subrata.ghosh@email.com', phone: '(904) 555-1068', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0069', firstName: 'Suman', lastName: 'Ghosh', email: 'suman.ghosh@email.com', phone: '(904) 555-1069', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0070', firstName: 'Sumanta', lastName: 'Ghosh', email: 'sumanta.ghosh@email.com', phone: '(904) 555-1070', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0071', firstName: 'Holly', lastName: 'Goswami', email: 'holly.goswami@email.com', phone: '(904) 555-1071', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0072', firstName: 'Raj', lastName: 'Goswami', email: 'raj.goswami@email.com', phone: '(904) 555-1072', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0073', firstName: 'Paulami', lastName: 'Guha', email: 'paulami.guha@email.com', phone: '(904) 555-1073', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0074', firstName: 'Anjali', lastName: 'Gupta', email: 'anjali.gupta@email.com', phone: '(904) 555-1074', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0075', firstName: 'Keya', lastName: 'Jatkar', email: 'keya.jatkar@email.com', phone: '(904) 555-1075', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0076', firstName: 'Bithika', lastName: 'Karmakar', email: 'bithika.karmakar@email.com', phone: '(904) 555-1076', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0077', firstName: 'Kaushik', lastName: 'Karmakar', email: 'kaushik.karmakar@email.com', phone: '(904) 555-1077', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0078', firstName: 'Mummun', lastName: 'Maitra', email: 'mummun.maitra@email.com', phone: '(904) 555-1078', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0079', firstName: 'Lopita', lastName: 'Majumdar', email: 'lopita.majumdar@email.com', phone: '(904) 555-1079', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0080', firstName: 'Rajarshi', lastName: 'Majumdar', email: 'rajarshi.majumdar@email.com', phone: '(904) 555-1080', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0081', firstName: 'Atmadeep', lastName: 'Majumder', email: 'atmadeep.majumder@email.com', phone: '(904) 555-1081', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0082', firstName: 'Madhumita', lastName: 'Majumder', email: 'madhumita.majumder@email.com', phone: '(904) 555-1082', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0083', firstName: 'Anita', lastName: 'Mandal', email: 'anita.mandal@email.com', phone: '(904) 555-1083', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0084', firstName: 'Mousumi', lastName: 'Mandal', email: 'mousumi.mandal@email.com', phone: '(904) 555-1084', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0085', firstName: 'Subrata', lastName: 'Mandal', email: 'subrata.mandal@email.com', phone: '(904) 555-1085', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0086', firstName: 'Alak', lastName: 'Manna', email: 'alak.manna@email.com', phone: '(904) 555-1086', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0087', firstName: 'Avishek', lastName: 'Mitra', email: 'avishek.mitra@email.com', phone: '(904) 555-1087', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0088', firstName: 'Moumita', lastName: 'Mitra', email: 'moumita.mitra@email.com', phone: '(904) 555-1088', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0089', firstName: 'Moushumi', lastName: 'Mondal', email: 'moushumi.mondal@email.com', phone: '(904) 555-1089', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0090', firstName: 'Subrata', lastName: 'Mondal', email: 'subrata.mondal@email.com', phone: '(904) 555-1090', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0091', firstName: 'Tarit', lastName: 'Mondal', email: 'tarit.mondal@email.com', phone: '(904) 555-1091', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0092', firstName: 'Barnali', lastName: 'Mondol', email: 'barnali.mondol@email.com', phone: '(904) 555-1092', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0093', firstName: 'Amrita', lastName: 'Mukherjee', email: 'amrita.mukherjee@email.com', phone: '(904) 555-1093', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0094', firstName: 'Annindita', lastName: 'Mukherjee', email: 'annindita.mukherjee@email.com', phone: '(904) 555-1094', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0095', firstName: 'Depanjan', lastName: 'Mukherjee', email: 'depanjan.mukherjee@email.com', phone: '(904) 555-1095', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0096', firstName: 'Latika', lastName: 'Mukherjee', email: 'latika.mukherjee@email.com', phone: '(904) 555-1096', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0097', firstName: 'Partha', lastName: 'Mukherjee', email: 'partha.mukherjee@email.com', phone: '(904) 555-1097', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0098', firstName: 'Partha', lastName: 'Mukhopadhyay', email: 'partha.mukhopadhyay@email.com', phone: '(904) 555-1098', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0099', firstName: 'Saikat', lastName: 'Natta', email: 'saikat.natta@email.com', phone: '(904) 555-1099', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0100', firstName: 'Joyeeta', lastName: 'Pal', email: 'joyeeta.pal@email.com', phone: '(904) 555-1100', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0101', firstName: 'Krishnendu', lastName: 'Pal', email: 'krishnendu.pal@email.com', phone: '(904) 555-1101', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0102', firstName: 'Paromita', lastName: 'Pal', email: 'paromita.pal@email.com', phone: '(904) 555-1102', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0103', firstName: 'Sourav', lastName: 'Pal', email: 'sourav.pal@email.com', phone: '(904) 555-1103', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0104', firstName: 'Sumit', lastName: 'Pal', email: 'sumit.pal@email.com', phone: '(904) 555-1104', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0105', firstName: 'Suvankar', lastName: 'Pal', email: 'suvankar.pal@email.com', phone: '(904) 555-1105', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0106', firstName: 'Suvankal', lastName: 'Paul', email: 'suvankal.paul@email.com', phone: '(904) 555-1106', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0107', firstName: 'Jitendra', lastName: 'Prusty', email: 'jitendra.prusty@email.com', phone: '(904) 555-1107', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
-                { id: 'BANF-0108', firstName: 'Dia', lastName: 'Ray', email: 'dia.ray@email.com', phone: '(904) 555-1108', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0109', firstName: 'Souvik', lastName: 'Ray', email: 'souvik.ray@email.com', phone: '(904) 555-1109', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0110', firstName: 'Bhaskar', lastName: 'Roy', email: 'bhaskar.roy@email.com', phone: '(904) 555-1110', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0111', firstName: 'Debasmita', lastName: 'Roy', email: 'debasmita.roy@email.com', phone: '(904) 555-1111', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0112', firstName: 'Dipak', lastName: 'Roy', email: 'dipak.roy@email.com', phone: '(904) 555-1112', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0113', firstName: 'Ipsita', lastName: 'Roy', email: 'ipsita.roy@email.com', phone: '(904) 555-1113', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0114', firstName: 'Mitu', lastName: 'Roy', email: 'mitu.roy@email.com', phone: '(904) 555-1114', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0115', firstName: 'Nabo', lastName: 'Roy', email: 'nabo.roy@email.com', phone: '(904) 555-1115', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0116', firstName: 'Padmoja', lastName: 'Roy', email: 'padmoja.roy@email.com', phone: '(904) 555-1116', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0117', firstName: 'Sanat', lastName: 'Roy', email: 'sanat.roy@email.com', phone: '(904) 555-1117', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0118', firstName: 'Sanhita', lastName: 'Roy', email: 'sanhita.roy@email.com', phone: '(904) 555-1118', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0119', firstName: 'Sayani', lastName: 'Roy', email: 'sayani.roy@email.com', phone: '(904) 555-1119', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0120', firstName: 'Sonu', lastName: 'Roy', email: 'sonu.roy@email.com', phone: '(904) 555-1120', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0121', firstName: 'Subhro', lastName: 'Roy', email: 'subhro.roy@email.com', phone: '(904) 555-1121', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0122', firstName: 'Sudip', lastName: 'Roy', email: 'sudip.roy@email.com', phone: '(904) 555-1122', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0123', firstName: 'Suvro', lastName: 'Roy', email: 'suvro.roy@email.com', phone: '(904) 555-1123', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0124', firstName: 'Swapnoneel', lastName: 'Roy', email: 'swapnoneel.roy@email.com', phone: '(904) 555-1124', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0125', firstName: 'Tapas', lastName: 'Roy', email: 'tapas.roy@email.com', phone: '(904) 555-1125', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0126', firstName: 'Saurav', lastName: 'Roychoudhury', email: 'saurav.roychoudhury@email.com', phone: '(904) 555-1126', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0127', firstName: 'Sourav', lastName: 'Roychoudhury', email: 'sourav.roychoudhury@email.com', phone: '(904) 555-1127', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0128', firstName: 'Kapil', lastName: 'Sadhu', email: 'kapil.sadhu@email.com', phone: '(904) 555-1128', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0129', firstName: 'Sanghamitra', lastName: 'Sadhu', email: 'sanghamitra.sadhu@email.com', phone: '(904) 555-1129', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0130', firstName: 'Amit', lastName: 'Saha', email: 'amit.saha@email.com', phone: '(904) 555-1130', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0131', firstName: 'Debabrata', lastName: 'Saha', email: 'debabrata.saha@email.com', phone: '(904) 555-1131', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0132', firstName: 'Mukul', lastName: 'Saha', email: 'mukul.saha@email.com', phone: '(904) 555-1132', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0133', firstName: 'Papri', lastName: 'Saha', email: 'papri.saha@email.com', phone: '(904) 555-1133', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0134', firstName: 'Arnab', lastName: 'Sanyal', email: 'arnab.sanyal@email.com', phone: '(904) 555-1134', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0135', firstName: 'Sudeshna', lastName: 'Sanyal', email: 'sudeshna.sanyal@email.com', phone: '(904) 555-1135', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0136', firstName: 'Baidya', lastName: 'Sarkar', email: 'baidya.sarkar@email.com', phone: '(904) 555-1136', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0137', firstName: 'Mita', lastName: 'Sarkar', email: 'mita.sarkar@email.com', phone: '(904) 555-1137', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0138', firstName: 'Swarnendu', lastName: 'Sen', email: 'swarnendu.sen@email.com', phone: '(904) 555-1138', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0139', firstName: 'Rajib', lastName: 'Sengupta', email: 'rajib.sengupta@email.com', phone: '(904) 555-1139', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0140', firstName: 'Rita', lastName: 'Sengupta', email: 'rita.sengupta@email.com', phone: '(904) 555-1140', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
-                { id: 'BANF-0141', firstName: 'Jigar', lastName: 'Shah', email: 'jigar.shah@email.com', phone: '(904) 555-1141', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
-                { id: 'BANF-0142', firstName: 'Madhu', lastName: 'Sindhuvalli', email: 'madhu.sindhuvalli@email.com', phone: '(904) 555-1142', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
-                { id: 'BANF-0143', firstName: 'Dola', lastName: 'Sinha', email: 'dola.sinha@email.com', phone: '(904) 555-1143', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
-                { id: 'BANF-0144', firstName: 'Ujjal', lastName: 'Sinha', email: 'ujjal.sinha@email.com', phone: '(904) 555-1144', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
-                { id: 'BANF-0145', firstName: 'Nilanjana', lastName: 'Snyder', email: 'nilanjana.snyder@email.com', phone: '(904) 555-1145', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
-                { id: 'BANF-0146', firstName: 'Shivani', lastName: 'Tomasovitch', email: 'shivani.tomasovitch@email.com', phone: '(904) 555-1146', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' }
+                { id: 'BANF-0001', familyId: 'FAM-2624A6CA', firstName: 'Sajal', lastName: 'Bagchi', email: 'sajal.bagchi@email.com', phone: '(904) 555-1001', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0002', familyId: 'FAM-1E654AE6', firstName: 'Amitabh', lastName: 'Banerjee', email: 'amitabh.banerjee@email.com', phone: '(904) 555-1002', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0003', familyId: 'FAM-1E654AE6', firstName: 'Payel', lastName: 'Banerjee', email: 'payel.banerjee@email.com', phone: '(904) 555-1003', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0004', familyId: 'FAM-1E654AE6', firstName: 'Rahul', lastName: 'Banerjee', email: 'rahul.banerjee@email.com', phone: '(904) 555-1004', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0005', familyId: 'FAM-1E654AE6', firstName: 'Tanmoy', lastName: 'Banerjee', email: 'tanmoy.banerjee@email.com', phone: '(904) 555-1005', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0006', familyId: 'FAM-6FCD7242', firstName: 'Chandrachur', lastName: 'Bannerjee', email: 'chandrachur.bannerjee@email.com', phone: '(904) 555-1006', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0007', familyId: 'FAM-6FCD7242', firstName: 'Samrat', lastName: 'Bannerjee', email: 'samrat.bannerjee@email.com', phone: '(904) 555-1007', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0008', familyId: 'FAM-6FCD7242', firstName: 'Varsha', lastName: 'Bannerjee', email: 'varsha.bannerjee@email.com', phone: '(904) 555-1008', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0009', familyId: 'FAM-2A7A82B3', firstName: 'Shilpi', lastName: 'Bannerji', email: 'shilpi.bannerji@email.com', phone: '(904) 555-1009', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
+                { id: 'BANF-0010', familyId: 'FAM-C238129A', firstName: 'Barnali', lastName: 'Basu', email: 'barnali.basu@email.com', phone: '(904) 555-1010', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0011', familyId: 'FAM-C238129A', firstName: 'Purab', lastName: 'Basu', email: 'purab.basu@email.com', phone: '(904) 555-1011', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0012', familyId: 'FAM-C238129A', firstName: 'Subir', lastName: 'Basu', email: 'subir.basu@email.com', phone: '(904) 555-1012', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0013', familyId: 'FAM-C238129A', firstName: 'Sunetra', lastName: 'Basu', email: 'sunetra.basu@email.com', phone: '(904) 555-1013', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0014', familyId: 'FAM-B7C9FE9C', firstName: 'Tanay', lastName: 'Bhaduri', email: 'tanay.bhaduri@email.com', phone: '(904) 555-1014', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0015', familyId: 'FAM-B7C9FE9C', firstName: 'Tani', lastName: 'Bhaduri', email: 'tani.bhaduri@email.com', phone: '(904) 555-1015', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0016', familyId: 'FAM-178F672B', firstName: 'Kaushiki', lastName: 'Bhattacharya', email: 'kaushiki.bhattacharya@email.com', phone: '(904) 555-1016', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0017', familyId: 'FAM-178F672B', firstName: 'Santanu', lastName: 'Bhattacharya', email: 'santanu.bhattacharya@email.com', phone: '(904) 555-1017', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0018', familyId: 'FAM-EAC1A423', firstName: 'Biltu', lastName: 'Bhowmick', email: 'biltu.bhowmick@email.com', phone: '(904) 555-1018', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0019', familyId: 'FAM-C648F5E0', firstName: 'Dhiman', lastName: 'Biswas', email: 'dhiman.biswas@email.com', phone: '(904) 555-1019', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0020', familyId: 'FAM-C648F5E0', firstName: 'Suchitra', lastName: 'Biswas', email: 'suchitra.biswas@email.com', phone: '(904) 555-1020', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0021', familyId: 'FAM-561EB728', firstName: 'Anita', lastName: 'Chakrabarti', email: 'anita.chakrabarti@email.com', phone: '(904) 555-1021', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0022', familyId: 'FAM-46A6BE6A', firstName: 'Jay', lastName: 'Chakraborty', email: 'jay.chakraborty@email.com', phone: '(904) 555-1022', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0023', familyId: 'FAM-46A6BE6A', firstName: 'Pallavi', lastName: 'Chakraborty', email: 'pallavi.chakraborty@email.com', phone: '(904) 555-1023', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0024', familyId: 'FAM-46A6BE6A', firstName: 'Souvik', lastName: 'Chakraborty', email: 'souvik.chakraborty@email.com', phone: '(904) 555-1024', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0025', familyId: 'FAM-F9EB367D', firstName: 'Aparna', lastName: 'Chakravarthy', email: 'aparna.chakravarthy@email.com', phone: '(904) 555-1025', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0026', familyId: 'FAM-57E9CF65', firstName: 'Surajit', lastName: 'Chakravarty', email: 'surajit.chakravarty@email.com', phone: '(904) 555-1026', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0027', familyId: 'FAM-B67E34F9', firstName: 'Amit', lastName: 'Chandak', email: 'amit.chandak@email.com', phone: '(904) 555-1027', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0028', familyId: 'FAM-1D204FDE', firstName: 'Jiniya', lastName: 'Chandra', email: 'jiniya.chandra@email.com', phone: '(904) 555-1028', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0029', familyId: 'FAM-1D204FDE', firstName: 'Nilay', lastName: 'Chandra', email: 'nilay.chandra@email.com', phone: '(904) 555-1029', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0030', familyId: 'FAM-1D204FDE', firstName: 'Sanjukta', lastName: 'Chandra', email: 'sanjukta.chandra@email.com', phone: '(904) 555-1030', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0031', familyId: 'FAM-4ADC227C', firstName: 'Supriya', lastName: 'Chaterjee', email: 'supriya.chaterjee@email.com', phone: '(904) 555-1031', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
+                { id: 'BANF-0032', familyId: 'FAM-045C088E', firstName: 'Chiradip', lastName: 'Chatterjee', email: 'chiradip.chatterjee@email.com', phone: '(904) 555-1032', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0033', familyId: 'FAM-045C088E', firstName: 'Subhra', lastName: 'Chatterjee', email: 'subhra.chatterjee@email.com', phone: '(904) 555-1033', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0034', familyId: 'FAM-045C088E', firstName: 'Supriya', lastName: 'Chatterjee', email: 'supriya.chatterjee@email.com', phone: '(904) 555-1034', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0035', familyId: 'FAM-07E9DC4A', firstName: 'Asok', lastName: 'Chaudhuri', email: 'asok.chaudhuri@email.com', phone: '(904) 555-1035', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0036', familyId: 'FAM-486E4AB1', firstName: 'Jyoti', lastName: 'Choudhury', email: 'jyoti.choudhury@email.com', phone: '(904) 555-1036', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0037', familyId: 'FAM-486E4AB1', firstName: 'Partha', lastName: 'Choudhury', email: 'partha.choudhury@email.com', phone: '(904) 555-1037', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0038', familyId: 'FAM-486E4AB1', firstName: 'Rwiti', lastName: 'Choudhury', email: 'rwiti.choudhury@email.com', phone: '(904) 555-1038', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0039', familyId: 'FAM-486E4AB1', firstName: 'Soma', lastName: 'Choudhury', email: 'soma.choudhury@email.com', phone: '(904) 555-1039', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0040', familyId: 'FAM-76312069', firstName: 'Bidhan', lastName: 'Das', email: 'bidhan.das@email.com', phone: '(904) 555-1040', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0041', familyId: 'FAM-76312069', firstName: 'Diyasini', lastName: 'Das', email: 'diyasini.das@email.com', phone: '(904) 555-1041', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0042', familyId: 'FAM-76312069', firstName: 'Reshma', lastName: 'Das', email: 'reshma.das@email.com', phone: '(904) 555-1042', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0043', familyId: 'FAM-76312069', firstName: 'Saugata', lastName: 'Das', email: 'saugata.das@email.com', phone: '(904) 555-1043', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0044', familyId: 'FAM-76312069', firstName: 'Suman', lastName: 'Das', email: 'suman.das@email.com', phone: '(904) 555-1044', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0045', familyId: 'FAM-76312069', firstName: 'Tanmay', lastName: 'Das', email: 'tanmay.das@email.com', phone: '(904) 555-1045', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0046', familyId: 'FAM-76312069', firstName: 'Tanmoy', lastName: 'Das', email: 'tanmoy.das@email.com', phone: '(904) 555-1046', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0047', familyId: 'FAM-6502F9DB', firstName: 'Banani', lastName: 'Dhar', email: 'banani.dhar@email.com', phone: '(904) 555-1047', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0048', familyId: 'FAM-6502F9DB', firstName: 'Bhupal', lastName: 'Dhar', email: 'bhupal.dhar@email.com', phone: '(904) 555-1048', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0049', familyId: 'FAM-39025B22', firstName: 'Ayan', lastName: 'Dutta', email: 'ayan.dutta@email.com', phone: '(904) 555-1049', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0050', familyId: 'FAM-39025B22', firstName: 'Debu', lastName: 'Dutta', email: 'debu.dutta@email.com', phone: '(904) 555-1050', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0051', familyId: 'FAM-39025B22', firstName: 'Indrani', lastName: 'Dutta', email: 'indrani.dutta@email.com', phone: '(904) 555-1051', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0052', familyId: 'FAM-39025B22', firstName: 'Nandini', lastName: 'Dutta', email: 'nandini.dutta@email.com', phone: '(904) 555-1052', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0053', familyId: 'FAM-39025B22', firstName: 'Nandita', lastName: 'Dutta', email: 'nandita.dutta@email.com', phone: '(904) 555-1053', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0054', familyId: 'FAM-39025B22', firstName: 'Shridham', lastName: 'Dutta', email: 'shridham.dutta@email.com', phone: '(904) 555-1054', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0055', familyId: 'FAM-39025B22', firstName: 'Soumali', lastName: 'Dutta', email: 'soumali.dutta@email.com', phone: '(904) 555-1055', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0056', familyId: 'FAM-39025B22', firstName: 'Soumyajit', lastName: 'Dutta', email: 'soumyajit.dutta@email.com', phone: '(904) 555-1056', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0057', familyId: 'FAM-39025B22', firstName: 'Urmi', lastName: 'Dutta', email: 'urmi.dutta@email.com', phone: '(904) 555-1057', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0058', familyId: 'FAM-2E1CEE29', firstName: 'Anirban', lastName: 'Ghosh', email: 'anirban.ghosh@email.com', phone: '(904) 555-1058', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0059', familyId: 'FAM-2E1CEE29', firstName: 'Chandrani', lastName: 'Ghosh', email: 'chandrani.ghosh@email.com', phone: '(904) 555-1059', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0060', familyId: 'FAM-2E1CEE29', firstName: 'Dipra', lastName: 'Ghosh', email: 'dipra.ghosh@email.com', phone: '(904) 555-1060', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0061', familyId: 'FAM-2E1CEE29', firstName: 'Liton', lastName: 'Ghosh', email: 'liton.ghosh@email.com', phone: '(904) 555-1061', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0062', familyId: 'FAM-2E1CEE29', firstName: 'Moumita', lastName: 'Ghosh', email: 'moumita.ghosh@email.com', phone: '(904) 555-1062', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0063', familyId: 'FAM-2E1CEE29', firstName: 'Priyanka', lastName: 'Ghosh', email: 'priyanka.ghosh@email.com', phone: '(904) 555-1063', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0064', familyId: 'FAM-2E1CEE29', firstName: 'Rajanya', lastName: 'Ghosh', email: 'rajanya.ghosh@email.com', phone: '(904) 555-1064', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0065', familyId: 'FAM-2E1CEE29', firstName: 'Ranadhir', lastName: 'Ghosh', email: 'ranadhir.ghosh@email.com', phone: '(904) 555-1065', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0066', familyId: 'FAM-2E1CEE29', firstName: 'Roopkatha', lastName: 'Ghosh', email: 'roopkatha.ghosh@email.com', phone: '(904) 555-1066', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0067', familyId: 'FAM-2E1CEE29', firstName: 'Sreya', lastName: 'Ghosh', email: 'sreya.ghosh@email.com', phone: '(904) 555-1067', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0068', familyId: 'FAM-2E1CEE29', firstName: 'Subrata', lastName: 'Ghosh', email: 'subrata.ghosh@email.com', phone: '(904) 555-1068', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0069', familyId: 'FAM-2E1CEE29', firstName: 'Suman', lastName: 'Ghosh', email: 'suman.ghosh@email.com', phone: '(904) 555-1069', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0070', familyId: 'FAM-2E1CEE29', firstName: 'Sumanta', lastName: 'Ghosh', email: 'sumanta.ghosh@email.com', phone: '(904) 555-1070', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0071', familyId: 'FAM-E6D1FDB1', firstName: 'Holly', lastName: 'Goswami', email: 'holly.goswami@email.com', phone: '(904) 555-1071', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0072', familyId: 'FAM-E6D1FDB1', firstName: 'Raj', lastName: 'Goswami', email: 'raj.goswami@email.com', phone: '(904) 555-1072', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0073', familyId: 'FAM-CE6FFBBA', firstName: 'Paulami', lastName: 'Guha', email: 'paulami.guha@email.com', phone: '(904) 555-1073', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0074', familyId: 'FAM-179E776E', firstName: 'Anjali', lastName: 'Gupta', email: 'anjali.gupta@email.com', phone: '(904) 555-1074', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0075', familyId: 'FAM-11F05085', firstName: 'Keya', lastName: 'Jatkar', email: 'keya.jatkar@email.com', phone: '(904) 555-1075', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0076', familyId: 'FAM-13749BB9', firstName: 'Bithika', lastName: 'Karmakar', email: 'bithika.karmakar@email.com', phone: '(904) 555-1076', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0077', familyId: 'FAM-13749BB9', firstName: 'Kaushik', lastName: 'Karmakar', email: 'kaushik.karmakar@email.com', phone: '(904) 555-1077', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0078', familyId: 'FAM-B53C8357', firstName: 'Mummun', lastName: 'Maitra', email: 'mummun.maitra@email.com', phone: '(904) 555-1078', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0079', familyId: 'FAM-C11E726C', firstName: 'Lopita', lastName: 'Majumdar', email: 'lopita.majumdar@email.com', phone: '(904) 555-1079', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0080', familyId: 'FAM-C11E726C', firstName: 'Rajarshi', lastName: 'Majumdar', email: 'rajarshi.majumdar@email.com', phone: '(904) 555-1080', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0081', familyId: 'FAM-F7508B48', firstName: 'Atmadeep', lastName: 'Majumder', email: 'atmadeep.majumder@email.com', phone: '(904) 555-1081', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0082', familyId: 'FAM-F7508B48', firstName: 'Madhumita', lastName: 'Majumder', email: 'madhumita.majumder@email.com', phone: '(904) 555-1082', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0083', familyId: 'FAM-B2665A3D', firstName: 'Anita', lastName: 'Mandal', email: 'anita.mandal@email.com', phone: '(904) 555-1083', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0084', familyId: 'FAM-B2665A3D', firstName: 'Mousumi', lastName: 'Mandal', email: 'mousumi.mandal@email.com', phone: '(904) 555-1084', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0085', familyId: 'FAM-B2665A3D', firstName: 'Subrata', lastName: 'Mandal', email: 'subrata.mandal@email.com', phone: '(904) 555-1085', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0086', familyId: 'FAM-3C65088A', firstName: 'Alak', lastName: 'Manna', email: 'alak.manna@email.com', phone: '(904) 555-1086', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0087', familyId: 'FAM-82CD440F', firstName: 'Avishek', lastName: 'Mitra', email: 'avishek.mitra@email.com', phone: '(904) 555-1087', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0088', familyId: 'FAM-82CD440F', firstName: 'Moumita', lastName: 'Mitra', email: 'moumita.mitra@email.com', phone: '(904) 555-1088', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0089', familyId: 'FAM-B43EA6D7', firstName: 'Moushumi', lastName: 'Mondal', email: 'moushumi.mondal@email.com', phone: '(904) 555-1089', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0090', familyId: 'FAM-B43EA6D7', firstName: 'Subrata', lastName: 'Mondal', email: 'subrata.mondal@email.com', phone: '(904) 555-1090', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0091', familyId: 'FAM-B43EA6D7', firstName: 'Tarit', lastName: 'Mondal', email: 'tarit.mondal@email.com', phone: '(904) 555-1091', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0092', familyId: 'FAM-045C088E', firstName: 'Barnali', lastName: 'Mondol', email: 'barnali.mondol@email.com', phone: '(904) 555-1092', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0093', familyId: 'FAM-4F32B5C0', firstName: 'Amrita', lastName: 'Mukherjee', email: 'amrita.mukherjee@email.com', phone: '(904) 555-1093', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0094', familyId: 'FAM-4F32B5C0', firstName: 'Annindita', lastName: 'Mukherjee', email: 'annindita.mukherjee@email.com', phone: '(904) 555-1094', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0095', familyId: 'FAM-4F32B5C0', firstName: 'Depanjan', lastName: 'Mukherjee', email: 'depanjan.mukherjee@email.com', phone: '(904) 555-1095', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0096', familyId: 'FAM-4F32B5C0', firstName: 'Latika', lastName: 'Mukherjee', email: 'latika.mukherjee@email.com', phone: '(904) 555-1096', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0097', familyId: 'FAM-4F32B5C0', firstName: 'Partha', lastName: 'Mukherjee', email: 'partha.mukherjee@email.com', phone: '(904) 555-1097', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0098', familyId: 'FAM-5761E0CE', firstName: 'Partha', lastName: 'Mukhopadhyay', email: 'partha.mukhopadhyay@email.com', phone: '(904) 555-1098', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0099', familyId: 'FAM-A464AEAF', firstName: 'Saikat', lastName: 'Natta', email: 'saikat.natta@email.com', phone: '(904) 555-1099', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0100', familyId: 'FAM-13E7DBA7', firstName: 'Joyeeta', lastName: 'Pal', email: 'joyeeta.pal@email.com', phone: '(904) 555-1100', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0101', familyId: 'FAM-13E7DBA7', firstName: 'Krishnendu', lastName: 'Pal', email: 'krishnendu.pal@email.com', phone: '(904) 555-1101', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0102', familyId: 'FAM-13E7DBA7', firstName: 'Paromita', lastName: 'Pal', email: 'paromita.pal@email.com', phone: '(904) 555-1102', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0103', familyId: 'FAM-13E7DBA7', firstName: 'Sourav', lastName: 'Pal', email: 'sourav.pal@email.com', phone: '(904) 555-1103', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0104', familyId: 'FAM-13E7DBA7', firstName: 'Sumit', lastName: 'Pal', email: 'sumit.pal@email.com', phone: '(904) 555-1104', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0105', familyId: 'FAM-13E7DBA7', firstName: 'Suvankar', lastName: 'Pal', email: 'suvankar.pal@email.com', phone: '(904) 555-1105', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0106', familyId: 'FAM-271D134E', firstName: 'Suvankal', lastName: 'Paul', email: 'suvankal.paul@email.com', phone: '(904) 555-1106', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0107', familyId: 'FAM-19C4E90A', firstName: 'Jitendra', lastName: 'Prusty', email: 'jitendra.prusty@email.com', phone: '(904) 555-1107', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
+                { id: 'BANF-0108', familyId: 'FAM-C1523DDC', firstName: 'Dia', lastName: 'Ray', email: 'dia.ray@email.com', phone: '(904) 555-1108', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0109', familyId: 'FAM-C1523DDC', firstName: 'Souvik', lastName: 'Ray', email: 'souvik.ray@email.com', phone: '(904) 555-1109', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0110', familyId: 'FAM-39D036C3', firstName: 'Bhaskar', lastName: 'Roy', email: 'bhaskar.roy@email.com', phone: '(904) 555-1110', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0111', familyId: 'FAM-39D036C3', firstName: 'Debasmita', lastName: 'Roy', email: 'debasmita.roy@email.com', phone: '(904) 555-1111', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0112', familyId: 'FAM-39D036C3', firstName: 'Dipak', lastName: 'Roy', email: 'dipak.roy@email.com', phone: '(904) 555-1112', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0113', familyId: 'FAM-39D036C3', firstName: 'Ipsita', lastName: 'Roy', email: 'ipsita.roy@email.com', phone: '(904) 555-1113', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0114', familyId: 'FAM-39D036C3', firstName: 'Mitu', lastName: 'Roy', email: 'mitu.roy@email.com', phone: '(904) 555-1114', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0115', familyId: 'FAM-39D036C3', firstName: 'Nabo', lastName: 'Roy', email: 'nabo.roy@email.com', phone: '(904) 555-1115', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0116', familyId: 'FAM-39D036C3', firstName: 'Padmoja', lastName: 'Roy', email: 'padmoja.roy@email.com', phone: '(904) 555-1116', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0117', familyId: 'FAM-39D036C3', firstName: 'Sanat', lastName: 'Roy', email: 'sanat.roy@email.com', phone: '(904) 555-1117', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0118', familyId: 'FAM-39D036C3', firstName: 'Sanhita', lastName: 'Roy', email: 'sanhita.roy@email.com', phone: '(904) 555-1118', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0119', familyId: 'FAM-39D036C3', firstName: 'Sayani', lastName: 'Roy', email: 'sayani.roy@email.com', phone: '(904) 555-1119', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0120', familyId: 'FAM-39D036C3', firstName: 'Sonu', lastName: 'Roy', email: 'sonu.roy@email.com', phone: '(904) 555-1120', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0121', familyId: 'FAM-39D036C3', firstName: 'Subhro', lastName: 'Roy', email: 'subhro.roy@email.com', phone: '(904) 555-1121', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0122', familyId: 'FAM-39D036C3', firstName: 'Sudip', lastName: 'Roy', email: 'sudip.roy@email.com', phone: '(904) 555-1122', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0123', familyId: 'FAM-39D036C3', firstName: 'Suvro', lastName: 'Roy', email: 'suvro.roy@email.com', phone: '(904) 555-1123', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0124', familyId: 'FAM-39D036C3', firstName: 'Swapnoneel', lastName: 'Roy', email: 'swapnoneel.roy@email.com', phone: '(904) 555-1124', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0125', familyId: 'FAM-39D036C3', firstName: 'Tapas', lastName: 'Roy', email: 'tapas.roy@email.com', phone: '(904) 555-1125', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0126', familyId: 'FAM-7383B39B', firstName: 'Saurav', lastName: 'Roychoudhury', email: 'saurav.roychoudhury@email.com', phone: '(904) 555-1126', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0127', familyId: 'FAM-7383B39B', firstName: 'Sourav', lastName: 'Roychoudhury', email: 'sourav.roychoudhury@email.com', phone: '(904) 555-1127', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0128', familyId: 'FAM-83D8EA90', firstName: 'Kapil', lastName: 'Sadhu', email: 'kapil.sadhu@email.com', phone: '(904) 555-1128', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0129', familyId: 'FAM-83D8EA90', firstName: 'Sanghamitra', lastName: 'Sadhu', email: 'sanghamitra.sadhu@email.com', phone: '(904) 555-1129', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0130', familyId: 'FAM-D81B5923', firstName: 'Amit', lastName: 'Saha', email: 'amit.saha@email.com', phone: '(904) 555-1130', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0131', familyId: 'FAM-D81B5923', firstName: 'Debabrata', lastName: 'Saha', email: 'debabrata.saha@email.com', phone: '(904) 555-1131', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0132', familyId: 'FAM-D81B5923', firstName: 'Mukul', lastName: 'Saha', email: 'mukul.saha@email.com', phone: '(904) 555-1132', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0133', familyId: 'FAM-D81B5923', firstName: 'Papri', lastName: 'Saha', email: 'papri.saha@email.com', phone: '(904) 555-1133', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0134', familyId: 'FAM-8C6DE0D1', firstName: 'Arnab', lastName: 'Sanyal', email: 'arnab.sanyal@email.com', phone: '(904) 555-1134', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0135', familyId: 'FAM-8C6DE0D1', firstName: 'Sudeshna', lastName: 'Sanyal', email: 'sudeshna.sanyal@email.com', phone: '(904) 555-1135', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0136', familyId: 'FAM-23975513', firstName: 'Baidya', lastName: 'Sarkar', email: 'baidya.sarkar@email.com', phone: '(904) 555-1136', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0137', familyId: 'FAM-23975513', firstName: 'Mita', lastName: 'Sarkar', email: 'mita.sarkar@email.com', phone: '(904) 555-1137', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0138', familyId: 'FAM-2E1CEE29', firstName: 'Swarnendu', lastName: 'Sen', email: 'swarnendu.sen@email.com', phone: '(904) 555-1138', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0139', familyId: 'FAM-71891E07', firstName: 'Rajib', lastName: 'Sengupta', email: 'rajib.sengupta@email.com', phone: '(904) 555-1139', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0140', familyId: 'FAM-71891E07', firstName: 'Rita', lastName: 'Sengupta', email: 'rita.sengupta@email.com', phone: '(904) 555-1140', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' },
+                { id: 'BANF-0141', familyId: 'FAM-4C9F3F2C', firstName: 'Jigar', lastName: 'Shah', email: 'jigar.shah@email.com', phone: '(904) 555-1141', type: 'Family', status: 'Inactive', joinDate: '2024-01-15' },
+                { id: 'BANF-0142', familyId: 'FAM-D234EAFA', firstName: 'Madhu', lastName: 'Sindhuvalli', email: 'madhu.sindhuvalli@email.com', phone: '(904) 555-1142', type: 'Family', status: 'Active', joinDate: '2025-01-15' },
+                { id: 'BANF-0143', familyId: 'FAM-2E0E1EC3', firstName: 'Dola', lastName: 'Sinha', email: 'dola.sinha@email.com', phone: '(904) 555-1143', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
+                { id: 'BANF-0144', familyId: 'FAM-2E0E1EC3', firstName: 'Ujjal', lastName: 'Sinha', email: 'ujjal.sinha@email.com', phone: '(904) 555-1144', type: 'Family', status: 'Inactive', joinDate: '2023-01-15' },
+                { id: 'BANF-0145', familyId: 'FAM-EFFE048D', firstName: 'Nilanjana', lastName: 'Snyder', email: 'nilanjana.snyder@email.com', phone: '(904) 555-1145', type: 'Family', status: 'Active', joinDate: '2022-01-15' },
+                { id: 'BANF-0146', familyId: 'FAM-1BBD53D7', firstName: 'Shivani', lastName: 'Tomasovitch', email: 'shivani.tomasovitch@email.com', phone: '(904) 555-1146', type: 'Family', status: 'Inactive', joinDate: '2022-01-15' }
             ],
             // Demo registration data
             pendingRegistrations: {},
@@ -11043,40 +11052,44 @@
             
             // ---- Demo Data ----
             _seedDemoData() {
-                // Create demo families linked to existing memberDirectory
-                const demoFamilies = [
-                    { head: 'Rajib Das',     members: [{ firstName:'Rajib', lastName:'Das', email:'rajib.das@email.com', phone:'(904) 555-1001', relationship:'Head' }, { firstName:'Priya', lastName:'Das', email:'priya.das@email.com', phone:'(904) 555-1001', relationship:'Spouse' }, { firstName:'Ria', lastName:'Das', email:'', phone:'', relationship:'Child' }] },
-                    { head: 'Anita Sharma',  members: [{ firstName:'Anita', lastName:'Sharma', email:'anita.sharma@email.com', phone:'(904) 555-1002', relationship:'Head' }] },
-                    { head: 'Suman Pal',     members: [{ firstName:'Suman', lastName:'Pal', email:'suman.pal@email.com', phone:'(904) 555-1003', relationship:'Head' }, { firstName:'Sunita', lastName:'Pal', email:'sunita.pal@email.com', phone:'(904) 555-1003', relationship:'Spouse' }, { firstName:'Aryan', lastName:'Pal', email:'', phone:'', relationship:'Child' }, { firstName:'Sneha', lastName:'Pal', email:'', phone:'', relationship:'Child' }] },
-                    { head: 'Ritu Dey',      members: [{ firstName:'Ritu', lastName:'Dey', email:'ritu.dey@email.com', phone:'(904) 555-1004', relationship:'Head' }, { firstName:'Subir', lastName:'Dey', email:'subir.dey@email.com', phone:'(904) 555-1004', relationship:'Spouse' }] },
-                    { head: 'Kamal Bose',    members: [{ firstName:'Kamal', lastName:'Bose', email:'kamal.bose@email.com', phone:'(904) 555-1005', relationship:'Head' }, { firstName:'Ananya', lastName:'Bose', email:'ananya.bose@email.com', phone:'(904) 555-1005', relationship:'Spouse' }] },
-                    { head: 'Priti Guha',    members: [{ firstName:'Priti', lastName:'Guha', email:'priti.guha@email.com', phone:'(904) 555-1006', relationship:'Head' }, { firstName:'Amit', lastName:'Guha', email:'amit.guha@email.com', phone:'(904) 555-1006', relationship:'Spouse' }, { firstName:'Tina', lastName:'Guha', email:'', phone:'', relationship:'Child' }] },
-                    { head: 'Arjun Mitra',   members: [{ firstName:'Arjun', lastName:'Mitra', email:'arjun.mitra@email.com', phone:'(904) 555-1007', relationship:'Head' }] },
-                    { head: 'Laboni Dutta',  members: [{ firstName:'Laboni', lastName:'Dutta', email:'laboni.dutta@email.com', phone:'(904) 555-1008', relationship:'Head' }, { firstName:'Dipak', lastName:'Dutta', email:'dipak.dutta@email.com', phone:'(904) 555-1008', relationship:'Spouse' }] }
-                ];
+                // Seed families from the real memberDirectory (which includes familyId from family_universe.json)
+                // Group members by familyId to create proper family records
+                const membersByFamily = {};
+                (window.DemoData?.memberDirectory || []).forEach(m => {
+                    if (!m.familyId) return;
+                    if (!membersByFamily[m.familyId]) membersByFamily[m.familyId] = [];
+                    membersByFamily[m.familyId].push({
+                        firstName: m.firstName,
+                        lastName: m.lastName,
+                        email: m.email || '',
+                        phone: m.phone || '',
+                        relationship: membersByFamily[m.familyId].length === 0 ? 'Head' : 'Family Member'
+                    });
+                });
                 
-                const tiers = ['family', 'individual', 'family', 'couple', 'couple', 'family', 'student', 'family'];
+                const familyEntries = Object.entries(membersByFamily);
+                const tiers = ['family', 'couple', 'individual', 'family', 'couple'];
                 const familyIds = [];
                 
-                demoFamilies.forEach((fam, i) => {
-                    const fid = this.createFamily(fam.head, fam.members, 'demo-seed');
+                familyEntries.forEach(([famUniverseId, members], i) => {
+                    const headName = `${members[0].firstName} ${members[0].lastName}`;
+                    const fid = this.createFamily(headName, members, 'universe-seed');
                     familyIds.push(fid);
-                    // Create membership for most families (leave one expired)
-                    if (i < 7) {
-                        this.createMembership(fid, tiers[i], {
-                            amount: this.tiers[tiers[i]].amount,
-                            date: `2026-0${i + 1}-15`,
+                    // Create active memberships for active members
+                    const isActive = (window.DemoData?.memberDirectory || [])
+                        .find(m => m.familyId === famUniverseId)?.status === 'Active';
+                    if (isActive) {
+                        const tier = members.length >= 3 ? 'family' : members.length === 2 ? 'couple' : 'individual';
+                        this.createMembership(fid, tier, {
+                            amount: this.tiers[tier]?.amount || 100,
+                            date: '2026-01-15',
                             method: i % 2 === 0 ? 'Zelle' : 'Cash',
-                            ref: i % 2 === 0 ? `ZELLE-${Date.now()}-${i}` : `CASH-RCPT-${i}`
-                        }, 'demo-seed');
+                            ref: i % 2 === 0 ? `ZELLE-SEED-${i}` : `CASH-SEED-${i}`
+                        }, 'universe-seed');
                     }
                 });
                 
-                // Add some demo admin notes
-                this.addAdminNote('family', familyIds[0], 'Rajib is founding member — always keep membership active.', 'president');
-                this.addAdminNote('family', familyIds[7], 'Laboni family membership expired. Follow up required.', 'treasurer');
-                this.addAdminNote('family', familyIds[2], 'Suman upgraded from couple to family tier this year.', 'admin');
-                
+                console.log(`✅ Seeded ${familyIds.length} families from family_universe data`);
                 this.save();
             }
         };
